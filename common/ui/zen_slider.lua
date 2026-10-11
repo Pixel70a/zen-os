@@ -370,6 +370,9 @@ function ZenSlider.installTouchMenuHooks(TouchMenu, opts)
     function TouchMenu:onSwipe(arg, ges_ev)
         if in_panel(self) then
             if not is_locked(self) then
+                if ges_ev.direction == "north" and orig_onSwipe then
+                    return orig_onSwipe(self, arg, ges_ev)
+                end
                 for _i, sl in ipairs(get_sl(self)) do
                     if sl:handleSwipe(ges_ev, self.show_parent, self.dimen) then return true end
                 end

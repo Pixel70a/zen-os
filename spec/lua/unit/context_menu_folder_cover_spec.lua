@@ -863,6 +863,7 @@ describe("folder cover context-menu integration", function()
 
     it("keeps inline icons in plugin actions and preserves Edit ordering", function()
         local shown = {}
+        local closed = {}
         local details_options
         local editor_options
         local editor_file
@@ -943,8 +944,13 @@ describe("folder cover context-menu integration", function()
             Files = { isManaged = function() return false end },
             UIManager = {
                 show = function(_self, widget) shown[#shown + 1] = widget end,
-                close = function() end,
+                close = function(_self, widget) closed[#closed + 1] = widget end,
                 nextTick = function(_self, callback) callback() end,
+            },
+            ConfigManager = { get = function() return {} end },
+            ffiUtil = {
+                realpath = function(path) return path end,
+                dirname = function(path) return path:match("^(.*)/") end,
             },
             Cover = {
                 BORDER_SIZE = 1,
@@ -991,9 +997,18 @@ describe("folder cover context-menu integration", function()
         local dialog = shown[#shown]
         assert.is_nil(find_button(dialog, "Archive"))
         assert.is_nil(find_button(dialog, "More"))
+        assert.is_nil(find_button(dialog, "Move"))
         assert.is_nil(plugin_args)
 
         context_menu_config.show_archive = true
+        file_chooser:showFileDialog({ path = "/library/book.epub", is_file = true })
+        dialog = shown[#shown]
+        assert.is_nil(find_button(dialog, "Archive"))
+        assert(find_button(dialog, "More")).callback()
+        assert.are.equal(1, #shown[#shown].buttons)
+        assert.is_not_nil(find_button(shown[#shown], "Archive"))
+        assert.is_nil(plugin_args)
+
         context_menu_config.show_plugin_actions = true
         file_chooser:showFileDialog({
             path = "/library/book.epub",
@@ -1001,7 +1016,7 @@ describe("folder cover context-menu integration", function()
             _zen_collection_name = "Test",
         })
         dialog = shown[#shown]
-        assert.matches("\u{F19C}", assert(find_button(dialog, "Archive")).text, 1, true)
+        assert.is_nil(find_button(dialog, "Archive"))
         local more = assert(find_button(dialog, "More"))
         assert.matches("more-icon", more.text, 1, true)
         more.callback()
@@ -1011,7 +1026,8 @@ describe("folder cover context-menu integration", function()
         assert.are.equal("/library/book.epub", plugin_args[1])
         assert.is_true(plugin_args[2])
         assert.are.equal("Book", plugin_args[3].title)
-        assert.are.equal(3, #more_dialog.buttons)
+        assert.are.equal(4, #more_dialog.buttons)
+        assert.matches("\u{F19C}", assert(find_button(more_dialog, "Archive")).text, 1, true)
         assert.are.equal(1, #more_dialog.buttons[1])
         assert.are.equal(1, #more_dialog.buttons[2])
         assert.are.equal("\u{F05F9}  Incognito", more_dialog.buttons[1][1].text)
@@ -1027,6 +1043,19 @@ describe("folder cover context-menu integration", function()
         assert(find_button(more_dialog, "Incognito")).callback()
         assert.is_true(plugin_action_called)
 
+        context_menu_config.show_archive = false
+        file_chooser:showFileDialog({ path = "/library/book.epub", is_file = true })
+        assert(find_button(shown[#shown], "More")).callback()
+        assert.are.equal(3, #shown[#shown].buttons)
+        assert.is_nil(find_button(shown[#shown], "Archive"))
+
+        FileManager.file_dialog_added_buttons = nil
+        context_menu_config.show_archive = true
+        file_chooser:showFileDialog({ path = "/library/book.epub", is_file = true })
+        assert(find_button(shown[#shown], "More")).callback()
+        assert.are.equal(1, #shown[#shown].buttons)
+        assert.is_not_nil(find_button(shown[#shown], "Archive"))
+
         file_chooser:showFileDialog({
             path = "/library/book.epub",
             is_file = true,
@@ -1041,6 +1070,15 @@ describe("folder cover context-menu integration", function()
 
         assert(find_button(dialog, "Edit")).callback()
         local edit_dialog = shown[#shown]
+        assert.matches("Move", edit_dialog.buttons[1][1].text, 1, true)
+        assert.is_nil(find_button(edit_dialog, "Archive"))
+        replace("docsettings", {})
+        replace("readhistory", {})
+        assert(find_button(edit_dialog, "Move")).callback()
+        assert.are.equal(edit_dialog, closed[#closed])
+        assert.are.equal("Move to…", shown[#shown].title)
+        assert.are.equal("/library", shown[#shown].path)
+        assert.are.equal("/library", shown[#shown].src_dir)
         assert.matches("Edit metadata", edit_dialog.buttons[#edit_dialog.buttons - 1][1].text,
             1, true)
         assert.matches("Delete", edit_dialog.buttons[#edit_dialog.buttons][1].text, 1, true)
@@ -1063,6 +1101,7 @@ describe("folder cover context-menu integration", function()
         local home_dialog = shown[#shown]
         assert.is_nil(find_button(home_dialog, "Refresh"))
         assert(find_button(home_dialog, "Edit")).callback()
+        assert.is_nil(find_button(shown[#shown], "Move"))
         assert(find_button(shown[#shown], "Refresh")).callback()
         assert.are.equal("/library/book.epub", deleted_bookinfo)
 

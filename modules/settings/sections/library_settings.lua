@@ -1226,6 +1226,9 @@ function M.build(ctx)
                     if type(config.context_menu) ~= "table" then config.context_menu = {} end
                     config.context_menu.show_archive =
                         config.context_menu.show_archive ~= true
+                    if config.context_menu.show_archive then
+                        config.context_menu.show_plugin_actions = true
+                    end
                     plugin:saveConfig()
                 end,
             }, icons.archive),
