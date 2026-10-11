@@ -82,6 +82,7 @@ end
 
 function M.restore(region, saved, radius)
     if saved then
+        wait_for_submission()
         Screen.bb:blitFrom(saved.bb, saved.x, saved.y, 0, 0, saved.bb:getWidth(), saved.bb:getHeight())
         saved.bb:free()
     else

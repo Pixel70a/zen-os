@@ -8,6 +8,7 @@ local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
 local getFullRefreshMode = require("common/ui/refresh")
 local utils = require("modules/settings/zen_settings_utils")
+local Accent = require("common/ui/accent")
 local icon_utils = require("common/utils")
 local plugin_root = require("common/plugin_root")
 local paths = require("common/paths")
@@ -109,8 +110,7 @@ function M.build(ctx)
 
     local function navbar_color_item(label, key, default, enabled_func, opacity_key)
         local function color_hex()
-            local c = config.navbar[key]
-            if type(c) ~= "table" then c = default end
+            local c = Accent.navbarColor(config, key, default)
             return string.format("#%02X%02X%02X",
                 math.max(0, math.min(255, tonumber(c[1]) or default[1])),
                 math.max(0, math.min(255, tonumber(c[2]) or default[2])),
@@ -132,6 +132,7 @@ function M.build(ctx)
                             tonumber(hex:sub(4, 5), 16),
                             tonumber(hex:sub(6, 7), 16),
                         }
+                        config.navbar[key .. "_custom"] = true
                         if opacity_key then config.navbar[opacity_key] = opacity end
                         save_and_defer_navbar_refresh()
                         if touchmenu_instance then touchmenu_instance:updateItems() end

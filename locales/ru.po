@@ -1177,6 +1177,12 @@ msgstr "Шахматы"
 msgid "Choose a different folder"
 msgstr "Выбрать другую папку"
 
+#. Type: description
+#. Context: Accent color setup page.
+#: quickstart_pages.lua:577
+msgid "Choose an accent color for buttons, sliders, and navigation."
+msgstr "Выберите акцентный цвет для кнопок, ползунков и навигации."
+
 #. Type: title
 #. Context: Заголовок в редакторе метаданных книг.
 #: metadata_editor.lua:509

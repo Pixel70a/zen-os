@@ -169,11 +169,38 @@ describe("Interface settings", function()
         }, {})
         local accent = section.sub_item_table[5]
         assert.is_false(accent.enabled_func())
+        accent.checkmark_callback()
         for _i, item in ipairs(accent.sub_item_table) do
             assert.is_false(item.enabled_func())
             item.callback()
         end
         assert.are.equal("#336699", config.accent_color)
+    end)
+
+    it("toggles the accent on its root row while preserving color settings", function()
+        package.loaded["device"].screen.isColorScreen = function() return true end
+        local saves, updates, deferred = 0, 0
+        package.loaded["modules/settings/zen_settings_apply"].defer_until_settings_close =
+            function(key) deferred = key end
+        local config = { features = {}, accent_color = "#336699", accent_opacity = 37 }
+        local section = require("modules/settings/sections/interface_settings").build({
+            config = config, plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        }, {})
+        local accent = section.sub_item_table[5]
+        local menu = { updateItems = function() updates = updates + 1 end }
+        assert.is_true(accent.checked_func())
+        assert.are.equal(2, #accent.sub_item_table)
+        accent.checkmark_callback(menu)
+        assert.is_false(accent.checked_func())
+        assert.is_false(config.accent_enabled)
+        assert.are.equal("#336699", config.accent_color)
+        assert.are.equal(37, config.accent_opacity)
+        assert.are.equal("background_surfaces", deferred)
+        accent.checkmark_callback(menu)
+        assert.is_true(accent.checked_func())
+        assert.are.equal(2, saves)
+        assert.are.equal(2, updates)
     end)
 
     it("resets the Library font to bundled Hyperreadable", function()

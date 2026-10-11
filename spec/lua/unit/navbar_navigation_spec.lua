@@ -2893,6 +2893,66 @@ describe("file browser navbar navigation", function()
         assert.are.equal(1, underline_count)
     end)
 
+    it("renders inherited accent colors for every navbar style and keeps custom overrides", function()
+        local mock = package.loaded["ffi/blitbuffer"]
+        ZenSpec.unload("ffi/blitbuffer")
+        local Blitbuffer = require("ffi/blitbuffer")
+        ZenSpec.replace("ffi/blitbuffer", mock)
+        mock.ColorRGB32 = Blitbuffer.ColorRGB32
+        local FrameContainer = package.loaded["ui/widget/container/framecontainer"]
+        FrameContainer.paintTo = function() end
+        screen_is_color = true
+        local config = _G.__ZEN_UI_PLUGIN.config
+        config.accent_color = "#204080"
+        local navbar = config.navbar
+        navbar.filled_background_opacity = 100
+        local fm = make_instance()
+        fm[1] = { fm.file_chooser }
+        for _i, entry in ipairs({
+            { "active_tab_underline", "active_tab_color" },
+            { "active_tab_outlined", "outlined_color" },
+            { "active_tab_filled", "filled_background_color" },
+        }) do
+            local style, key = entry[1], entry[2]
+            navbar.active_tab_underline = style == "active_tab_underline"
+            navbar.active_tab_outlined = style == "active_tab_outlined"
+            navbar.active_tab_filled = style == "active_tab_filled"
+            for _j, custom in ipairs({ false, true }) do
+                if custom then navbar[key] = { 12, 34, 56 } end
+                local expected = custom and Blitbuffer.ColorRGB32(12, 34, 56, 255)
+                    or Blitbuffer.ColorRGB32(32, 64, 128, 255)
+                for _k, show_icons in ipairs({ false, true }) do
+                    navbar.show_icons = show_icons
+                    built_widgets = {}
+                    _G.__ZEN_UI_REINJECT_FM_NAVBAR()
+                    local checked = false
+                    for _l, widget_entry in ipairs(built_widgets) do
+                        local widget = widget_entry.widget
+                        if not show_icons and widget.text == "Home" and widget.fgcolor then
+                            assert.are.equal(tostring(expected), tostring(widget.fgcolor))
+                            checked = true
+                        elseif show_icons and style == "active_tab_filled" and widget.background then
+                            assert.are.equal(tostring(expected), tostring(widget.background))
+                            checked = true
+                        elseif show_icons and widget.paintTo and (
+                                style == "active_tab_outlined" and widget.radius and widget.paintTo ~= FrameContainer.paintTo
+                                or style == "active_tab_underline" and widget.dimen.h == 2) then
+                            local color
+                            local bb = {
+                                paintRectRGB32 = function(_self, _x, _y, _w, _h, c) color = c end,
+                                paintBorderRGB32 = function(_self, _x, _y, _w, _h, _border, c) color = c end,
+                            }
+                            widget:paintTo(bb, 0, 0)
+                            assert.are.equal(tostring(expected), tostring(color))
+                            checked = true
+                        end
+                    end
+                    assert.is_true(checked)
+                end
+            end
+        end
+    end)
+
     it("captures the active view and closes library overlays before Reader opens", function()
         local fm = make_instance()
         _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true

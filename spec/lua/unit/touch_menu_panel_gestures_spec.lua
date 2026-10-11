@@ -260,4 +260,47 @@ describe("TouchMenu panel gestures", function()
         menu:updateItems()
         assert.are.same({ left = true, right = true }, enabled)
     end)
+
+    it("clears underlying text with color refreshes only when the accent is enabled", function()
+        local screen = require("device").screen
+        local config = { accent_color = "#204080" }
+        require("modules/menu/patches/touch_menu_panel").install({ config = config })
+        local menu = new_menu()
+        local region = { x = 0, y = 0, w = 600, h = 400 }
+        menu.dimen = {
+            h = 400,
+            copy = function() return { h = 400, combine = function() return region end } end,
+        }
+        menu.item_group = { clear = function() end, getSize = function() return { h = 400 } end }
+        menu.footer_top_margin, menu.footer = {}, {}
+        menu.page_info_text = { setText = function() end }
+        menu.page_info_left_chev = { showHide = function() end, enableDisable = function() end }
+        menu.page_info_right_chev = menu.page_info_left_chev
+        menu.width, menu.bordersize, menu.padding, menu.cur_tab = 600, 0, 0, 1
+        menu.moveFocusTo = function() end
+        menu.item_table = { panel = {} }
+        menu._zen_panel_refs = {}
+        local refresh
+        local UIManager = require("ui/uimanager")
+        UIManager.setDirty = function(_self, _owner, callback) refresh = callback end
+
+        for _i, case in ipairs({
+            { true, "#204080", true, "full", true },
+            { true, "#204080", false, "partial", true },
+            { true, "#000000", true, "flashui", false },
+            { true, "#000000", false, "ui", false },
+            { false, "#204080", true, "flashui", false },
+            { false, "#204080", false, "ui", false },
+        }) do
+            screen.isColorScreen = function() return case[1] end
+            config.accent_color, menu.is_fresh = case[2], case[3]
+            menu:updateItems()
+            if case[5] then menu.is_fresh = false end -- Background hatching clears it in onShow.
+            local mode, refreshed, dither = refresh()
+            assert.are.equal(case[4], mode)
+            assert.are.equal(region, refreshed)
+            assert.are.equal(case[5], dither)
+            assert.is_false(menu.is_fresh)
+        end
+    end)
 end)

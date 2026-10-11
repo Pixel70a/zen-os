@@ -1176,6 +1176,12 @@ msgstr "Schaken"
 msgid "Choose a different folder"
 msgstr "Een andere map kiezen"
 
+#. Type: description
+#. Context: Accent color setup page.
+#: quickstart_pages.lua:577
+msgid "Choose an accent color for buttons, sliders, and navigation."
+msgstr "Kies een accentkleur voor knoppen, schuifregelaars en navigatie."
+
 #. Type: title
 #. Context: Titel in de editor voor boekmetadata.
 #: metadata_editor.lua:509

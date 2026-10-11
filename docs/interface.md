@@ -23,6 +23,10 @@ Interface settings shape how you control, navigate, and personalize ZenOS. They 
 - **Blur menu background**: a hatched backdrop below the top menu.
 - **Custom icons**: use the row's switch to enable icon overrides; open the submenu to choose a pack.
 
+## Accent color
+
+On color screens, the Setup Guide includes an accent color page with an embedded color wheel, brightness and opacity controls. It also appears once after the update changelog for existing installations. Continuing saves your selection; leaving the controls untouched keeps your current settings.
+
 ## Status bar
 
 Open **Zen Settings > Interface > Status bar** to enable the Library status bar or configure its contents. Use the row's switch to hide or restore it, then open **Left items**, **Center items**, or **Right items** to choose and arrange each slot. Reader status bars are configured separately under **Zen Settings > Reader**.
@@ -56,8 +60,8 @@ Paths below start at **Zen Settings > Interface**.
 | Controls | Configures buttons and frontlight sliders. See [Controls](/zen-os/docs/controls). |
 | Launcher | Configures shortcut pages, buttons, and folders. See [Launcher](/zen-os/docs/launcher). |
 | Navbar | Configures tabs and their appearance. See [Navbar](/zen-os/docs/navbar). |
-| Accent color | Opens accent settings on color screens; disabled on monochrome screens. |
-| Accent color > Accent color | Picks a color with the color wheel or hex input and adjusts its opacity. Applies to cover badges without a custom color, sliders, enabled Controls and Launcher button fills, active book-strip and page-switcher tabs, enabled switches, filled buttons, and button feedback. Toggle and Controls button outlines stay black. |
+| Accent color | Enables or disables the accent using the row's switch and opens its settings. Keeps the saved color and opacity when disabled. Available on color screens. |
+| Accent color > Accent color | Picks a color with the color wheel or hex input and adjusts its opacity. Applies to cover badges without a custom color, sliders, enabled Controls and Launcher button fills, active book-strip and page-switcher tabs, enabled switches, filled buttons, and button feedback. Toggle and Controls button outlines stay black. Slider rails share the fill color to reduce ghosting when the fill grows. Controls sliders retain the accent while dragging, using local normal refreshes to preserve shades and erase the knob cleanly. Repeated drag values skip redraws. |
 | Accent color > Reset accent color | Restores the default black accent at full opacity. |
 | Status bar | Shows or hides the Library status bar using the row's switch; opens its settings. |
 | Status bar > Custom text | Sets custom status text. Empty text falls back to the device model. |

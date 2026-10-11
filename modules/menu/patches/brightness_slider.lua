@@ -134,13 +134,16 @@ local function build_brightness_slider(touch_menu, opts)
             Screen.bb:paintRect(number_x, label_y, number_width, label_h, Blitbuffer.COLOR_WHITE)
             number:setText(tostring(value))
             number:paintTo(Screen.bb, number_x, label_y)
-            local dirty_x = math.min(progress.dimen.x, number_x)
-            UIManager:setDirty(nil, "fast", Geom:new{
+            local slider_dimen = progress:dirtyDimen()
+            local dirty_x = math.min(slider_dimen.x, number_x)
+            local colored = Accent.isEnabled()
+            -- DU cannot reproduce accent shades or cleanly erase a colored knob.
+            UIManager:setDirty(nil, colored and "ui" or "fast", Geom:new{
                 x = dirty_x,
                 y = label_y,
-                w = math.max(progress.dimen.x + progress.dimen.w, number_x + number_width) - dirty_x,
+                w = math.max(slider_dimen.x + slider_dimen.w, number_x + number_width) - dirty_x,
                 h = progress.dimen.y + progress.dimen.h - label_y,
-            })
+            }, colored)
         else
             number:setText(tostring(value))
             UIManager:setDirty(show_parent, "ui", touch_menu.dimen)

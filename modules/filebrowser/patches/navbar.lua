@@ -1867,6 +1867,7 @@ local function apply_navbar()
     end
 
     local function createTabWidget(tab, label_max_w, is_active, font_size, is_focused)
+        local Accent = require("common/ui/accent")
         local styled = is_active and tab.dim ~= true
         local filled = styled and config.active_tab_filled == true
         local outlined = styled and config.active_tab_outlined == true and not filled
@@ -1876,13 +1877,13 @@ local function apply_navbar()
         if filled then
             local c = config.filled_outline_color
             active_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
-            c = config.filled_background_color
+            c = Accent.navbarColor(zen_plugin.config, "filled_background_color", config_default.filled_background_color)
             fill_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
         elseif outlined then
-            local c = config.outlined_color
+            local c = Accent.navbarColor(zen_plugin.config, "outlined_color", config_default.outlined_color)
             fill_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
         elseif use_color then
-            local c = config.active_tab_color
+            local c = Accent.navbarColor(zen_plugin.config, "active_tab_color", config_default.active_tab_color)
             if c and type(c) == "table" then
                 active_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
             end
@@ -1984,7 +1985,7 @@ local function apply_navbar()
         if show_underline then
             local underline_w = show_label and label:getSize().w or icon:getSize().w
             local underline_color = Blitbuffer.COLOR_BLACK
-            local c = config.active_tab_color
+            local c = Accent.navbarColor(zen_plugin.config, "active_tab_color", config_default.active_tab_color)
             if c and type(c) == "table" then
                 underline_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
             end

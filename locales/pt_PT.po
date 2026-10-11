@@ -1176,6 +1176,12 @@ msgstr "Xadrez"
 msgid "Choose a different folder"
 msgstr "Escolher outra pasta"
 
+#. Type: description
+#. Context: Accent color setup page.
+#: quickstart_pages.lua:577
+msgid "Choose an accent color for buttons, sliders, and navigation."
+msgstr "Escolha uma cor de destaque para botões, controlos deslizantes e navegação."
+
 #. Type: title
 #. Context: Título no editor de metadados dos livros.
 #: metadata_editor.lua:509

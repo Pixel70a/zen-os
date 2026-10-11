@@ -131,6 +131,53 @@ describe("color picker opacity", function()
         picker:onCloseWidget()
     end)
 
+    it("embeds the controls without a title or Apply button and only applies changed colors", function()
+        local applied, closes, dirty_owner = 0, 0, nil
+        local parent = {}
+        package.loaded["ui/uimanager"].close = function() closes = closes + 1 end
+        package.loaded["ui/uimanager"].setDirty = function(_self, owner) dirty_owner = owner end
+        local picker = Picker:new{
+            embedded = true, show_parent = parent,
+            dimen = { w = 600, h = 500 }, hex = "#0000FF", opacity = 60,
+            callback = function(hex, opacity)
+                assert.are.equal("#0000FF", hex)
+                assert.are.equal(60, opacity)
+                applied = applied + 1
+            end,
+        }
+
+        assert.are.equal(500, picker.screen_height)
+        assert.are.equal(2, #picker.layout)
+        assert.are.equal(7, #picker[1])
+        assert.are.equal(parent, dirty_owner)
+        picker:onApply()
+        assert.are.equal(0, applied)
+        picker:setHex("#0000FF")
+        picker:onApply()
+        picker:onApply()
+
+        assert.are.equal(1, applied)
+        assert.are.equal(0, closes)
+        picker:onCloseWidget()
+    end)
+
+    it("lets footer gestures through and keeps swipes on embedded controls within the page", function()
+        local picker = Picker:new{
+            embedded = true, dimen = { w = 600, h = 500 }, hex = "#0000FF", opacity = 60,
+        }
+        local inside_picker = false
+        local gesture = { direction = "west", pos = {
+            intersectWith = function(_pos, dimen)
+                return inside_picker and dimen == picker.dimen
+            end,
+        } }
+        assert.is_false(picker:onTapColorWheel(nil, gesture))
+        assert.is_false(picker:onSwipeColorWheel(nil, gesture))
+        inside_picker = true
+        assert.is_true(picker:onSwipeColorWheel(nil, gesture))
+        picker:onCloseWidget()
+    end)
+
     it("previews opacity and preserves it through color-picker rebuilds", function()
         local picked
         local picker = Picker:new{

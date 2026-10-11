@@ -154,6 +154,14 @@ function M.build(ctx, extras_items)
     table.insert(items, {
         text = _("Accent color"),
         enabled_func = Accent.isSupported,
+        checked_func = function() return config.accent_enabled ~= false end,
+        checkmark_callback = function(touchmenu_instance)
+            if not Accent.isSupported() then return end
+            config.accent_enabled = config.accent_enabled == false
+            plugin:saveConfig()
+            schedule_background_surface_refresh(plugin)
+            if touchmenu_instance then touchmenu_instance:updateItems() end
+        end,
         sub_item_table = {
             {
                 text_func = function() return _("Accent color") .. ": " .. Accent.hex(config) end,

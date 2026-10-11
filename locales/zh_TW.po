@@ -1176,6 +1176,12 @@ msgstr "西洋棋"
 msgid "Choose a different folder"
 msgstr "選擇其他資料夾"
 
+#. Type: description
+#. Context: Accent color setup page.
+#: quickstart_pages.lua:577
+msgid "Choose an accent color for buttons, sliders, and navigation."
+msgstr "為按鈕、滑桿和導覽選擇強調色。"
+
 #. Type: title
 #. Context: 書籍中繼資料編輯器中使用的標題。
 #: metadata_editor.lua:509

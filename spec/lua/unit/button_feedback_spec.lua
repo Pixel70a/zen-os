@@ -471,6 +471,33 @@ describe("rounded button feedback", function()
         assert.are.equal(32, screen.bb:getPixel(28, 28).a)
     end)
 
+    it("submits the accent highlight before restoring pixels and opening the next screen", function()
+        _G.__ZEN_UI_PLUGIN = { config = { accent_color = "#204080" } }
+        screen.isColorScreen = function() return true end
+        screen.bb = Blitbuffer.new(48, 48, Blitbuffer.TYPE_BBRGB32)
+        screen.bb:fill(Blitbuffer.COLOR_WHITE)
+        screen.marker = 1
+        local frames = {}
+        screen.mech_wait_update_submission = function(_self, marker)
+            if not frames[marker] then
+                frames[marker] = tostring(screen.bb:getPixel(28, 28))
+            end
+            return 0
+        end
+        UIManager.forceRePaint = function()
+            screen:mech_wait_update_submission(screen.marker)
+            screen.marker = screen.marker + 1
+        end
+
+        Feedback.flash({ x = 20, y = 20, w = 24, h = 24 })
+        screen.bb:fill(Blitbuffer.COLOR_BLACK)
+        UIManager:forceRePaint()
+
+        assert.are.equal(tostring(Blitbuffer.COLOR_WHITE:getColorRGB32()), frames[1])
+        assert.are.equal(tostring(Blitbuffer.ColorRGB32(32, 64, 128, 255)), frames[2])
+        assert.are.equal(tostring(Blitbuffer.COLOR_BLACK:getColorRGB32()), tostring(screen.bb:getPixel(28, 28)))
+    end)
+
     it("uses asynchronous feedback on color screens without submission support", function()
         local device = package.loaded.device
         screen.isColorScreen = function() return true end

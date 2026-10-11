@@ -9,6 +9,7 @@
 --   end
 
 local Blitbuffer      = require("ffi/blitbuffer")
+local Accent          = require("common/ui/accent")
 local Button          = require("ui/widget/button")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local Device          = require("device")
@@ -88,10 +89,7 @@ local function build_warmth_slider(touch_menu, opts)
 
     nl.prev_non_min = nl.cur > nl.min and nl.cur or math.min(nl.max, nl.min + 1)
 
-    -- During drag: paint directly to Screen.bb and push A2 refresh via
-    -- setDirty(nil) — bypasses the widget tree entirely, so no competing
-    -- GL16 from other widgets can cause flicker.
-    -- On release / tap: full menu GL16 refresh to update label + slider.
+    -- Paint label and slider directly during drag; redraw the menu on release.
     nl_progress.on_change = function(v)
         powerd:setWarmth(powerd:fromNativeWarmth(v))
         nl.cur = v
@@ -110,14 +108,16 @@ local function build_warmth_slider(touch_menu, opts)
             Screen.bb:paintRect(num_x, label_y, nl_drag_max_num_w, lh, Blitbuffer.COLOR_WHITE)
             nl_drag_num:setText(tostring(nl.cur))
             nl_drag_num:paintTo(Screen.bb, num_x, label_y)
-            -- Single A2 covering label + slider (two back-to-back A2 calls
-            -- can race on Kobo, causing the second refresh to be dropped).
-            UIManager:setDirty(nil, "fast", Geom:new{
-                x = nl_progress.dimen.x,
+            local slider_dimen = nl_progress:dirtyDimen()
+            local dirty_x = math.min(slider_dimen.x, num_x)
+            local colored = Accent.isEnabled()
+            -- One refresh for label and slider avoids competing Kobo updates.
+            UIManager:setDirty(nil, colored and "ui" or "fast", Geom:new{
+                x = dirty_x,
                 y = label_y,
-                w = nl_progress.dimen.w,
+                w = math.max(slider_dimen.x + slider_dimen.w, num_x + nl_drag_max_num_w) - dirty_x,
                 h = nl_progress.dimen.y + nl_progress.dimen.h - label_y,
-            })
+            }, colored)
         else
             if nl_label_fn then UIManager:unschedule(nl_label_fn) ; nl_label_fn = nil end
             nl_drag_num:setText(tostring(nl.cur))

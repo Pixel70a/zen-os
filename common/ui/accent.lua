@@ -26,15 +26,17 @@ function M.opacity(config)
 end
 
 function M.isEnabled(config)
-    return M.isSupported() and (M.hex(config) ~= "#000000" or M.opacity(config) < 100)
+    if not M.isSupported() then return false end
+    config = get_config(config)
+    return not (config and config.accent_enabled == false)
+        and (M.hex(config) ~= "#000000" or M.opacity(config) < 100)
 end
 
 function M.color(config)
     local Blitbuffer = require("ffi/blitbuffer")
-    if not M.isSupported() then return Blitbuffer.COLOR_BLACK end
+    if not M.isEnabled(config) then return Blitbuffer.COLOR_BLACK end
     local hex = M.hex(config)
     local opacity = M.opacity(config)
-    if hex == "#000000" and opacity == 100 then return Blitbuffer.COLOR_BLACK end
     local night_mode = require("device").screen.night_mode
     if hex ~= cached_hex or opacity ~= cached_opacity or night_mode ~= cached_night_mode then
         cached_hex, cached_opacity, cached_night_mode = hex, opacity, night_mode
@@ -61,6 +63,20 @@ function M.foreground(config)
     local color = M.color(config):getColorRGB32()
     local luminance = 0.2126 * linear(color.r) + 0.7152 * linear(color.g) + 0.0722 * linear(color.b)
     return luminance > 0.179 and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE
+end
+
+function M.navbarColor(config, key, default)
+    local navbar = config.navbar or {}
+    local c = type(navbar[key]) == "table" and navbar[key] or default
+    -- Older configs saved defaults without marking whether a color was customized.
+    local is_default = c[1] == default[1] and c[2] == default[2] and c[3] == default[3]
+    if key ~= "filled_outline_color" and not navbar[key .. "_custom"]
+            and is_default and M.isEnabled(config) then
+        local color = M.color(config)
+        if require("device").screen.night_mode then color = color:invert() end
+        return { color:getR(), color:getG(), color:getB() }
+    end
+    return c
 end
 
 function M.styleIcon(icon, active)

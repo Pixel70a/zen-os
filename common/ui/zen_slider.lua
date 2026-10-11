@@ -74,7 +74,7 @@ function ZenSlider:new(o)
     obj.fill_height   = obj.fill_height   or Screen:scaleBySize(6)   -- thicker filled bar
     obj.knob_radius   = obj.knob_radius   or Screen:scaleBySize(16.5)
     obj.fill_color    = obj.fill_color    or Accent.color()
-    obj.track_color   = obj.track_color   or Blitbuffer.COLOR_BLACK
+    obj.track_color   = obj.track_color   or obj.fill_color -- Avoid black-to-color rail trails on e-ink.
     obj.knob_color    = obj.knob_color    or Accent.color()
     obj.knob_bg_color = obj.knob_bg_color or Blitbuffer.COLOR_WHITE
     local knob_d  = obj.knob_radius * 2
@@ -124,18 +124,14 @@ function ZenSlider:setValue(v)
                   math.min(self.value_max, Math.round(v)))
 end
 
---- Update value from an absolute screen X; fires on_change if value changed.
---- During drag, also fires on_change when value is unchanged (e.g. to erase
---- the knob on first contact).
-function ZenSlider:applyPosition(abs_x)
-    self._prev_knob_abs_x = self:_knobAbsX()
+--- Update value from an absolute screen X; force_redraw repaints the whole slider.
+function ZenSlider:applyPosition(abs_x, force_redraw)
+    self._prev_knob_abs_x = not force_redraw and self:_knobAbsX() or nil
     local local_x = abs_x - (self.dimen and self.dimen.x or 0)
     local new_val = self:_xToValue(local_x)
-    if new_val ~= self._value then
+    if new_val ~= self._value or force_redraw then
         self._value = new_val
         if self.on_change then self.on_change(new_val) end
-    elseif self._dragging and self.on_change then
-        self.on_change(new_val)
     end
 end
 
@@ -256,7 +252,7 @@ function ZenSlider:handlePan(ges)
     if self.on_drag_start then self.on_drag_start() end
     self._dragging = true
     self.hide_knob = true
-    self:applyPosition(ges.pos.x)
+    self:applyPosition(ges.pos.x, true)
     return true
 end
 

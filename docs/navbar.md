@@ -28,6 +28,8 @@ Navbar settings live under **Zen Settings > Interface > Navbar**.
 
 Under **Styling > Active tab**, choose **Underline**, **Filled**, or **Outlined** using the radio control. Open **Underline** to move the line above the icon and pick **Outline color**. The underline always uses this color, defaults to black, and retains previously saved active-tab colors. Open **Filled** to pick **Outline color** for the icon and **Fill color** for the squircle behind it; the defaults are a white icon on a muted blue (#4F6F8F) squircle. **Outlined** draws a hollow border around the selected icon using the same dimensions as Filled, with its own **Outline color** picker. With icons hidden, the active label uses the selected style's color.
 
+When accent color is enabled, the underline, outlined border, and filled background inherit it unless their color has been customized. Older saved colors matching the defaults inherit the accent too. Choosing a navbar color overrides the accent for that color.
+
 The **Fill color** picker also has an **Opacity** slider from 0% (transparent) to 100% (opaque), with a default of 60%. Opacity affects the squircle background; icons and labels stay opaque. Color and opacity changes repaint the navbar when settings close.
 
 ## Manga And News Tabs

@@ -61,6 +61,21 @@ describe("interface accent", function()
         assert.are.equal(tostring(Blitbuffer.ColorRGB32(51, 102, 153, 255)), tostring(Accent.color()))
     end)
 
+    it("disables the accent without losing the saved color or opacity", function()
+        local config = _G.__ZEN_UI_PLUGIN.config
+        config.accent_opacity = 50
+        local color = tostring(Accent.color())
+        config.accent_enabled = false
+        assert.is_false(Accent.isEnabled())
+        assert.are.equal(Blitbuffer.COLOR_BLACK, Accent.color())
+        assert.are.equal(Blitbuffer.COLOR_WHITE, Accent.foreground())
+        assert.are.equal("#204080", Accent.hex())
+        assert.are.equal(50, Accent.opacity())
+        config.accent_enabled = true
+        assert.is_true(Accent.isEnabled())
+        assert.are.equal(color, tostring(Accent.color()))
+    end)
+
     it("contrasts labels and compensates colors for night mode", function()
         assert.are.equal(Blitbuffer.COLOR_WHITE, Accent.foreground())
         screen.night_mode = true
@@ -106,6 +121,48 @@ describe("interface accent", function()
             _G.__ZEN_UI_PLUGIN.config.accent_opacity = entry[1]
             assert.are.equal(entry[2], Accent.opacity())
         end
+    end)
+
+    it("inherits the navbar accent per color while preserving custom colors", function()
+        local config = _G.__ZEN_UI_PLUGIN.config
+        config.navbar = {}
+        local defaults = {
+            active_tab_color = { 0, 0, 0 },
+            outlined_color = { 0x4F, 0x6F, 0x8F },
+            filled_background_color = { 0x4F, 0x6F, 0x8F },
+        }
+        for key, default in pairs(defaults) do
+            assert.are.same({ 32, 64, 128 }, Accent.navbarColor(config, key, default))
+            config.navbar[key] = default
+            assert.are.same({ 32, 64, 128 }, Accent.navbarColor(config, key, default))
+            config.navbar[key] = { 12, 34, 56 }
+            assert.are.same({ 12, 34, 56 }, Accent.navbarColor(config, key, default))
+            config.navbar[key] = default
+            config.navbar[key .. "_custom"] = true
+            assert.are.same(default, Accent.navbarColor(config, key, default))
+            config.navbar[key .. "_custom"] = nil
+        end
+        local white = { 255, 255, 255 }
+        assert.are.same(white, Accent.navbarColor(config, "filled_outline_color", white))
+        config.accent_color = "#336699"
+        assert.are.same({ 51, 102, 153 }, Accent.navbarColor(config, "active_tab_color", defaults.active_tab_color))
+        config.accent_enabled = false
+        assert.are.same(defaults.active_tab_color, Accent.navbarColor(config, "active_tab_color", defaults.active_tab_color))
+        config.accent_enabled = true
+        screen.isColorScreen = function() return false end
+        assert.are.same(defaults.active_tab_color, Accent.navbarColor(config, "active_tab_color", defaults.active_tab_color))
+        assert.are.same(defaults, config.navbar)
+    end)
+
+    it("uses accent opacity and cancels its night compensation before navbar painting", function()
+        local config = _G.__ZEN_UI_PLUGIN.config
+        config.accent_opacity = 50
+        local default = { 0, 0, 0 }
+        assert.are.same({ 143, 159, 191 }, Accent.navbarColor(config, "active_tab_color", default))
+        screen.night_mode = true
+        assert.are.same({ 16, 32, 64 }, Accent.navbarColor(config, "active_tab_color", default))
+        config.accent_opacity = 100
+        assert.are.same({ 32, 64, 128 }, Accent.navbarColor(config, "active_tab_color", default))
     end)
 
     it("uses the accent and its opacity for badges without a custom color", function()
@@ -156,17 +213,16 @@ describe("interface accent", function()
         assert.are.equal(tostring(Accent.color(config)), tostring(utils.getBadgeColor(config)))
     end)
 
-    it("keeps slider rails and toggle outlines black while coloring their fill", function()
+    it("colors the slider rail and fill while keeping toggle outlines black", function()
         local bb = Blitbuffer.new(160, 60, Blitbuffer.TYPE_BBRGB32)
         bb:fill(Blitbuffer.COLOR_WHITE)
         local slider = require("common/ui/zen_slider"):new{
             width = 120, value_min = 0, value_max = 100, value = 50, knob_radius = 8,
         }
         slider:paintTo(bb, 0, 0)
-        for _i, x in ipairs({ 20, 60 }) do
+        for _i, x in ipairs({ 20, 60, 100 }) do
             assert.are.equal(tostring(Accent.color()), tostring(bb:getPixel(x, 11)))
         end
-        assert.are.equal(0, bb:getPixel(100, 11):getColor8().a)
         local toggle = require("common/ui/zen_toggle"):new{ value = true }
         toggle:paintTo(bb, 0, 30)
         for _i, pos in ipairs({ { 28, 30 }, { 1, 44 }, { 54, 44 } }) do
@@ -190,6 +246,108 @@ describe("interface accent", function()
         assert.are.equal(Blitbuffer.COLOR_GRAY, slider.fill_color)
         assert.are.equal(Blitbuffer.COLOR_LIGHT_GRAY, slider.track_color)
         assert.are.equal(Blitbuffer.COLOR_BLACK, slider.knob_color)
+    end)
+
+    it("keeps the rail color unchanged when the fill grows over it and retreats", function()
+        local bb = Blitbuffer.new(140, 40, Blitbuffer.TYPE_BBRGB32)
+        for _i, enabled in ipairs({ true, false }) do
+            _G.__ZEN_UI_PLUGIN.config.accent_enabled = enabled
+            local slider = require("common/ui/zen_slider"):new{
+                width = 120, value_min = 0, value_max = 100, knob_radius = 8,
+                hide_knob = true,
+            }
+            local color = tostring(Accent.color():getColorRGB32())
+            for _j, value in ipairs({ 25, 75, 25 }) do
+                slider:setValue(value)
+                slider:paintTo(bb, 10, 5)
+                assert.are.equal(color, tostring(bb:getPixel(80, 16)))
+                assert.are.equal(color, tostring(bb:getPixel(20, 16)))
+            end
+        end
+        bb:free()
+    end)
+
+    it("keeps the slider accent during drags and after release", function()
+        local UIManager = require("ui/uimanager")
+        local slider = require("common/ui/zen_slider"):new{
+            width = 120, value_min = 0, value_max = 100, value = 50, knob_radius = 8,
+        }
+        local bb = Blitbuffer.new(160, 60, Blitbuffer.TYPE_BBRGB32)
+        local owner = {}
+        slider.on_change = function() slider:paintTo(bb, 0, 0) end
+        UIManager.setDirty = function(_self, widget, mode)
+            assert.are.equal(owner, widget)
+            assert.are.equal("ui", mode)
+            slider:paintTo(bb, 0, 0)
+        end
+        for _i, finish in ipairs({ "handlePanRelease", "handleSwipe", "handleMultiSwipe" }) do
+            slider:paintTo(bb, 0, 0)
+            local gesture = { direction = "east", pos = {
+                x = slider:_knobAbsX(), intersectWith = function() return true end,
+            } }
+            assert.is_true(slider:handlePan(gesture))
+            assert.are.equal(tostring(Accent.color()), tostring(bb:getPixel(20, 11)))
+            slider.hide_knob = false
+            slider:paintTo(bb, 0, 0)
+            assert.are.equal(tostring(Accent.color()), tostring(bb:getPixel(60, 11)))
+            assert.is_true(slider[finish](slider, gesture, owner, slider.dimen))
+            assert.is_false(slider._dragging)
+            for _j, x in ipairs({ 20, 60 }) do
+                assert.are.equal(tostring(Accent.color()), tostring(bb:getPixel(x, 11)))
+            end
+        end
+        bb:free()
+    end)
+
+    it("refreshes the whole slider on first contact and skips repeated drag values", function()
+        local slider = require("common/ui/zen_slider"):new{
+            width = 120, value_min = 0, value_max = 100, value = 50, knob_radius = 8,
+        }
+        local calls, regions = 0, {}
+        slider.on_change = function()
+            calls = calls + 1
+            regions[calls] = slider:dirtyDimen()
+        end
+        local gesture = { direction = "east", pos = {
+            x = slider:_knobAbsX(), intersectWith = function() return true end,
+        } }
+        assert.is_true(slider:handlePan(gesture))
+        assert.are.equal(1, calls)
+        assert.are.same(slider.dimen, regions[1])
+        assert.is_true(slider:handlePan(gesture))
+        assert.are.equal(1, calls)
+        gesture.pos.x = slider:_valueToX(60)
+        assert.is_true(slider:handlePan(gesture))
+        assert.are.equal(2, calls)
+        assert.are.equal(60, slider:getValue())
+        assert.is_true(regions[2].w < slider.dimen.w)
+        assert.is_true(slider:handlePan(gesture))
+        assert.are.equal(2, calls)
+    end)
+
+    it("includes every changed slider pixel in the drag refresh region", function()
+        local slider = require("common/ui/zen_slider"):new{
+            width = 120, value_min = 0, value_max = 100, value = 50, knob_radius = 8,
+        }
+        local bb = Blitbuffer.new(160, 60, Blitbuffer.TYPE_BBRGB32)
+        slider:paintTo(bb, 20, 10)
+        for _i, value in ipairs({ 50, 55, 100, 0, 50 }) do
+            local before = bb:copy()
+            slider._dragging, slider.hide_knob = true, true
+            slider:applyPosition(20 + slider:_valueToX(value))
+            slider:paintTo(bb, 20, 10)
+            local region = slider:dirtyDimen()
+            for y = 0, 59 do
+                for x = 0, 159 do
+                    if tostring(before:getPixel(x, y)) ~= tostring(bb:getPixel(x, y)) then
+                        assert.is_true(x >= region.x and x < region.x + region.w
+                            and y >= region.y and y < region.y + region.h)
+                    end
+                end
+            end
+            before:free()
+        end
+        bb:free()
     end)
 
     it("keeps active icons transparent and leaves the shared buffer untouched", function()

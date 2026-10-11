@@ -351,7 +351,32 @@ function QuickstartScreen:paintTo(bb, x, y)
     -- -------------------------------------------------------------------------
     -- Interactive page without image: use full image+desc band for content
     -- -------------------------------------------------------------------------
-    if page.choices and not has_visual then
+    if page.color_picker then
+        local prompt = TextBoxWidget:new{
+            text = page.description,
+            face = Font:getFace("cfont", 20),
+            width = L.sw - L.pad * 2,
+            alignment = "center",
+        }
+        local prompt_y = L.img_y + L.pad
+        prompt:paintTo(bb, x + L.pad, y + prompt_y)
+        local picker_y = prompt_y + prompt:getSize().h + L.pad
+        prompt:free()
+        if not self[1] then
+            self[1] = require("common/ui/color_wheel_widget"):new{
+                embedded = true,
+                show_parent = self,
+                title_text = page.title,
+                hex = page.color_picker.hex,
+                opacity = page.color_picker.opacity,
+                callback = page.color_picker.callback,
+                width = math.min(L.sw - L.pad * 4, Screen:scaleBySize(360)),
+                dimen = Geom:new{ w = L.sw, h = L.dot_y - picker_y - L.pad },
+            }
+        end
+        self[1]:paintTo(bb, x, y + picker_y)
+        self._choice_area = nil
+    elseif page.choices and not has_visual then
         self:_paintChoicesFullBand(bb, x, y, page)
     else
         -- Static page or choice page with an illustrative image
@@ -535,6 +560,11 @@ end
 
 function QuickstartScreen:setPage(n)
     if n < 1 or n > self._total then return end
+    if self[1] then
+        self[1]:onApply()
+        self[1]:free()
+        self[1] = nil
+    end
     self._page_idx       = n
     self._choice_area    = nil
     self._finale_btn     = nil
@@ -746,6 +776,7 @@ function QuickstartScreen:onShow()
 end
 
 function QuickstartScreen:onClose()
+    if self[1] then self[1]:onApply() end
     UIManager:setDirty(nil, getFullRefreshMode())
     UIManager:close(self)
     -- Block filebrowser taps for 1.5s so the close-gesture doesn't open a file.

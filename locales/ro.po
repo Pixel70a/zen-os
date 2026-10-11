@@ -1176,6 +1176,12 @@ msgstr "Șah"
 msgid "Choose a different folder"
 msgstr "Alegeți un alt dosar"
 
+#. Type: description
+#. Context: Accent color setup page.
+#: quickstart_pages.lua:577
+msgid "Choose an accent color for buttons, sliders, and navigation."
+msgstr "Alege o culoare de accent pentru butoane, glisoare și navigare."
+
 #. Type: title
 #. Context: Titlu în editorul metadatelor cărților.
 #: metadata_editor.lua:509
