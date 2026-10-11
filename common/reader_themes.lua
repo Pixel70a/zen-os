@@ -1,4 +1,5 @@
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local cre_inverts_colors = (require("version"):getNormalizedCurrentVersion() or 0) >= 202607000000
 
 local M = {}
@@ -216,14 +217,15 @@ function M.applyCurrent(plugin)
     if M.applyFooterColors(footer, plugin) and type(footer.refreshFooter) == "function" then
         footer:refreshFooter(true, true)
     end
-    UIManager:setDirty(reader, "full")
+    UIManager:setDirty(reader, getFullRefreshMode())
     return true
 end
 
 function M.refreshFull(widget)
     local Screen = require("device").screen
-    UIManager:setDirty(widget, "full")
-    if is_dark_mode() and Screen.waveform_full then
+    local refresh_mode = getFullRefreshMode()
+    UIManager:setDirty(widget, refresh_mode)
+    if refresh_mode == "full" and is_dark_mode() and Screen.waveform_full then
         -- Night waveforms can leave UI ghosting on a themed background.
         local flashnight = Screen.waveform_flashnight
         Screen.waveform_flashnight = Screen.waveform_full

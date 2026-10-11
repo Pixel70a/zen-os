@@ -4,6 +4,7 @@
 
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local paths = require("common/paths")
 local SharedState = require("common/shared_state")
 local icons = require("common/inline_icon_map")
@@ -277,7 +278,7 @@ function M.build(ctx)
                                         end
                                         config.browser_cover_badges.badge_size = v
                                         plugin:saveConfig()
-                                        UIManager:setDirty(nil, "full")
+                                        UIManager:setDirty(nil, getFullRefreshMode())
                                     end,
                                 })
                             end
@@ -297,14 +298,14 @@ function M.build(ctx)
                             end
                             config.browser_cover_badges.badge_color = { r, g, b }
                             plugin:saveConfig()
-                            UIManager:setDirty(nil, "full")
+                            UIManager:setDirty(nil, getFullRefreshMode())
                         end,
                         reset        = function()
                             if type(config.browser_cover_badges) == "table" then
                                 config.browser_cover_badges.badge_color = nil
                             end
                             plugin:saveConfig()
-                            UIManager:setDirty(nil, "full")
+                            UIManager:setDirty(nil, getFullRefreshMode())
                         end,
                         default_text = _("Default"),
                         reset_text   = _("Default (black)"),
@@ -380,7 +381,7 @@ function M.build(ctx)
                             config.browser_cover_badges.show_new_banner =
                                 config.browser_cover_badges.show_new_banner ~= true
                             plugin:saveConfig()
-                            UIManager:setDirty(nil, "full")
+                            UIManager:setDirty(nil, getFullRefreshMode())
                         end,
                     },
                     {
@@ -396,7 +397,7 @@ function M.build(ctx)
                             config.browser_cover_badges.show_native_progress_bar =
                                 config.browser_cover_badges.show_native_progress_bar ~= true
                             plugin:saveConfig()
-                            UIManager:setDirty(nil, "full")
+                            UIManager:setDirty(nil, getFullRefreshMode())
                         end,
                     },
                     {
@@ -412,7 +413,7 @@ function M.build(ctx)
                             config.browser_cover_badges.show_mosaic_progress =
                                 config.browser_cover_badges.show_mosaic_progress ~= true
                             plugin:saveConfig()
-                            UIManager:setDirty(nil, "full")
+                            UIManager:setDirty(nil, getFullRefreshMode())
                         end,
                     },
                 },
@@ -474,7 +475,7 @@ function M.build(ctx)
                     plugin:saveConfig()
                     local ui = require("apps/filemanager/filemanager").instance
                     if ui and ui.file_chooser then ui.file_chooser:updateItems() end
-                    UIManager:setDirty(nil, "full")
+                    UIManager:setDirty(nil, getFullRefreshMode())
                 end,
             },
             {
@@ -793,7 +794,7 @@ function M.build(ctx)
                 fm.file_chooser:updateItems()
                 UIManager:setDirty(fm, "ui")
             else
-                UIManager:setDirty(nil, "full")
+                UIManager:setDirty(nil, getFullRefreshMode())
             end
         end,
     })

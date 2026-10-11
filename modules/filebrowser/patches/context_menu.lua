@@ -11,6 +11,7 @@ local function apply_context_menu()
     local FileManager  = require("apps/filemanager/filemanager")
     local PathChooser  = require("ui/widget/pathchooser")
     local UIManager    = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local _            = require("gettext")
     local C_           = _.pgettext
     local archive_actions = require("common/archive_actions")
@@ -148,7 +149,7 @@ local function apply_context_menu()
                 -- Wait for the opening repaint so only the cover flashes.
                 UIManager:tickAfterNext(function()
                     if UIManager:getTopmostVisibleWidget() == self then
-                        UIManager:setDirty(nil, "full", cover.dimen, true)
+                        UIManager:setDirty(nil, getFullRefreshMode(), cover.dimen, true)
                     end
                 end)
             end
@@ -2026,7 +2027,7 @@ local function apply_context_menu()
                                     update_preview(selected_path)
                                     refresh_after_folder_cover_change(file)
                                 end,
-                            }, "full")
+                            }, getFullRefreshMode())
                         end,
                         on_clear = function(slot, update_preview)
                             local cleared, err = FolderCoverFiles.clear(
@@ -2525,23 +2526,6 @@ local function apply_context_menu()
                                 }),
                             }
                             UIManager:show(status_dialog)
-                        end,
-                    },
-                })
-            end
-
-            if is_file and is_not_parent_folder and item._zen_home_context and not is_rakuyomi_book then
-                table.insert(buttons, {
-                    {
-                        text = icons.refresh .. "  " .. _("Refresh"),
-                        align = "left",
-                        callback = function()
-                            close_dialog()
-                            if type(item._zen_refresh) == "function" then
-                                item._zen_refresh(file)
-                            else
-                                refresh_book_info()
-                            end
                         end,
                     },
                 })

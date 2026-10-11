@@ -26,6 +26,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     local Font       = require("ui/font")
     local Size       = require("ui/size")
     local UIManager  = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local FocusManager = require("ui/widget/focusmanager")
     local CC         = require("ui/widget/container/centercontainer")
     local FC         = require("ui/widget/container/framecontainer")
@@ -471,7 +472,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     end
 
     dialog = PickerDlg:new{}
-    UIManager:show(dialog, "full")
+    UIManager:show(dialog, getFullRefreshMode())
 end
 
 return showIconPickerDialog

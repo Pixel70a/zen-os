@@ -18,6 +18,7 @@ local function apply_touch_menu_footer()
     local IconWidget     = require("ui/widget/iconwidget")
     local InputContainer = require("ui/widget/container/inputcontainer")
     local UIManager      = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local Screen         = Device.screen
 
     local DGENERIC_ICON_SIZE = G_defaults:readSetting("DGENERIC_ICON_SIZE")
@@ -78,7 +79,7 @@ local function apply_touch_menu_footer()
         local result = orig_onShow and orig_onShow(self, ...)
         if hatching_enabled() then
             self.is_fresh = false -- Use one screen-wide refresh for the backdrop.
-            UIManager:setDirty(nil, Screen.night_mode and "full" or "ui")
+            UIManager:setDirty(nil, Screen.night_mode and getFullRefreshMode() or "ui")
         end
         return result
     end
@@ -99,8 +100,8 @@ local function apply_touch_menu_footer()
             local FileManager = package.loaded["apps/filemanager/filemanager"]
             if (FileManager and FileManager.instance and not FileManager.instance.tearing_down)
                     or (ReaderUI and ReaderUI.instance and not ReaderUI.instance.tearing_down) then
-                -- Queue the full waveform after painting the uncovered screen.
-                UIManager:setDirty(nil, function() return "full" end)
+                -- Choose the refresh after painting the uncovered screen.
+                UIManager:setDirty(nil, getFullRefreshMode)
             end
         end
         return result

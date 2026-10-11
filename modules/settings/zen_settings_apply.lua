@@ -1,6 +1,7 @@
 local _ = require("gettext")
 
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local ConfirmBox = require("ui/widget/confirmbox")
 local restart = require("common/restart")
 local SharedState = require("common/shared_state")
@@ -122,10 +123,10 @@ local function apply_filemanager_reinit()
     local fm = ok and FileManager and FileManager.instance
     if fm and fm.reinit then
         fm:reinit()
-        UIManager:setDirty(FileManager.instance or fm, "full")
+        UIManager:setDirty(FileManager.instance or fm, getFullRefreshMode())
         UIManager:scheduleIn(0, function()
             local current = FileManager.instance or fm
-            UIManager:setDirty(current, "full")
+            UIManager:setDirty(current, getFullRefreshMode())
             UIManager:forceRePaint()
         end)
     end
@@ -140,7 +141,7 @@ local function rebuild_active_home()
 end
 
 local function apply_tbr_refresh()
-    UIManager:setDirty(nil, "full")
+    UIManager:setDirty(nil, getFullRefreshMode())
     UIManager:forceRePaint()
 end
 

@@ -9,6 +9,7 @@ local HorizontalGroup = require("ui/widget/horizontalgroup")
 local HorizontalSpan = require("ui/widget/horizontalspan")
 local TopContainer = require("ui/widget/container/topcontainer")
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local TextWidget = require("ui/widget/textwidget")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
@@ -550,7 +551,7 @@ function EndBook.show(ui, plugin, preview)
         ui.doc_settings:flush() -- KOReader may have auto-marked without saving.
     end
     local page = EndBook:new{ ui = ui, plugin = plugin, preview = preview }
-    UIManager:show(page, "full")
+    UIManager:show(page, getFullRefreshMode())
     return page
 end
 

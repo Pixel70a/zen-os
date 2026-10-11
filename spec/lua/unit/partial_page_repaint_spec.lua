@@ -1,6 +1,6 @@
 describe("partial page repaint", function()
     local original_modules
-    local original_plugin, plugin
+    local original_plugin, plugin, original_settings
     local module_names = {
         "common/ui/background",
         "covermenu",
@@ -10,6 +10,8 @@ describe("partial page repaint", function()
     }
 
     before_each(function()
+        original_settings = G_reader_settings
+        _G.G_reader_settings = ZenSpec.memorySettings()
         original_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
         plugin = { config = { features = { partial_page_repaint = true } } }
         _G.__ZEN_UI_PLUGIN = plugin
@@ -20,6 +22,7 @@ describe("partial page repaint", function()
     end)
 
     after_each(function()
+        _G.G_reader_settings = original_settings
         _G.__ZEN_UI_PLUGIN = original_plugin
         for _i, name in ipairs(module_names) do
             package.loaded[name] = original_modules[name]
@@ -98,10 +101,11 @@ describe("partial page repaint", function()
         assert.are.equal(0, dirty_calls)
     end)
 
-    it("repaints only short pages when a library background is active", function()
+    it("repaints short pages using the flash preference at callback time", function()
         local scheduled = {}
         local dirty_calls = 0
         local repaint_calls = 0
+        local refresh_mode
         local FileChooser = { updateItems = function() end }
         ZenSpec.replace("ui/widget/filechooser", FileChooser)
         ZenSpec.replace("covermenu", {})
@@ -112,7 +116,7 @@ describe("partial page repaint", function()
             nextTick = function(_self, callback) scheduled[#scheduled + 1] = callback end,
             setDirty = function(_self, widget, mode)
                 assert.is_nil(widget)
-                assert.are.equal("full", mode)
+                refresh_mode = mode
                 dirty_calls = dirty_calls + 1
             end,
             forceRePaint = function() repaint_calls = repaint_calls + 1 end,
@@ -135,5 +139,15 @@ describe("partial page repaint", function()
         scheduled[1]()
         assert.are.equal(1, dirty_calls)
         assert.are.equal(1, repaint_calls)
+        assert.are.equal("full", refresh_mode)
+
+        for _i, avoid in ipairs({ true, false }) do
+            chooser:updateItems()
+            G_reader_settings:saveSetting("avoid_flashing_ui", avoid)
+            scheduled[#scheduled]()
+            assert.are.equal(avoid and "ui" or "full", refresh_mode)
+            assert.are.equal(_i + 1, dirty_calls)
+            assert.are.equal(_i + 1, repaint_calls)
+        end
     end)
 end)

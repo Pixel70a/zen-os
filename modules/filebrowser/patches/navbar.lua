@@ -16,6 +16,7 @@ local function apply_navbar()
     local Event = require("ui/event")
     local ffiUtil = require("ffi/util")
     local UIManager = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
     local library_font = require("modules/filebrowser/patches/library_font")
@@ -1703,7 +1704,7 @@ local function apply_navbar()
         navbar_refresh_pending = true
         UIManager:nextTick(function()
             navbar_refresh_pending = false
-            UIManager:setDirty(nil, "full")
+            UIManager:setDirty(nil, getFullRefreshMode())
             UIManager:forceRePaint()
         end)
     end
@@ -2572,7 +2573,7 @@ local function apply_navbar()
             local rotated = mode ~= nil and mode ~= Screen:getRotationMode()
             local result = original(self, mode)
             if rotated and FileManager.instance == self and is_navbar_enabled() then
-                UIManager:setDirty(self, "full")
+                UIManager:setDirty(self, getFullRefreshMode())
             end
             return result
         end
@@ -4151,9 +4152,9 @@ local function apply_navbar()
                 syncFileManagerTabForPath(fm, fm.file_chooser.path, false)
             end
             injectNavbar(fm)
-            UIManager:setDirty(fm, "full")
+            UIManager:setDirty(fm, getFullRefreshMode())
         else
-            UIManager:setDirty(nil, "full")
+            UIManager:setDirty(nil, getFullRefreshMode())
         end
         UIManager:forceRePaint()
     end

@@ -6,6 +6,7 @@ local function apply_night_mode_schedule()
     --]]
 
     local UIManager = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local Device    = require("device")
     local Screen    = Device.screen
 
@@ -125,7 +126,7 @@ local function apply_night_mode_schedule()
                 pcall(frontlight_state.apply_mode_value)
             end
         end
-        UIManager:setDirty("all", "full")
+        UIManager:setDirty("all", getFullRefreshMode())
     end
 
     -- -------------------------------------------------------------------------

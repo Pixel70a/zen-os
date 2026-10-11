@@ -1,5 +1,6 @@
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local DataStorage = require("datastorage")
 local SharedState = require("common/shared_state")
 local icons = require("common/inline_icon_map")
@@ -44,7 +45,7 @@ local function refresh_background_surfaces(plugin)
             local widget = entry and entry.widget
             if widget and widget._zen_bg_applied and type(widget.updateItems) == "function" then
                 pcall(widget.updateItems, widget)
-                UIManager:setDirty(widget, "full")
+                UIManager:setDirty(widget, getFullRefreshMode())
             end
         end
     end
@@ -53,7 +54,7 @@ local function refresh_background_surfaces(plugin)
     if type(reinject_navbars) == "function" then
         reinject_navbars()
     else
-        UIManager:setDirty(nil, "full")
+        UIManager:setDirty(nil, getFullRefreshMode())
         UIManager:forceRePaint()
     end
 end

@@ -3,6 +3,7 @@ local Device = require("device")
 local InfoMessage = require("ui/widget/infomessage")
 local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local Utf8Proc = require("ffi/utf8proc")
 local util = require("util")
 local _ = require("gettext")
@@ -771,7 +772,7 @@ function ZenSettingsPage:onCloseWidget()
                 end
             end
         end
-        UIManager:setDirty("all", "full")
+        UIManager:setDirty("all", getFullRefreshMode())
     end
     UIManager:nextTick(self._close_refresh)
     return Menu.onCloseWidget(self)
@@ -1057,7 +1058,7 @@ function M.show(plugin, opts)
     active_page = page
     UIManager:show(page, function()
         if page._closed or page.invisible then return end
-        return (Device.screen.night_mode or Device:hasColorScreen()) and "full" or "ui"
+        return (Device.screen.night_mode or Device:hasColorScreen()) and getFullRefreshMode() or "ui"
     end)
     if resume and resume.arrange then
         UIManager:nextTick(function()

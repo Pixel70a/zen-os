@@ -70,6 +70,7 @@ common/ui/folder_cover_picker.lua|unit
 common/ui/hatching.lua|unit
 common/ui/icon_menu_item.lua|unit
 common/ui/markdown_text.lua|unit
+common/ui/refresh.lua|unit
 common/ui/truncated_text_message.lua|unit
 common/ui/zen_arrange_list.lua|unit
 common/ui/zen_button.lua|unit

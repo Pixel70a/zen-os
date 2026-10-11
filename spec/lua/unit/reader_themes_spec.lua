@@ -199,8 +199,10 @@ describe("reader themes", function()
 
         plugin.config.features.reader_themes = false
         G_reader_settings:saveSetting("cre_background_color", "#ffffff")
+        G_reader_settings:saveSetting("avoid_flashing_ui", true)
         assert.is_true(Themes.applyCurrent(plugin))
         assert.are.equal("#ffffff", backgrounds[2])
+        assert.are.equal("ui", dirty_calls[2][3])
     end)
 
     it("makes the footer container transparent while colors are enabled", function()
@@ -258,7 +260,7 @@ describe("reader themes", function()
         assert.matches("#17233a", older_themes.appendCss(plugin, "base", document), 1, true)
     end)
 
-    it("uses the normal full waveform only when opening a themed book in dark mode", function()
+    it("honors UI flash avoidance when opening themed books in either mode", function()
         local Screen = require("device").screen
         Screen.waveform_full = 2
         Screen.waveform_flashnight = 8
@@ -285,18 +287,23 @@ describe("reader themes", function()
         local UIManager = require("ui/uimanager")
         UIManager.forceRePaint = function()
             assert.is_not_nil(ReaderUI.instance.document)
-            assert.are.equal("full", dirty_calls[#dirty_calls][3])
+            assert.are.equal(G_reader_settings:isTrue("avoid_flashing_ui") and "ui" or "full",
+                dirty_calls[#dirty_calls][3])
             waveform = Screen.waveform_flashnight
         end
 
-        for _i, dark_mode in ipairs({ false, true }) do
-            Screen.night_mode = dark_mode
-            G_reader_settings:saveSetting("night_mode", dark_mode)
-            assert.are.equal("opened", ReaderUI:doShowReader("themed.epub"))
-            assert.are.equal(dark_mode and 2 or 8, waveform)
-            assert.are.equal(8, Screen.waveform_flashnight)
-            assert.are.equal(dark_mode, Screen.night_mode)
+        for _i, avoid in ipairs({ false, true }) do
+            G_reader_settings:saveSetting("avoid_flashing_ui", avoid)
+            for _j, dark_mode in ipairs({ false, true }) do
+                Screen.night_mode = dark_mode
+                G_reader_settings:saveSetting("night_mode", dark_mode)
+                assert.are.equal("opened", ReaderUI:doShowReader("themed.epub"))
+                assert.are.equal(dark_mode and not avoid and 2 or 8, waveform)
+                assert.are.equal(8, Screen.waveform_flashnight)
+                assert.are.equal(dark_mode, Screen.night_mode)
+            end
         end
+        G_reader_settings:saveSetting("avoid_flashing_ui", false)
 
         waveform = nil
         plugin.config.features.reader_themes = false

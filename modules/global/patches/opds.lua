@@ -33,6 +33,7 @@ local function apply_opds()
     local TextWidget      = require("ui/widget/textwidget")
     local TopContainer    = require("ui/widget/container/topcontainer")
     local UIManager       = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local VGroup          = require("ui/widget/verticalgroup")
     local VSpan           = require("ui/widget/verticalspan")
     local ZenIconButton   = require("common/ui/zen_icon_button")
@@ -1170,7 +1171,7 @@ local function apply_opds()
             if ReaderThemes.isActiveInReader(rawget(_G, "__ZEN_UI_PLUGIN")) then
                 ReaderThemes.refreshFull("all")
             else
-                UIManager:setDirty("all", "full")
+                UIManager:setDirty("all", getFullRefreshMode())
             end
         end)
     end

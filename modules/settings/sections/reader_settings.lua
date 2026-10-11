@@ -5,6 +5,7 @@
 local _ = require("gettext")
 local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local dispatch_action = require("common/dispatch_action")
 local utils = require("modules/settings/zen_settings_utils")
 local constants = require("common/constants")
@@ -104,7 +105,7 @@ function M.build(ctx)
                 UIManager:setDirty(nil, "ui")
             end,
             cancel_callback = function() UIManager:setDirty(nil, "ui") end,
-        }, "full")
+        }, getFullRefreshMode())
     end
 
     local function make_highlight_items()

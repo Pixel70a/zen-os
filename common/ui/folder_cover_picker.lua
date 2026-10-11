@@ -23,6 +23,7 @@ function M.show(options)
     local Size = require("ui/size")
     local TextWidget = require("ui/widget/textwidget")
     local UIManager = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local ZenButton = require("common/ui/zen_button")
     local _ = require("gettext")
 
@@ -502,7 +503,7 @@ function M.show(options)
         self:updateItems(1, false)
         return result
     end
-    UIManager:show(menu, "full")
+    UIManager:show(menu, getFullRefreshMode())
     return menu
 end
 

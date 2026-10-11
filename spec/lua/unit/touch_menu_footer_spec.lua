@@ -28,6 +28,7 @@ describe("TouchMenu footer", function()
         original_defaults = _G.G_defaults
         original_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
         original_reader_settings = _G.G_reader_settings
+        _G.G_reader_settings = ZenSpec.memorySettings()
         original_modules = {}
         for _i, name in ipairs(module_names) do
             original_modules[name] = package.loaded[name] or false
@@ -131,6 +132,10 @@ describe("TouchMenu footer", function()
         menu:onShow()
         assert.are.equal("full", refresh.refreshtype)
         assert.is_nil(refresh.region)
+        G_reader_settings:saveSetting("avoid_flashing_ui", true)
+        menu:onShow()
+        assert.are.equal("ui", refresh.refreshtype)
+        G_reader_settings:saveSetting("avoid_flashing_ui", false)
         screen.night_mode = false
 
         local result = menu:paintTo({
@@ -184,6 +189,9 @@ describe("TouchMenu footer", function()
             assert.is_nil(refresh.region)
             assert.is_function(refresh.refreshtype)
             assert.are.same({ "full" }, { refresh.refreshtype() })
+            G_reader_settings:saveSetting("avoid_flashing_ui", true)
+            assert.are.equal("ui", refresh.refreshtype())
+            G_reader_settings:saveSetting("avoid_flashing_ui", false)
         end
         assert.are.equal(3, close_calls)
 

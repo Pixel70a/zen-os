@@ -152,6 +152,7 @@ function M.init(logger, plugin)
     -- going through Device:_afterResume.
     local Device = require("device")
     local UIManager = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     if Device.isKobo and Device:isKobo() then
         require("modules/menu/network_adapters/kobo").install(require("ui/network/manager"))
         if Device.isMTK and Device:isMTK() then
@@ -247,7 +248,7 @@ function M.init(logger, plugin)
             if ok_hw and hw ~= want then
                 Screen.night_mode = want
                 pcall(Screen.setHWNightmode, Screen, want)
-                require("ui/uimanager"):setDirty("all", "full")
+                require("ui/uimanager"):setDirty("all", getFullRefreshMode())
             end
         end
     end

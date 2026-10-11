@@ -6,6 +6,7 @@
 local _ = require("gettext")
 local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local utils = require("modules/settings/zen_settings_utils")
 local icon_utils = require("common/utils")
 local plugin_root = require("common/plugin_root")
@@ -146,7 +147,7 @@ function M.build(ctx)
                         save_and_defer_navbar_refresh()
                         if touchmenu_instance then touchmenu_instance:updateItems() end
                     end,
-                }, "full")
+                }, getFullRefreshMode())
             end,
         }
     end

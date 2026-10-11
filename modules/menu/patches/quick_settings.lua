@@ -18,6 +18,7 @@ local function apply_quick_settings()
     local ConfirmBox = require("ui/widget/confirmbox")
     local TextWidget = require("ui/widget/textwidget")
     local UIManager = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local library_font = require("modules/filebrowser/patches/library_font")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
@@ -609,7 +610,7 @@ local function apply_quick_settings()
                 UIManager:ToggleNightMode(not night_mode)
                 G_reader_settings:saveSetting("night_mode", not night_mode)
                 touch_menu:updateItems(1)
-                UIManager:setDirty("all", "full")
+                UIManager:setDirty("all", getFullRefreshMode())
             end,
         },
         frontlight = {

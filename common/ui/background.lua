@@ -7,6 +7,7 @@
 -- so we compute the cover scale_factor ourselves and let ImageWidget's offset
 -- logic center-crop the oversized blitbuffer down to width x height.
 
+local getFullRefreshMode = require("common/ui/refresh")
 local Device = require("device")
 local Blitbuffer = require("ffi/blitbuffer")
 local logger = require("common/zen_logger").new("background")
@@ -60,7 +61,7 @@ local function run_missing_background_work()
             -- Home may finish rebuilding while this toast is on top.
             local function repaint_rebuilt_surface()
                 if type(UIManager.setDirty) == "function" then
-                    UIManager:setDirty("all", "full")
+                    UIManager:setDirty("all", getFullRefreshMode())
                 end
             end
             if type(UIManager.nextTick) == "function" then

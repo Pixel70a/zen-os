@@ -1058,6 +1058,16 @@ describe("folder cover context-menu integration", function()
 
         file_chooser:showFileDialog({
             path = "/library/book.epub", is_file = true,
+            _zen_home_context = true, _zen_disable_select = true,
+        })
+        local home_dialog = shown[#shown]
+        assert.is_nil(find_button(home_dialog, "Refresh"))
+        assert(find_button(home_dialog, "Edit")).callback()
+        assert(find_button(shown[#shown], "Refresh")).callback()
+        assert.are.equal("/library/book.epub", deleted_bookinfo)
+
+        file_chooser:showFileDialog({
+            path = "/library/book.epub", is_file = true,
             _zen_home_context = true, _zen_hide_edit = true,
             _zen_widget_settings = function() end,
         })
@@ -1071,6 +1081,7 @@ describe("folder cover context-menu integration", function()
             _zen_home_context = true,
             _zen_kindle_book = true,
         })
+        assert.is_nil(find_button(shown[#shown], "Refresh"))
         assert.is_nil(find_button(shown[#shown], "Edit"))
 
         file_chooser:showFileDialog({
@@ -1083,6 +1094,7 @@ describe("folder cover context-menu integration", function()
             _zen_extra_buttons = { {{ text = "Clear cache" }} },
         })
         local kindle_dialog = shown[#shown]
+        assert.is_nil(find_button(kindle_dialog, "Refresh"))
         assert.is_true(has_widget_text(kindle_dialog._added_widgets[1], "Kindle Library"))
         assert.is_truthy(find_button(kindle_dialog, "Details"))
         assert.is_truthy(find_button(kindle_dialog, "Read status"))
@@ -1102,8 +1114,7 @@ describe("folder cover context-menu integration", function()
         assert.is_table(editor_options)
         editor_options.on_saved("/cache/kindle.epub")
         assert.are.equal("/cache/kindle.epub", refreshed[#refreshed])
-        find_button(kindle_dialog, "Refresh").callback()
-        assert.are.equal(1, kindle_refreshes)
+        assert.are.equal(0, kindle_refreshes)
     end)
 
     it("keeps selected copy pending and moves selected files through the directory chooser", function()

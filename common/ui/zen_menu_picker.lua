@@ -10,6 +10,7 @@ local function showMenuPicker(opts)
     local Font       = require("ui/font")
     local Size       = require("ui/size")
     local UIManager  = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local FocusManager = require("ui/widget/focusmanager")
     local ImageWidget = require("ui/widget/imagewidget")
     local IW         = require("ui/widget/iconwidget")
@@ -769,7 +770,7 @@ local function showMenuPicker(opts)
     end
 
     dialog = Picker:new{}
-    UIManager:show(dialog, "full")
+    UIManager:show(dialog, getFullRefreshMode())
     return dialog
 end
 
