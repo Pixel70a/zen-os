@@ -21,6 +21,7 @@ local Input          = require("device/input")
 local TextBoxWidget  = require("ui/widget/textboxwidget")
 local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local ZenButton      = require("common/ui/zen_button")
 local TitleStyle     = require("common/ui/zen_title_style")
 local Screen         = Device.screen
@@ -107,6 +108,8 @@ function ZenScreen:_moveButtonFocus()
 end
 
 function ZenScreen:_activateButton(button)
+    require("common/ui/button_feedback").flashButton(button == "later"
+        and self._later_btn_rect or self._btn_rect)
     if button == "later" and self.later_button then
         self:onClose()
     elseif button == "primary" and self.button ~= false then
@@ -610,7 +613,7 @@ end
 
 function ZenScreen:onClose()
     self:_free_scroll_widget()
-    UIManager:setDirty(nil, "full")
+    UIManager:setDirty(nil, getFullRefreshMode())
     UIManager:close(self)
     -- Block filebrowser taps briefly so the dismiss gesture doesn't open a file.
     _G.__ZEN_QUICKSTART_JUST_CLOSED = true

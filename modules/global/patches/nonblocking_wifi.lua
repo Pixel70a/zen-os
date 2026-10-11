@@ -10,6 +10,7 @@ local function apply_nonblocking_wifi()
     local ffi = require("ffi")
     local ffiutil = require("ffi/util")
     local buffer = require("string.buffer")
+    local time = require("ui/time")
     local _ = require("gettext")
     local logger = require("common/zen_logger").new("nonblocking_wifi")
     local active
@@ -87,8 +88,10 @@ local function apply_nonblocking_wifi()
     start_next = function()
         if active or #queued == 0 then return end
         local job = table.remove(queued, 1)
-        local pid, read_fd = ffiutil.runInSubProcess(function(_pid, write_fd)
+        local pid, read_fd = ffiutil.runInSubProcess(function(worker_pid, write_fd)
             ffi.C.fcntl(write_fd, 2, ffi.cast("int", 1)) -- FD_CLOEXEC: keep Wi-Fi daemons out of the pipe.
+            NetworkMgr._zen_wifi_worker = true
+            NetworkMgr._zen_wifi_startup_error = nil
             if job.method_name then NetworkMgr[job.method_name] = job.method end
             NetworkMgr.wifi_toggle_long_press = job.long_press
             local completed, show_menu = false, false
@@ -111,10 +114,14 @@ local function apply_nonblocking_wifi()
                 callback(...)
             end
             package.loaded["ui/widget/networksetting"] = { new = function(_self, options) return options end }
+            local started = time.now()
+            logger.dbg("Wi-Fi worker action started", "pid=", worker_pid, "method=", job.method_name or "task")
             local ok, status = pcall(function()
                 if job.action then return job.action() end
                 return job.method(NetworkMgr, function() completed = true end, job.interactive)
             end)
+            logger.dbg("Wi-Fi worker action finished", "pid=", worker_pid, "ok=", ok,
+                "failed=", not ok or status == false, "elapsed_ms=", time.to_ms(time.now() - started))
             if not ok then logger.warn("Wi-Fi worker failed", "error_type=", type(status)) end
             ffiutil.writeToFD(write_fd, buffer.encode({
                 completed = completed,
@@ -124,6 +131,7 @@ local function apply_nonblocking_wifi()
                 lease_ssid = NetworkMgr.lease_ssid,
                 value = job.action and ok and status or nil,
                 error = not ok and tostring(status) or nil,
+                startup_error = NetworkMgr._zen_wifi_startup_error,
             }), true)
         end, true)
         if not pid then
@@ -140,12 +148,20 @@ local function apply_nonblocking_wifi()
             return
         end
         job.pid = pid
+        job.started = time.now()
         active = job
+        logger.dbg("Wi-Fi worker spawned", "pid=", pid, "method=", job.method_name or "task",
+            "timeout_s=", job.timeout or 120)
         UIManager:preventStandby()
         notify_state()
         local polls = 0
+        local last_poll = job.started
         local function poll()
             polls = polls + 1
+            local now = time.now()
+            local gap_ms = time.to_ms(now - last_poll)
+            last_poll = now
+            if gap_ms > 1000 then logger.dbg("Wi-Fi worker poll delayed", "pid=", pid, "gap_ms=", gap_ms) end
             if not ffiutil.isSubProcessDone(pid) then
                 -- ponytail: connection work caps at 120 s; split deadlines if many saved networks exceed it.
                 if polls == (job.timeout or 120) * 4 then
@@ -167,12 +183,23 @@ local function apply_nonblocking_wifi()
                 end
             end
             ffi.C.close(read_fd)
+            logger.dbg("Wi-Fi worker collected", "pid=", pid, "polls=", polls,
+                "elapsed_ms=", time.to_ms(now - job.started), "result_received=", result ~= nil,
+                "cancelled=", job.cancelled == true, "timed_out=", job.timed_out == true)
             active = nil
             UIManager:allowStandby()
             if not job.cancelled then
                 NetworkMgr.wifi_toggle_long_press = nil
                 NetworkMgr.nw_settings = nil -- Reload credentials saved by the worker.
-                if job.action then
+                if result and result.startup_error then
+                    NetworkMgr:unscheduleConnectivityCheck()
+                    NetworkMgr.pending_connection = false
+                    NetworkMgr.wifi_was_on = false
+                    NetworkMgr.lease_ssid = nil
+                    G_reader_settings:makeFalse("wifi_was_on")
+                    if job.action then job.complete_callback(nil, result.startup_error) end
+                    NetworkMgr:showWifiNotice(result.startup_error, 8)
+                elseif job.action then
                     local value, err
                     if result and not job.timed_out then value, err = result.value, result.error end
                     if job.timed_out then err = "timeout" end
@@ -242,6 +269,16 @@ local function apply_nonblocking_wifi()
     NetworkMgr.showWifiStarting = function(self)
         self:showWifiNotice(require("gettext")("Turning on Wi-Fi…"))
     end
+    NetworkMgr.cancelWifiOperations = function(self)
+        cancel()
+        self:unscheduleConnectivityCheck()
+        self.pending_connection = false
+        self.wifi_toggle_long_press = nil
+        self.nw_settings = nil
+        if wifi_notice then UIManager:close(wifi_notice) end
+        wifi_notice = nil
+        notify_state()
+    end
     NetworkMgr.runWifiAsync = function(self, action, complete_callback, queued_only, timeout)
         if not queued_only then
             cancel()
@@ -284,17 +321,50 @@ local function apply_nonblocking_wifi()
                 self:showWifiNotice(problem, 8)
                 return
             end
+            if not self:isConnected() then return end
             logger.dbg("Wi-Fi connection checks passed")
             self:showWifiNotice(ssid and ssid ~= ""
                 and ffiutil.template(_("Connected to %1."):gsub("%.$", ""):gsub("。$", ""), ssid)
                 or _("Connected."):gsub("%.$", ""):gsub("。$", ""))
         end, true, 15)
     end
+    if Device.isKobo and Device:isKobo() and Device.model == "Kobo_spaBW" then
+        local function driver_ready()
+            return require("util").pathExists("/proc/driver/wmt_dbg")
+        end
+        local turnOnWifi, turnOffWifi = NetworkMgr.turnOnWifi, NetworkMgr.turnOffWifi
+        NetworkMgr.turnOnWifi = function(self, ...)
+            self._zen_wifi_startup_error = nil
+            -- Cold driver bring-up can reboot Clara BW before Nickel initializes Wi-Fi (#13197).
+            if not driver_ready() then
+                local problem = _("Wi-Fi is not initialized. Enable Wi-Fi once in Kobo's native interface, then reopen KOReader. Repeat after each device reboot.")
+                self._zen_wifi_startup_error = problem
+                self:unscheduleConnectivityCheck()
+                self.pending_connection = false
+                logger.warn("Blocked cold Clara BW Wi-Fi startup: /proc/driver/wmt_dbg is missing")
+                if not self._zen_wifi_worker then self:showWifiNotice(problem, 8) end
+                return false, problem
+            end
+            return turnOnWifi(self, ...)
+        end
+        NetworkMgr.turnOffWifi = function(self, callback, ...)
+            if not driver_ready() then
+                if callback then callback() end
+                return
+            end
+            return turnOffWifi(self, callback, ...)
+        end
+    end
     local disableWifi = NetworkMgr.disableWifi
-    NetworkMgr.disableWifi = function(self, ...)
+    NetworkMgr.disableWifi = function(self, callback, interactive)
+        -- Startup can inherit a working Kobo connection without setting wifi_was_on.
+        if Device.isKobo and Device:isKobo() and not interactive and self:isWifiOn() and self:isConnected() then
+            self.wifi_was_on = true
+            G_reader_settings:makeTrue("wifi_was_on")
+        end
         cancel()
         if pocketbook_keepalive then UIManager:unschedule(pocketbook_keepalive) end
-        return disableWifi(self, ...)
+        return disableWifi(self, callback, interactive)
     end
     local abortWifiConnection = NetworkMgr._abortWifiConnection
     NetworkMgr._abortWifiConnection = function(self, after)
@@ -376,9 +446,14 @@ local function apply_nonblocking_wifi()
     if Device.isKobo and Device:isKobo() then
         -- The shell restore ignores networks saved only in KOReader.
         NetworkMgr.restoreWifiAsync = function(self)
+            local was_on = self.wifi_was_on
             return background(self, "turnOnWifi", function()
                 return self:requestToTurnOnWifi(nil, false)
-            end, false)
+            end, false, function()
+                if not was_on then return end
+                self.wifi_was_on = true
+                G_reader_settings:makeTrue("wifi_was_on")
+            end)
         end
     end
     local broadcastEvent = UIManager.broadcastEvent

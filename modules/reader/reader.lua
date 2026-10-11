@@ -5,12 +5,14 @@ local PATCH_MODULES = {
     library_navigation = "modules/reader/patches/library_navigation",
     opening_banner = "modules/reader/patches/opening_banner",
     book_status = "modules/reader/patches/book_status",
+    end_book = "modules/reader/patches/end_book",
     reader_top_status_bar = "modules/reader/patches/reader_top_status_bar",
     reader_themes = "modules/reader/patches/reader_themes",
     screensaver_cover = "modules/reader/patches/screensaver_cover",
     reader_footer = "modules/reader/patches/reader_footer",
     reader_footer_time_format = "modules/reader/patches/reader_footer_time_format",
     reader_footer_cbz_hide = "modules/reader/patches/reader_footer_cbz_hide",
+    reader_flash_cbz = "modules/reader/patches/reader_flash_cbz",
     margin_hold_guard = "modules/reader/patches/margin_hold_guard",
     bookmarks = "modules/reader/patches/bookmarks",
     page_browser = "modules/reader/patches/page_browser",
@@ -80,10 +82,15 @@ function M.init(logger, plugin)
         run_feature(logger, plugin, "opening_banner", opening_banner_fn)
     end
 
-    -- Always apply: custom Book Status layout + sets native end_document_action
+    -- Keep Book Status available alongside the end-of-book screen.
     local book_status_fn = load_patch("book_status")
     if book_status_fn then
         run_feature(logger, plugin, "book_status", book_status_fn)
+    end
+
+    local end_book_fn = load_patch("end_book")
+    if end_book_fn then
+        run_feature(logger, plugin, "end_book", end_book_fn)
     end
 
     local status_on_open_fn = load_patch("status_on_open")
@@ -113,6 +120,11 @@ function M.init(logger, plugin)
     local reader_footer_cbz_hide_fn = load_patch("reader_footer_cbz_hide")
     if reader_footer_cbz_hide_fn then
         run_feature(logger, plugin, "reader_footer_cbz_hide", reader_footer_cbz_hide_fn)
+    end
+
+    local reader_flash_cbz_fn = load_patch("reader_flash_cbz")
+    if reader_flash_cbz_fn then
+        run_feature(logger, plugin, "reader_flash_cbz", reader_flash_cbz_fn)
     end
 
     -- Always apply: swallow holds inside page margins to prevent accidental word selection.

@@ -195,6 +195,7 @@ describe("Home widget content settings", function()
                     { id = "favorites", label = "Favorites", source = true },
                     { id = "to_be_read", label = "To Be Read", source = true },
                     { id = "authors", label = "Authors", source = true },
+                    { id = "continue", label = "Continue", source = true },
                     { id = "kindle", label = "Kindle Library", source = true },
                 }
             end,
@@ -576,6 +577,42 @@ describe("Home widget content settings", function()
         assert.are.equal(1, saves)
     end)
 
+    it("reuses title font controls for the statistics label and restores its own defaults", function()
+        ZenSpec.replace("ui/widget/spinwidget", { new = function(_self, opts) return opts end })
+        local saved_fontchooser = package.loaded["ui/widget/fontchooser"]
+        ZenSpec.replace("ui/widget/fontchooser", { new = function(_self, opts) return opts end,
+            getFontNameText = function(file) return file end })
+        local defaults = { font_face = "default", font_size = 14, bold = false }
+        local config, saves, updates = {}, 0, 0
+        local items = require("modules/settings/sections/library_settings/home_settings").buildTextStyleItems(
+            config, "label", "Label", defaults, function() saves = saves + 1 end)
+        local size, font, bold, reset = items[1], items[2], items[3], items[4]
+        assert.equals("Font size: 14", size.text_func())
+        size.callback({ updateItems = function() updates = updates + 1 end })
+        local dialog = shown[#shown]
+        assert.equals(14, dialog.default_value)
+        assert.equals(6, dialog.value_min)
+        assert.equals(40, dialog.value_max)
+        dialog.callback({ value = 20 })
+        assert.equals(20, config.text_styles.label.font_size)
+        font.callback()
+        dialog = shown[#shown]
+        dialog.callback("Custom.ttf")
+        assert.equals("Custom.ttf", config.text_styles.label.font_face)
+        assert.equals("Font: Custom.ttf", font.text_func())
+        font.hold_callback()
+        assert.equals("default", config.text_styles.label.font_face)
+        bold.callback()
+        assert.is_true(config.text_styles.label.bold)
+        assert.is_true(bold.checked_func())
+        reset.callback()
+        assert.same(defaults, config.text_styles.label)
+        assert.is_false(bold.checked_func())
+        assert.equals(5, saves)
+        assert.equals(1, updates)
+        package.loaded["ui/widget/fontchooser"] = saved_fontchooser
+    end)
+
     it("exposes strip control font face, size, and weight settings", function()
         local settings = require("modules/settings/sections/library_settings/home_settings")
         assert.is_true(settings.openWidgetSettings("strip"))
@@ -874,6 +911,38 @@ describe("Home widget content settings", function()
         assert.are.equal(1, backs)
     end)
 
+    it("adds end-of-book recommendations alongside existing tabs and restores deleted recommendations", function()
+        local editable = require("common/utils").deepcopy(home_page)
+        editable.modules.strip.controls.order = {}
+        editable.modules.strip.controls.custom_buttons = {}
+        local defaults = { custom_buttons = {
+            { id = "author", type = "custom_source", label = "More by author", paths = {} },
+            { id = "next_series", type = "custom_source", label = "Next in series", paths = {} },
+            { id = "other_series", type = "custom_source", label = "Other series", paths = {} },
+        } }
+        local saves = 0
+        local items = require("modules/settings/sections/library_settings/home_settings").build{
+            config = {}, widget_id = "strip", widget_config = editable,
+            strip_controls_defaults = defaults, save_widget_config = function() saves = saves + 1 end,
+        }
+        find_item(find_item(items, "Controls").sub_item_table_func(), "Tabs").callback({})
+        local add_tab = find_item(arrange_options.add_item_table, "Tab")
+        add_tab.callback({})
+        for _i, label in ipairs({ "More by author", "Next in series", "Other series", "Continue", "Recent", "Favorites" }) do
+            assert.is_table(find_item(picker_options.items, label))
+        end
+        picker_options.on_select(find_item(picker_options.items, "Other series"))
+        local controls = editable.modules.strip.controls
+        assert.same({ "other_series" }, controls.order)
+        assert.is_true(controls.show_buttons.other_series)
+        assert.same(defaults.custom_buttons[3], controls.custom_buttons[1])
+        assert.are_not.equal(defaults.custom_buttons[3], controls.custom_buttons[1])
+        assert.are.equal(1, saves)
+        assert.same({ "recent", "favorites" }, home_page.modules.strip.controls.order)
+        add_tab.callback({})
+        assert.is_nil(find_item(picker_options.items, "Other series"))
+    end)
+
     it("offers Kindle controls only when installed and can hide its folder", function()
         local settings = require("modules/settings/sections/library_settings/home_settings")
         local config = {}
@@ -994,5 +1063,50 @@ describe("Home widget content settings", function()
         assert.are.same({ "strip", "Controls", "Tabs", "to_be_read" },
             tbr_order_options.settings_resume.path)
         assert.are.equal("Widgets", remembered.opener)
+    end)
+
+    it("shares visual widget settings with the end page without saving Home settings", function()
+        ZenSpec.replace("ui/widget/spinwidget", { new = function(_self, opts) return opts end })
+        local config = require("common/utils").deepcopy(home_page)
+        config.modules.featured.show_status_bar = false
+        config.modules.strip.controls.enabled = true
+        local saves = 0
+        require("config/preset_store").saveSettings = function() error("changed Home settings") end
+        local Settings = require("modules/settings/sections/library_settings/home_settings")
+        local ctx = {
+            config = {}, widget_config = config, widget_id = "featured",
+            featured_text_style_defaults = require("modules/reader/end_book_data").FEATURED_TEXT_STYLES,
+            save_widget_config = function() saves = saves + 1 end,
+        }
+        local items = Settings.build(ctx)
+        assert.is_not_nil(find_item(items, "Text styles"))
+        assert.is_not_nil(find_item(items, "Progress"))
+        assert.is_false(has_item_prefix(items, "Content:"))
+        assert.is_nil(find_item(items, "Top status bar"))
+        local styles = find_item(items, "Text styles").sub_item_table_func()
+        assert.is_nil(find_item_prefix(styles, "Description:"))
+        local status = find_item_prefix(styles, "Book status:")
+        local labels = find_item_prefix(styles, "Button labels:")
+        assert.is_not_nil(status)
+        assert.is_true(labels.checked_func())
+        labels.checkmark_callback()
+        assert.is_false(config.modules.featured.show_navigation_labels)
+        find_item_prefix(status.sub_item_table, "Font size:").callback()
+        assert.are.equal(9, shown[#shown].default_value)
+        shown[#shown].callback({ value = 18 })
+        assert.are.equal(18, config.modules.featured.text_styles.status.font_size)
+        local author = find_item_prefix(styles, "Author:")
+        author.checkmark_callback()
+        assert.is_false(config.modules.featured.show_author)
+        assert.is_true(home_page.modules.featured.show_author)
+        ctx.widget_id = "strip"
+        items = Settings.build(ctx)
+        local controls = find_item(items, "Controls")
+        assert.is_true(controls.checked_func())
+        assert.is_not_nil(find_item(controls.sub_item_table_func(), "Tabs"))
+        assert.is_true(has_item_prefix(controls.sub_item_table_func(), "Font:"))
+        controls.checkmark_callback()
+        assert.is_false(config.modules.strip.controls.enabled)
+        assert.are.equal(4, saves)
     end)
 end)

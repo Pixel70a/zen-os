@@ -16,6 +16,7 @@ local function apply_navbar()
     local Event = require("ui/event")
     local ffiUtil = require("ffi/util")
     local UIManager = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
     local library_font = require("modules/filebrowser/patches/library_font")
@@ -1370,23 +1371,9 @@ local function apply_navbar()
             })
             return
         end
-        local Rakuyomi = getRakuyomi()
-        local resume_rakuyomi = type(Rakuyomi.isChapterFile) == "function"
-            and Rakuyomi.isChapterFile(last_file)
-        local rakuyomi_return_file = resume_rakuyomi
-            and rakuyomi_return_to_chapter_list_on_exit_enabled()
-            and last_file or nil
-        logger.dbg(
-            "Rakuyomi return: Continue:",
-            "file=", last_file,
-            "detected=", tostring(resume_rakuyomi))
         _G.__ZEN_UI_FORCE_SOURCE_TAB_RESTORE = nil
         _G.__ZEN_UI_RAKUYOMI_RETURN_FILE = nil
-        if resume_rakuyomi then
-            _G.__ZEN_UI_LIBRARY_SOURCE_TAB = "manga"
-            _G.__ZEN_UI_FORCE_SOURCE_TAB_RESTORE = true
-            _G.__ZEN_UI_RAKUYOMI_RETURN_FILE = rakuyomi_return_file
-        elseif is_restore_enabled() and not skipTabState(active_tab) then
+        if is_restore_enabled() and not skipTabState(active_tab) then
             _G.__ZEN_UI_LIBRARY_SOURCE_TAB = active_tab
         else
             _G.__ZEN_UI_LIBRARY_SOURCE_TAB = nil
@@ -1717,7 +1704,7 @@ local function apply_navbar()
         navbar_refresh_pending = true
         UIManager:nextTick(function()
             navbar_refresh_pending = false
-            UIManager:setDirty(nil, "full")
+            UIManager:setDirty(nil, getFullRefreshMode())
             UIManager:forceRePaint()
         end)
     end
@@ -2586,7 +2573,7 @@ local function apply_navbar()
             local rotated = mode ~= nil and mode ~= Screen:getRotationMode()
             local result = original(self, mode)
             if rotated and FileManager.instance == self and is_navbar_enabled() then
-                UIManager:setDirty(self, "full")
+                UIManager:setDirty(self, getFullRefreshMode())
             end
             return result
         end
@@ -3673,6 +3660,7 @@ local function apply_navbar()
 
     function FileManager:showFiles(path, focused_file, selected_files)
         local started_at = os.clock()
+        local chapter_handoff_pending = getRakuyomi()._chapter_handoff_pending == true
         local open_home_after_filemanager = rawget(_G, "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER") == true
         local open_target_tab = rawget(_G, "__ZEN_UI_OPEN_TARGET_TAB")
         local open_target_folder = rawget(_G, "__ZEN_UI_OPEN_TARGET_FOLDER")
@@ -3684,6 +3672,7 @@ local function apply_navbar()
         local hide_rakuyomi_filemanager = force_source_restore
             and state_before_show.tab == "manga"
             and rakuyomi_return_to_chapter_list_on_exit_enabled()
+            and not chapter_handoff_pending
         local keep_book_location = keep_book_location_requested and not force_source_restore
         if force_source_restore then
             logger.dbg(
@@ -3774,6 +3763,7 @@ local function apply_navbar()
         _G.__ZEN_UI_OPEN_TARGET_TAG = nil
         _G.__ZEN_UI_KEEP_BOOK_LOCATION = nil
         local filemanager = FileManager.instance
+        if chapter_handoff_pending then return end
         -- Android may restore a focused book after setupLayout already chose hidden Home.
         if not startup_default_home
                 and default_tab == "home"
@@ -4162,9 +4152,9 @@ local function apply_navbar()
                 syncFileManagerTabForPath(fm, fm.file_chooser.path, false)
             end
             injectNavbar(fm)
-            UIManager:setDirty(fm, "full")
+            UIManager:setDirty(fm, getFullRefreshMode())
         else
-            UIManager:setDirty(nil, "full")
+            UIManager:setDirty(nil, getFullRefreshMode())
         end
         UIManager:forceRePaint()
     end

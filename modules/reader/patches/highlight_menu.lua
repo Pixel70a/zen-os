@@ -13,8 +13,12 @@ local function apply()
     local plugin_root = require("common/plugin_root")
     local _icons_dir = plugin_root and plugin_root .. "/icons/"
     local extend_icon = utils.resolveLocalIcon(_icons_dir, "lookup_extend")
+    local ai_icon = utils.resolveLocalIcon(_icons_dir, "lookup_ai")
     if extend_icon then
         utils.overrideIcons({ [extend_icon] = extend_icon }, false)
+    end
+    if ai_icon then
+        utils.overrideIcons({ [ai_icon] = ai_icon }, false)
     end
 
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -140,9 +144,9 @@ local function apply()
             table.insert(buttons[1], {
                 icon = "lookup.wikipedia",
                 callback = function()
-                    UIManager:scheduleIn(0.1, function()
+                    UIManager:scheduleIn(0.1, LookupPluginItems.safeCallback(function()
                         self:lookupWikipedia()
-                    end)
+                    end))
                 end,
             })
         end
@@ -165,7 +169,7 @@ local function apply()
             local ai_btn = find_highlight_button(self, index, "ai_assistant")
             if ai_btn then
                 table.insert(buttons[1], {
-                    icon = "lookup.ai",
+                    icon = ai_icon,
                     enabled = ai_btn.enabled ~= false,
                     callback = ai_btn.callback,
                 })
@@ -209,6 +213,7 @@ local function apply()
             end
         end
 
+        LookupPluginItems.protectButtons(buttons)
         self.highlight_dialog = ButtonDialog:new{
             buttons = buttons,
             anchor = function()

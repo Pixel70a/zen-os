@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from zen_driver import ZenDriver, install_startup_alert_patch, wait_for_socket
+from zen_driver import ZenDriver, launch, wait_for_socket
 
 
 pytestmark = pytest.mark.skipif(
@@ -105,7 +105,6 @@ def _launch(
 ) -> subprocess.Popen[str]:
     settings_dir = ko_home / "settings" / "ZenOS"
     settings_dir.mkdir(parents=True, exist_ok=True)
-    install_startup_alert_patch(ko_home)
     (ko_home / "settings.reader.lua").write_text(
         'return { ["home_dir"] = ' + repr(str(library.resolve())) + " }\n",
         encoding="utf-8",
@@ -124,15 +123,7 @@ def _launch(
         "tab_order = { 'home', 'authors', 'series', 'books' } } }\n",
         encoding="utf-8",
     )
-    env = os.environ.copy()
-    env.update({
-        "KO_HOME": str(ko_home),
-        "ZEN_UI_TEST_SOCKET": str(socket_path),
-        "ZEN_UI_TESTING": "1",
-    })
-    return subprocess.Popen(
-        [str(runtime / "reader.lua")], cwd=runtime, env=env, text=True
-    )
+    return launch(runtime, ko_home, socket_path, library, initialize_settings=False)
 
 
 def _wait_for_reader(driver: ZenDriver, expected_file: Path) -> dict[str, object]:
@@ -223,6 +214,7 @@ def _wait_for_navbar_view(
     raise AssertionError(f"navbar view did not return: {last}")
 
 
+@pytest.mark.parametrize("home_in_controls", [False, True])
 @pytest.mark.parametrize(
     ("default_tab", "expected_label"),
     [
@@ -232,7 +224,7 @@ def _wait_for_navbar_view(
     ],
 )
 def test_book_opens_in_reader_and_home_returns_to_library(
-    default_tab: str, expected_label: str
+    default_tab: str, expected_label: str, home_in_controls: bool
 ) -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-reader-navigation-") as temporary:
@@ -253,6 +245,15 @@ def test_book_opens_in_reader_and_home_returns_to_library(
             wait_for_socket(socket_path)
             driver = ZenDriver(socket_path)
             before = _wait_for_file_manager(driver)
+            if home_in_controls:
+                assert driver.command("open_settings_page")["ok"] is True
+                for label in ("Interface", "Controls", "Show Home in Controls"):
+                    assert driver.command("settings_page_select", label=label)["ok"] is True
+                assert driver.command("close_settings_page")["ok"] is True
+            layout = driver.command("menu_tab_layout", tab_id="quicksettings")
+            assert layout["ok"] is True
+            assert ("zen_library_home" in layout["tabs"]) is (not home_in_controls)
+            assert ("library_home" in layout["button_ids"]) is home_in_controls
             activated = driver.command("activate_navbar_tab", id=default_tab)
             assert activated.get("ok") is True, activated
             expected_name = None if default_tab == "books" else default_tab
@@ -268,7 +269,8 @@ def test_book_opens_in_reader_and_home_returns_to_library(
             assert reader.get("page") == 1
             assert reader.get("active_tab_label") == expected_label
 
-            returned = driver.reader_menu_home()
+            returned = driver.command("activate_custom_control", id="library_home") \
+                if home_in_controls else driver.reader_menu_home()
             assert returned.get("ok") is True, returned
             after = _wait_for_file_manager(driver)
             _wait_for_navbar_view(driver, expected_name, expected_label)

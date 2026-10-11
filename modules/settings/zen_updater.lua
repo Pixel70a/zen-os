@@ -424,6 +424,10 @@ local function https_get(url, depth)
     end
 
     logger.dbg("GET", url)
+    local time = require("ui/time")
+    local started = time.now()
+    local NetworkMgr = package.loaded["ui/network/manager"]
+    if NetworkMgr and NetworkMgr.logWifiDiagnostics then NetworkMgr:logWifiDiagnostics("update_request_start") end
     local body = {}
     local ok_req, req_err = pcall(function()
         local _, code, headers, status = https.request{
@@ -432,6 +436,9 @@ local function https_get(url, depth)
             redirect = false,
             sink    = ltn12.sink.table(body),
         }
+        logger.dbg("Update HTTPS response", "status_code=", type(code) == "number" and code or "transport_error",
+            "timeout=", tostring(code):lower():find("timeout", 1, true) ~= nil,
+            "elapsed_ms=", time.to_ms(time.now() - started))
         if (code == 301 or code == 302 or code == 307 or code == 308)
             and headers and headers.location then
             local next_url = resolve_redirect_url(url, headers.location)
@@ -461,6 +468,9 @@ local function https_get(url, depth)
             body = nil
         end
     end)
+    logger.dbg("Update HTTPS request finished", "exception=", not ok_req,
+        "elapsed_ms=", time.to_ms(time.now() - started))
+    if NetworkMgr and NetworkMgr.logWifiDiagnostics then NetworkMgr:logWifiDiagnostics("update_request_finish") end
     if not ok_req then
         logger.warn("https_get error:", req_err)
         return nil
@@ -704,7 +714,7 @@ local function do_network_check()
     if not body then
         logger.warn("no response from releases API")
         local ok_nm, NetworkMgr = pcall(require, "ui/network/manager")
-        if ok_nm and NetworkMgr and not NetworkMgr:isWifiOn() then
+        if ok_nm and NetworkMgr and not NetworkMgr:isConnected() then
             M._last_error = _("Network unavailable.")
         else
             M._last_error = _("Could not reach update server.")
@@ -873,6 +883,8 @@ end
 local function network_check_async(trap_widget, setup_fn, on_done, on_cancelled, quiet)
     local Trapper = require("ui/trapper")
     Trapper:wrap(function()
+        local time = require("ui/time")
+        local started = time.now()
         local co = coroutine.running()
         if setup_fn then setup_fn(co) end
         local completed, net_ok, has_upd, latest_ver, dl_url, latest_sha256, latest_notes, last_error =
@@ -884,6 +896,12 @@ local function network_check_async(trap_widget, setup_fn, on_done, on_cancelled,
                 if quiet then return run_without_updater_logs(check) end
                 return check()
             end, trap_widget, nil, quiet)
+        if not quiet or not completed then
+            logger.dbg("Update network task finished", "completed=", completed == true,
+                "network_ok=", net_ok == true, "elapsed_ms=", time.to_ms(time.now() - started))
+            local NetworkMgr = package.loaded["ui/network/manager"]
+            if NetworkMgr and NetworkMgr.logWifiDiagnostics then NetworkMgr:logWifiDiagnostics("update_task_finish") end
+        end
         if completed and net_ok then
             M._has_update = has_upd
             M._latest_ver = latest_ver
@@ -955,7 +973,7 @@ function M.schedule_wakeup_check()
 
     local function has_network()
         local ok_nm, NetworkMgr = pcall(require, "ui/network/manager")
-        return ok_nm and NetworkMgr and NetworkMgr:isWifiOn()
+        return ok_nm and NetworkMgr and NetworkMgr:isConnected()
     end
 
     -- Run the network check; on failure retry with exponential backoff.
@@ -1264,7 +1282,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
     local ok_nm, NetworkMgr = pcall(require, "ui/network/manager")
 
     local function has_network()
-        return ok_nm and NetworkMgr and NetworkMgr:isWifiOn()
+        return ok_nm and NetworkMgr and NetworkMgr:isConnected()
     end
 
     logger.info("install begin plugin_root=", plugin_root, "plugins_dir=", plugins_dir)
@@ -1569,7 +1587,7 @@ local function _show_update_screen_and_install(plugin)
     screen = ZenScreen:new{
         title        = _("ZenOS"),
         title_icon   = true,
-        subtitle     = _("Update available: ") .. ver_label,
+        subtitle     = _("Update available") .. ": " .. ver_label,
         scroll_text  = changelog_text,
         hide_logo    = true,
         button       = _("Update now"),
@@ -1598,8 +1616,8 @@ end
 --- prompt the user to restart KOReader.
 function M.run_update(plugin)
     local ok_nm, NetworkMgr = pcall(require, "ui/network/manager")
-    if ok_nm and NetworkMgr and not NetworkMgr:isWifiOn() then
-        NetworkMgr:runWhenOnline(function() _show_update_screen_and_install(plugin) end)
+    if ok_nm and NetworkMgr then
+        NetworkMgr:runWhenConnected(function() _show_update_screen_and_install(plugin) end)
     else
         _show_update_screen_and_install(plugin)
     end
@@ -1712,8 +1730,8 @@ function M.build_update_now_item(plugin)
                 end)
             end
 
-            if ok_nm and NetworkMgr and not NetworkMgr:isWifiOn() then
-                NetworkMgr:runWhenOnline(run_check)
+            if ok_nm and NetworkMgr then
+                NetworkMgr:runWhenConnected(run_check)
             else
                 run_check()
             end

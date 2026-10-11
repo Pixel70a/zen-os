@@ -1,6 +1,49 @@
 describe("stable page statistics", function()
+    local saved_plugin, saved_settings
+
     before_each(function()
+        saved_plugin, saved_settings = _G.__ZEN_UI_PLUGIN, G_reader_settings
+        _G.__ZEN_UI_PLUGIN = nil
         ZenSpec.unload("modules/reader/patches/stable_page_statistics")
+    end)
+
+    after_each(function()
+        _G.__ZEN_UI_PLUGIN, _G.G_reader_settings = saved_plugin, saved_settings
+    end)
+
+    it("freezes finished books once for fresh and existing installs while preserving later choices", function()
+        for _i, initial in ipairs({ {}, { statistics = {
+            freeze_finished_books = false, is_enabled = false, min_sec = 12, max_sec = 90,
+        } } }) do
+            local defaults = { freeze_finished_books = false, is_enabled = true, min_sec = 5, max_sec = 120 }
+            local expected = initial.statistics or defaults
+            local Statistics = {
+                name = "statistics", settings_key = "statistics", default_settings = defaults,
+                insertDB = function() end,
+            }
+            ZenSpec.replace("pluginloader", { loadPlugins = function() return { Statistics } end })
+            _G.G_reader_settings = ZenSpec.memorySettings(initial)
+            local saves = 0
+            local plugin = { config = { _meta = {} }, saveConfig = function() saves = saves + 1 end }
+            _G.__ZEN_UI_PLUGIN = plugin
+            local apply = require("modules/reader/patches/stable_page_statistics")
+
+            apply()
+            local settings = G_reader_settings:readSetting("statistics")
+            assert.is_table(settings)
+            assert.is_true(settings.freeze_finished_books)
+            assert.equals(expected.is_enabled, settings.is_enabled)
+            assert.equals(expected.min_sec, settings.min_sec)
+            assert.equals(expected.max_sec, settings.max_sec)
+            assert.is_true(plugin.config._meta.statistics_freeze_finished_default_applied)
+
+            settings.freeze_finished_books = false
+            Statistics._zen_stable_page_stats = nil -- Simulate the next KOReader session.
+            ZenSpec.unload("modules/reader/patches/stable_page_statistics")
+            require("modules/reader/patches/stable_page_statistics")()
+            assert.is_false(settings.freeze_finished_books)
+            assert.equals(1, saves)
+        end
     end)
 
     it("uses the active page-map count as KOReader's statistics target", function()
@@ -19,6 +62,7 @@ describe("stable page statistics", function()
         local use_labels = true
         local stats = setmetatable({
             ui = {
+                document = {},
                 pagemap = {
                     wantsPageLabels = function() return use_labels end,
                     getCurrentPageLabel = function() return "12", 12, 321 end,
@@ -32,6 +76,52 @@ describe("stable page statistics", function()
         use_labels = false
         stats:insertDB(654)
         assert.are.equal(654, inserted_pagecount)
+    end)
+
+    it("saves statistics after the reader document is closed without changing page units", function()
+        local inserted_pagecounts, label_reads = {}, 0
+        local Statistics = {
+            name = "statistics",
+            insertDB = function(self, pagecount)
+                table.insert(inserted_pagecounts, pagecount or self.data.pages)
+            end,
+            onSaveSettings = function(self) self:insertDB() end,
+            getCurrentStat = function(self)
+                self:insertDB()
+                return "current statistics"
+            end,
+        }
+        ZenSpec.replace("pluginloader", {
+            loadPlugins = function() return { Statistics } end,
+        })
+        require("modules/reader/patches/stable_page_statistics")()
+
+        local document = {
+            getPageMapCurrentPageLabel = function() return "12", 12, 321 end,
+        }
+        local ui = { document = document }
+        ui.pagemap = {
+            ui = ui,
+            wantsPageLabels = function() return true end,
+            getCurrentPageLabel = function(self)
+                label_reads = label_reads + 1
+                return self.ui.document:getPageMapCurrentPageLabel()
+            end,
+        }
+        local stats = setmetatable({
+            id_curr_book = 1,
+            is_doc_not_frozen = true,
+            data = { pages = 654 },
+            document = document,
+            ui = ui,
+        }, { __index = Statistics })
+
+        stats:onSaveSettings()
+        ui.document = nil
+        stats:onSaveSettings()
+        assert.are.equal("current statistics", stats:getCurrentStat())
+        assert.are.same({ 321, 321, 321 }, inserted_pagecounts)
+        assert.are.equal(1, label_reads)
     end)
 
     it("keeps averages and time estimates in the database page unit", function()
@@ -89,6 +179,7 @@ describe("stable page statistics", function()
 
         local document = { getPageCount = function() return 1000 end }
         local ui = {
+            document = document,
             getCurrentPage = function() return 500 end,
             pagemap = {
                 wantsPageLabels = function() return true end,

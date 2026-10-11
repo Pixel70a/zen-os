@@ -110,18 +110,6 @@ local function validate_password(network)
 end
 
 local function create_profile(network)
-    local flags = type(network.flags) == "string" and network.flags or ""
-    local security_method
-    if flags:find("WPA2", 1, true) then
-        security_method = "wpa2"
-    elseif flags:find("WPA", 1, true) then
-        security_method = "wpa"
-    elseif is_secured(network) then
-        return false, "unsupported Kindle Wi-Fi security"
-    else
-        security_method = "open"
-    end
-
     local handle, handle_error = profile_handle()
     if not handle then return false, handle_error end
 
@@ -131,7 +119,7 @@ local function create_profile(network)
         profile_input = handle:new_hasharray()
         profile_input:add_hash()
         profile_input:put_string(0, "essid", network.ssid)
-        profile_input:put_string(0, "smethod", security_method)
+        -- Use KOReader's passphrase request; let wifid infer the security method.
         if is_secured(network) then
             profile_input:put_string(0, "secured", "yes")
             profile_input:put_string(0, "psk", network.password)
@@ -149,7 +137,7 @@ local function create_profile(network)
 
     local profile, profile_error = wait_for_profile(network.ssid, true)
     if not profile then return false, profile_error end
-    logger.dbg("Kindle Wi-Fi profile created", "security=", network.flags, "method=", security_method,
+    logger.dbg("Kindle Wi-Fi profile created", "security=", network.flags,
         "profile_id=", profile.netid)
     return true
 end

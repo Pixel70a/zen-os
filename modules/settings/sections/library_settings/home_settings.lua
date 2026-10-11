@@ -85,9 +85,9 @@ local function normalize_order(order)
     return "default"
 end
 
-local function ensure_featured_text_style(mcfg, key)
+local function ensure_featured_text_style(mcfg, key, defaults)
     if type(mcfg.text_styles) ~= "table" then mcfg.text_styles = {} end
-    local defaults = FEATURED_TEXT_STYLE_DEFAULTS[key]
+    defaults = defaults or FEATURED_TEXT_STYLE_DEFAULTS[key]
     if type(defaults) ~= "table" then return nil end
     if type(mcfg.text_styles[key]) ~= "table" then mcfg.text_styles[key] = {} end
     local style = mcfg.text_styles[key]
@@ -318,9 +318,150 @@ local function responsive_strip_max_books(two_rows)
     return StripCommon.max_books_for_width(outer_width, two_rows)
 end
 
+local function font_label(face)
+    if face == nil or face == "" or face == "default" then return _("default") end
+    local ok_fc, FontChooser = pcall(require, "ui/widget/fontchooser")
+    return ok_fc and FontChooser.getFontNameText(face) or face
+end
+
+local function chooser_default_font()
+    local font_name = library_font.getFontName()
+    if font_name and font_name ~= "" and font_name ~= "cfont" then
+        return font_name
+    end
+    local footer_settings = G_reader_settings:readSetting("footer") or {}
+    return footer_settings.text_font_face or "NotoSans-Regular.ttf"
+end
+
+function M.buildTextStyleItems(mcfg, key, label, defaults, save)
+    local function get_style()
+        return ensure_featured_text_style(mcfg, key, defaults)
+    end
+    local function save_style(touchmenu)
+        save()
+        if touchmenu then touchmenu:updateItems() end
+    end
+    local items = {
+        {
+            text_func = function()
+                local style = get_style()
+                return string.format("%s %s", _("Font size") .. ":", tostring(style.font_size))
+            end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local SpinWidget = require("ui/widget/spinwidget")
+                local style = get_style()
+                UIManager:show(SpinWidget:new{
+                    title_text = string.format("%s %s", label, _("font size")),
+                    value = style.font_size,
+                    value_min = 6,
+                    value_max = 40,
+                    default_value = defaults.font_size,
+                    callback = function(spin)
+                        style.font_size = math.max(6, math.min(40, spin.value))
+                        save_style(touchmenu_instance)
+                    end,
+                })
+            end,
+        },
+        {
+            _zen_search_text = _("Font"),
+            text_func = function()
+                local style = get_style()
+                return string.format("%s %s", _("Font") .. ":", font_label(style.font_face))
+            end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local ok_fc, FontChooser = pcall(require, "ui/widget/fontchooser")
+                if not ok_fc then return end
+                local style = get_style()
+                local default_font = chooser_default_font()
+                local display_face = style.font_face == "default" and default_font or style.font_face
+                UIManager:show(FontChooser:new{
+                    title = string.format("%s %s", label, _("font")),
+                    font_file = display_face,
+                    default_font_file = default_font,
+                    callback = function(file)
+                        if style.font_face ~= file then
+                            style.font_face = file
+                            save_style(touchmenu_instance)
+                        end
+                    end,
+                })
+            end,
+            hold_callback = function(touchmenu_instance)
+                local style = get_style()
+                if style.font_face ~= "default" then
+                    style.font_face = "default"
+                    save_style(touchmenu_instance)
+                end
+            end,
+        },
+        {
+            text = _("Bold"),
+            checked_func = function()
+                return get_style().bold == true
+            end,
+            callback = function(touchmenu_instance)
+                local style = get_style()
+                style.bold = style.bold ~= true
+                save_style(touchmenu_instance)
+            end,
+        },
+    }
+    if key == "description" then
+        items[#items + 1] = {
+            text = _("Wrap description text"),
+            checked_func = function()
+                return mcfg.wrap_description_text == true
+            end,
+            callback = function()
+                mcfg.wrap_description_text = mcfg.wrap_description_text ~= true
+                save()
+            end,
+        }
+        items[#items + 1] = {
+            text = _("Justify text"),
+            checked_func = function()
+                return mcfg.justify_description_text == true
+            end,
+            callback = function()
+                mcfg.justify_description_text = mcfg.justify_description_text ~= true
+                save()
+            end,
+        }
+        items[#items + 1] = {
+            text = _("HTML"),
+            checked_func = function()
+                return mcfg.format_description_html == true
+            end,
+            callback = function()
+                mcfg.format_description_html = mcfg.format_description_html ~= true
+                save()
+            end,
+        }
+    end
+    items[#items + 1] = {
+        text = _("Use default style"),
+        callback = function(touchmenu_instance)
+            mcfg.text_styles[key] = {
+                font_face = defaults.font_face,
+                font_size = defaults.font_size,
+                bold = defaults.bold,
+            }
+            save_style(touchmenu_instance)
+        end,
+    }
+    return items
+end
+
 function M.build(ctx)
     local config = ctx.config
-    local dcfg = ensure_cfg(config)
+    local dcfg = ctx.widget_config or ensure_cfg(config)
+    local featured_defaults = ctx.featured_text_style_defaults or FEATURED_TEXT_STYLE_DEFAULTS
+    local function featured_style(mcfg, key)
+        return ensure_featured_text_style(mcfg, key, featured_defaults[key])
+    end
     local capacity_units = type(Registry.capacityUnits) == "function"
         and Registry.capacityUnits() or Registry.CAPACITY_UNITS
     local schedule_home_rebuild_on_menu_close
@@ -358,6 +499,7 @@ function M.build(ctx)
     end
 
     local function save_home(_mode, opts)
+        if ctx.save_widget_config then ctx.save_widget_config(); return end
         if not (type(opts) == "table" and opts.make_builtin_editable == false) then
             make_builtin_editable()
         end
@@ -396,6 +538,7 @@ function M.build(ctx)
     end
 
     local function used_home_units()
+        if ctx.used_widget_units then return ctx.used_widget_units(dcfg.rows.enabled, dcfg.modules) end
         return Registry.totalUnits(dcfg.rows.enabled, dcfg.modules)
     end
 
@@ -416,7 +559,8 @@ function M.build(ctx)
         local InfoMessage = require("ui/widget/infomessage")
         UIManager:show(InfoMessage:new{
             text = T(
-                _("Not enough Home space: %1/%2 units used; this widget needs %3."),
+                ctx.widget_config and _("Not enough space: %1/%2 units used; this widget needs %3.")
+                    or _("Not enough Home space: %1/%2 units used; this widget needs %3."),
                 used,
                 capacity_units,
                 needed
@@ -492,21 +636,6 @@ function M.build(ctx)
         }
     end
 
-    local function font_label(face)
-        if face == nil or face == "" or face == "default" then return _("default") end
-        local ok_fc, FontChooser = pcall(require, "ui/widget/fontchooser")
-        return ok_fc and FontChooser.getFontNameText(face) or face
-    end
-
-    local function chooser_default_font()
-        local font_name = library_font.getFontName()
-        if font_name and font_name ~= "" and font_name ~= "cfont" then
-            return font_name
-        end
-        local footer_settings = G_reader_settings:readSetting("footer") or {}
-        return footer_settings.text_font_face or "NotoSans-Regular.ttf"
-    end
-
     local function datetime_style_summary(mcfg, key)
         local style = ensure_datetime_text_style(mcfg, key)
         local size = mcfg.automatic_font_size ~= false
@@ -519,7 +648,7 @@ function M.build(ctx)
             {
                 text_func = function()
                     local style = ensure_datetime_text_style(mcfg, key)
-                    return string.format("%s %s", _("Font size:"), tostring(style.font_size))
+                    return string.format("%s %s", _("Font size") .. ":", tostring(style.font_size))
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
@@ -545,7 +674,7 @@ function M.build(ctx)
             {
                 _zen_search_text = _("Font"),
                 text_func = function()
-                    return string.format("%s %s", _("Font:"),
+                    return string.format("%s %s", _("Font") .. ":",
                         font_label(ensure_datetime_text_style(mcfg, key).font_face))
                 end,
                 keep_menu_open = true,
@@ -654,131 +783,14 @@ function M.build(ctx)
         }
     end
 
-    local function save_featured_text_style(touchmenu_instance)
-        save_home("reinit")
-        if touchmenu_instance then touchmenu_instance:updateItems() end
-    end
-
     local function featured_text_style_summary(mcfg, key)
-        local style = ensure_featured_text_style(mcfg, key)
+        local style = featured_style(mcfg, key)
         local weight = style.bold and _("bold") or _("regular")
         return string.format("%s, %s, %s", font_label(style.font_face), tostring(style.font_size), weight)
     end
 
     local function build_featured_text_style_items(mcfg, key, label)
-        local defaults = FEATURED_TEXT_STYLE_DEFAULTS[key]
-        local items = {
-            {
-                text_func = function()
-                    local style = ensure_featured_text_style(mcfg, key)
-                    return string.format("%s %s", _("Font size:"), tostring(style.font_size))
-                end,
-                keep_menu_open = true,
-                callback = function(touchmenu_instance)
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    local style = ensure_featured_text_style(mcfg, key)
-                    UIManager:show(SpinWidget:new{
-                        title_text = string.format("%s %s", label, _("font size")),
-                        value = style.font_size,
-                        value_min = 6,
-                        value_max = 40,
-                        default_value = defaults.font_size,
-                        callback = function(spin)
-                            style.font_size = math.max(6, math.min(40, spin.value))
-                            save_featured_text_style(touchmenu_instance)
-                        end,
-                    })
-                end,
-            },
-            {
-                _zen_search_text = _("Font"),
-                text_func = function()
-                    local style = ensure_featured_text_style(mcfg, key)
-                    return string.format("%s %s", _("Font:"), font_label(style.font_face))
-                end,
-                keep_menu_open = true,
-                callback = function(touchmenu_instance)
-                    local ok_fc, FontChooser = pcall(require, "ui/widget/fontchooser")
-                    if not ok_fc then return end
-                    local style = ensure_featured_text_style(mcfg, key)
-                    local default_font = chooser_default_font()
-                    local display_face = style.font_face == "default" and default_font or style.font_face
-                    UIManager:show(FontChooser:new{
-                        title = string.format("%s %s", label, _("font")),
-                        font_file = display_face,
-                        default_font_file = default_font,
-                        callback = function(file)
-                            if style.font_face ~= file then
-                                style.font_face = file
-                                save_featured_text_style(touchmenu_instance)
-                            end
-                        end,
-                    })
-                end,
-                hold_callback = function(touchmenu_instance)
-                    local style = ensure_featured_text_style(mcfg, key)
-                    if style.font_face ~= "default" then
-                        style.font_face = "default"
-                        save_featured_text_style(touchmenu_instance)
-                    end
-                end,
-            },
-            {
-                text = _("Bold"),
-                checked_func = function()
-                    return ensure_featured_text_style(mcfg, key).bold == true
-                end,
-                callback = function(touchmenu_instance)
-                    local style = ensure_featured_text_style(mcfg, key)
-                    style.bold = style.bold ~= true
-                    save_featured_text_style(touchmenu_instance)
-                end,
-            },
-        }
-        if key == "description" then
-            items[#items + 1] = {
-                text = _("Wrap description text"),
-                checked_func = function()
-                    return mcfg.wrap_description_text == true
-                end,
-                callback = function()
-                    mcfg.wrap_description_text = mcfg.wrap_description_text ~= true
-                    save_home("reinit")
-                end,
-            }
-            items[#items + 1] = {
-                text = _("Justify text"),
-                checked_func = function()
-                    return mcfg.justify_description_text == true
-                end,
-                callback = function()
-                    mcfg.justify_description_text = mcfg.justify_description_text ~= true
-                    save_home("reinit")
-                end,
-            }
-            items[#items + 1] = {
-                text = _("HTML"),
-                checked_func = function()
-                    return mcfg.format_description_html == true
-                end,
-                callback = function()
-                    mcfg.format_description_html = mcfg.format_description_html ~= true
-                    save_home("reinit")
-                end,
-            }
-        end
-        items[#items + 1] = {
-            text = _("Use default style"),
-            callback = function(touchmenu_instance)
-                mcfg.text_styles[key] = {
-                    font_face = defaults.font_face,
-                    font_size = defaults.font_size,
-                    bold = defaults.bold,
-                }
-                save_featured_text_style(touchmenu_instance)
-            end,
-        }
-        return items
+        return M.buildTextStyleItems(mcfg, key, label, featured_defaults[key], function() save_home("reinit") end)
     end
 
     local function featured_text_style_item(mcfg, key, label, show_key)
@@ -812,10 +824,16 @@ function M.build(ctx)
         items[#items + 1] = featured_text_style_item(mcfg, "title", _("Title"))
         items[#items + 1] = featured_text_style_item(mcfg, "author", _("Author"), "show_author")
         items[#items + 1] = featured_text_style_item(mcfg, "series", _("Series"), "show_series")
-        items[#items + 1] = featured_text_style_item(
-            mcfg, "description", _("Description"), "show_description")
+        if not ctx.widget_config then
+            items[#items + 1] = featured_text_style_item(
+                mcfg, "description", _("Description"), "show_description")
+        end
         items[#items + 1] = featured_text_style_item(
             mcfg, "progress", _("Progress labels"))
+        if ctx.widget_config then
+            items[#items + 1] = featured_text_style_item(mcfg, "status", _("Book status"))
+            items[#items + 1] = featured_text_style_item(mcfg, "navigation", _("Button labels"), "show_navigation_labels")
+        end
         return items
     end
 
@@ -831,6 +849,7 @@ function M.build(ctx)
     local function interactive_item(mcfg)
         return {
             text = _("Interactive"),
+            help_text = _("When disabled, widget is read only and does not respond to taps, holds, or swipes"),
             checked_func = function()
                 return mcfg.interactive ~= false
             end,
@@ -1014,10 +1033,11 @@ function M.build(ctx)
                 sub_item_table = build_progress_meta_items(mcfg),
             },
         }
-        if mcfg.default_source.kind == "custom" then
+        if ctx.widget_config then table.remove(items, 1); table.remove(items, 1); table.remove(items, 1) end
+        if not ctx.widget_config and mcfg.default_source.kind == "custom" then
             items[#items + 1] = {
                 text_func = function()
-                    return _("Book: ") .. path_label(mcfg.path)
+                    return _("Book") .. ": " .. path_label(mcfg.path)
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
@@ -1049,7 +1069,7 @@ function M.build(ctx)
             recent = _("Recent"), favorites = _("Favorites"),
             to_be_read = _("To Be Read"), authors = _("Authors"),
             series = _("Series"), languages = _("Languages"), tags = _("Tags"),
-            collections = _("Collections"), custom = _("Custom books"),
+            collections = _("Collections"), custom = _("Custom books"), continue = _("Continue"),
         }
         if source.kind == "tag" then return source.value or _("Specific tag") end
         if source.kind == "status" then
@@ -1250,11 +1270,13 @@ function M.build(ctx)
     end
 
     local function reset_strip_tabs(mcfg)
-        local defaults = HomePresets.defaultHomePage().modules.strip.controls
+        local defaults = ctx.strip_controls_defaults
+            and require("common/utils").deepcopy(ctx.strip_controls_defaults)
+            or HomePresets.defaultHomePage().modules.strip.controls
         local controls = mcfg.controls
         for _i, entry in ipairs(controls.custom_buttons) do
             if type(entry) == "table" and type(entry.id) == "string"
-                    and entry.id ~= "" then
+                    and entry.id ~= "" and defaults.show_buttons[entry.id] == nil then
                 defaults.order[#defaults.order + 1] = entry.id
                 defaults.show_buttons[entry.id] = false
             end
@@ -1287,6 +1309,11 @@ function M.build(ctx)
                 }
             end
         end
+        for _i, entry in ipairs(ctx.strip_controls_defaults and ctx.strip_controls_defaults.custom_buttons or {}) do
+            if not selected[entry.id] then
+                items[#items + 1] = { text = entry.label, entry = entry }
+            end
+        end
         local selected_status = {}
         for _i, entry in ipairs(controls.custom_buttons) do
             if selected[entry.id] and entry.type == "status" then
@@ -1316,6 +1343,9 @@ function M.build(ctx)
                 end
                 local entry = item and item.entry
                 if not entry or count_strip_buttons(controls) >= 7 then return end
+                if entry.type == "custom_source" and not ButtonModel.find(controls, entry.id) then
+                    controls.custom_buttons[#controls.custom_buttons + 1] = require("common/utils").deepcopy(entry)
+                end
                 controls.order[#controls.order + 1] = entry.id
                 controls.show_buttons[entry.id] = true
                 save_home("reinit")
@@ -1494,7 +1524,8 @@ function M.build(ctx)
             }
         else
             settings_resume = select(2, settings_page.rememberStandaloneArrangeRoute({
-                { text = _("Home"), occurrence = 1 },
+                { text = ctx.widget_config and _("Reader") or _("Home"), occurrence = 1 },
+                ctx.widget_config and { text = _("End of book") } or nil,
             }, _("Widgets"), { "strip", _("Controls"), _("Tabs") }))
         end
         local sort_items
@@ -1618,7 +1649,7 @@ function M.build(ctx)
         }}
         for i, path in ipairs(custom.paths) do
             items[#items + 1] = {
-                text = _("Remove: ") .. path_label(path),
+                text = _("Remove") .. ": " .. path_label(path),
                 callback = function()
                     table.remove(custom.paths, i)
                     save_home("reinit")
@@ -1647,7 +1678,7 @@ function M.build(ctx)
             {
                 text_func = function()
                     local style = ensure_strip_cfg(dcfg).controls.text_style
-                    return string.format("%s %s", _("Font size:"), tostring(style.font_size))
+                    return string.format("%s %s", _("Font size") .. ":", tostring(style.font_size))
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
@@ -1670,7 +1701,7 @@ function M.build(ctx)
                 _zen_search_text = _("Font"),
                 text_func = function()
                     local style = ensure_strip_cfg(dcfg).controls.text_style
-                    return string.format("%s %s", _("Font:"), font_label(style.font_face))
+                    return string.format("%s %s", _("Font") .. ":", font_label(style.font_face))
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
@@ -1819,7 +1850,7 @@ function M.build(ctx)
             },
             {
                 text_func = function()
-                    return _("Max books shown: ") .. tostring(mcfg.count or 4)
+                    return _("Max books shown") .. ": " .. tostring(mcfg.count or 4)
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
@@ -1844,6 +1875,7 @@ function M.build(ctx)
                 end,
             },
         }
+        if ctx.widget_config then return items end
         if mcfg.controls.enabled ~= true then
             table.insert(items, 1, {
                 text_func = function()
@@ -2176,7 +2208,7 @@ function M.build(ctx)
         local goals_cfg = ensure_module_cfg(dcfg, "reading_goals")
         local items = {{
             text_func = function()
-                return string.format("%s %s", _("Font size:"),
+                return string.format("%s %s", _("Font size") .. ":",
                     tostring(goals_cfg.font_size or DEFAULT_GOALS_FONT_SIZE))
             end,
             keep_menu_open = true,
@@ -2270,7 +2302,7 @@ function M.build(ctx)
             },
             {
                 text_func = function()
-                    return string.format("%s %s", _("Font size:"),
+                    return string.format("%s %s", _("Font size") .. ":",
                         stats_style_summary(stats_cfg))
                 end,
                 enabled_func = function()
@@ -2527,7 +2559,7 @@ function M.build(ctx)
         }
         items[#items + 1] = {
             text_func = function()
-                return string.format("%s %s", _("Font size:"), tostring(quote_font_size()))
+                return string.format("%s %s", _("Font size") .. ":", tostring(quote_font_size()))
             end,
             enabled_func = function()
                 return dcfg.quotes.automatic_font_size ~= true
@@ -2594,6 +2626,8 @@ function M.build(ctx)
         return items
     end
 
+    if ctx.widget_id then return build_widget_settings_items(ctx.widget_id) end
+
     open_widget_settings = function(id, owning_plugin)
         local settings_page = require("modules/settings/zen_settings_page")
         local standalone_route, settings_resume = settings_page.rememberStandaloneArrangeRoute({
@@ -2633,6 +2667,7 @@ function M.build(ctx)
             },
             {
                 text = _("Edit mode"),
+                help_text = _("Hold a widget to open settings directly"),
                 checked_func = function()
                     return dcfg.edit_mode == true
                 end,

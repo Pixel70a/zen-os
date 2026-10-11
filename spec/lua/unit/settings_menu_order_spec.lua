@@ -16,15 +16,15 @@ describe("settings menu organization", function()
             return result
         end
         local has_bluetooth, double_tap_item
-        local language_item = { text = "Language", sub_item_table = {} }
-        local time_item = { text = "Time and date", sub_item_table = {} }
-
         replace("gettext", function(text) return text end)
         local shown_dialog, reset_calls, menu_updates, has_current_capacity, missing_stats, is_charging
         replace("ui/uimanager", { show = function(_, dialog) shown_dialog = dialog end })
         replace("ui/widget/confirmbox", { new = function(_, dialog) return dialog end })
         replace("common/shutdown", {})
         replace("modules/settings/zen_settings_apply", {})
+        replace("modules/menu/app_launcher/native_menu", {
+            settingsItems = function() return items({ "Settings", "Tools" }) end,
+        })
         replace("modules/settings/zen_updater", {
             init_banner = function() end,
             build_update_available_action = function() end,
@@ -33,13 +33,13 @@ describe("settings menu organization", function()
             snapshot = function()
                 if missing_stats == "none" then return nil end
                 if missing_stats == "partial" then return { samples = 0 } end
-                local overall = reset_calls == 0 and 0.5 or nil
+                local overall = 0.5
                 return { level = 80, charging = is_charging, overall = overall, awake = 1, asleep = 0.1,
                     awake_time = 7200, asleep_time = 14400,
                     current_mah = has_current_capacity and 600 or nil,
                     full_mah = 1200, design_mah = 1600, health = 75, remaining = 125100,
                     charge_rate = 20, charge_gain = 40, time_to_full = 3600, full_charge_time = 7200, since_full_charge = 14400,
-                    since_charge = 3600, samples = reset_calls > 0 and 0 or 24 }
+                    since_charge = 3600, samples = reset_calls > 0 and 1 or 24 }
             end,
             reset = function() reset_calls = reset_calls + 1 end,
         })
@@ -73,10 +73,6 @@ describe("settings menu organization", function()
         replace("modules/menu/bluetooth/bluetooth", {
             isAvailable = function() return has_bluetooth end,
         })
-        replace("ui/language", {
-            getLangMenuTable = function() return language_item end,
-        })
-        replace("ui/elements/common_settings_menu_table", { time = time_item })
         replace("modules/settings/zen_settings_utils", false)
         for _i, section in ipairs({
             "library_settings/home_settings", "library_settings/navbar_settings",
@@ -92,14 +88,33 @@ describe("settings menu organization", function()
         local font_item, wallpaper_item, status_bar_item
         replace("modules/settings/sections/library_settings", {
             build = function()
+                double_tap_item = { text = "Double-tap to open a book" }
+                return { { text = "Original control" }, { text = "Books", sub_item_table = { double_tap_item } } }
+            end,
+        })
+        replace("modules/settings/sections/interface_settings", {
+            build = function(_ctx, extras)
                 font_item = {
-                    text = "Font",
-                    text_func = function() return "Font: Hyperreadable, 24" end,
+                    text = "Font", text_func = function() return "Font: Hyperreadable, 24" end,
                     sub_item_table = items({ "Font size", "Font", "Reset font" }),
                 }
                 wallpaper_item = { text = "Wallpaper" }
                 status_bar_item = { text = "Status bar", sub_item_table = items({ "Left items", "Right items" }) }
-                return { { text = "Original control" }, font_item, wallpaper_item, status_bar_item }
+                local interface = items({ "Controls", "Launcher", "Navbar" })
+                interface[2]._zen_settings_root = "launcher"
+                interface[4], interface[5] = status_bar_item, font_item
+                local function move(text)
+                    for i, item in ipairs(extras) do
+                        if item.text == text then table.insert(interface, table.remove(extras, i)) break end
+                    end
+                end
+                move("Zen Keyboard")
+                table.insert(interface, wallpaper_item)
+                move("Custom icons")
+                table.insert(interface, { text = "Blur menu background" })
+                move("Zen Search")
+                return { text = "Interface", sub_item_table = interface,
+                    _zen_settings_root = "interface", icon_glyph = interface_icon }
             end,
         })
         for _i, section in ipairs({ "reader_settings", "updates_settings" }) do
@@ -114,9 +129,7 @@ describe("settings menu organization", function()
         })
         replace("modules/settings/sections/advanced_settings", {
             build = function()
-                local result = items({ "Original control", "Double tap to open books" })
-                double_tap_item = result[2]
-                return result
+                return items({ "Original control" })
             end,
         })
         replace("modules/settings/sections/about_settings", {
@@ -135,6 +148,8 @@ describe("settings menu organization", function()
             local root = builder.build({ config = { features = {} } }).sub_item_table
             assert.are.same({ "Home", "Library", "Reader", "Interface", "Extras", "General", "KOReader", "About" }, labels(root))
             assert.is_function(root[7].sub_item_table_func)
+            assert.are.same({ "Settings", "Tools", "Quit KOReader" }, labels(root[7].sub_item_table_func()))
+            assert.is_true(root[7].sub_item_table_func()[3].keep_menu_open)
             assert.are.equal("koreader.png", root[7].icon_file:match("([^/]+)$"))
             assert.is_nil(root[7].icon_glyph)
             local interface = root[4].sub_item_table
@@ -150,7 +165,7 @@ describe("settings menu organization", function()
             assert.are.same({ "Font size", "Font", "Reset font" }, labels(interface[5].sub_item_table))
             assert.are.equal("gear", root[6].icon_glyph)
             local general = root[6].sub_item_table
-            local expected = { "Wi-Fi", "Schedules", "Sleep", "Battery", "Language", "Time and date", "Advanced", "Updates" }
+            local expected = { "Wi-Fi", "Schedules", "Sleep", "Battery", "Advanced", "Updates" }
             if available then table.insert(expected, 2, "Bluetooth") end
             assert.are.same(expected, labels(general))
             local battery_item = general[available and 5 or 4]
@@ -194,11 +209,12 @@ describe("settings menu organization", function()
             local battery_menu = { item_table = settings,
                 updateItems = function() menu_updates = menu_updates + 1 end }
             settings[2].callback(battery_menu)
-            assert.are.equal("Reset battery log?", shown_dialog.text)
+            assert.are.equal("Reset battery log?\n\nCharging history and overall usage will be kept.", shown_dialog.text)
             shown_dialog.ok_callback()
             assert.are.equal(menu_updates, reset_calls)
-            assert.are.equal("Tracked samples: 0", battery_menu.item_table[1].text)
-            assert.are.equal("-", battery[2].mandatory)
+            assert.are.equal("Tracked samples: 1", battery_menu.item_table[1].text)
+            assert.are.equal("0.50%/h", battery[2].mandatory)
+            assert.are.equal("Previous charge, per hour: 20.00%/h", battery[3].sub_item_table[1].text)
             missing_stats = "partial"
             local missing_rows = battery_item.sub_item_table_func()
             assert.are.equal("-", missing_rows[1].mandatory)
@@ -213,14 +229,12 @@ describe("settings menu organization", function()
             missing_stats = "none"
             assert.are.same({ "-" }, labels(battery_item.sub_item_table_func()))
             assert.are.equal("Wi-Fi", general[1].text)
-            assert.are.equal(language_item.sub_item_table, general[#general - 3].sub_item_table)
-            assert.are.equal(time_item, general[#general - 2])
             if available then assert.are.equal("Bluetooth", general[2].text) end
             assert.are.same({ "Original control" }, labels(general[#general - 1].sub_item_table))
             assert.are.same({ "Original control" }, labels(general[#general].sub_item_table))
-            assert.are.same({ "Original control", "Double tap to open books" }, labels(root[2].sub_item_table))
-            assert.are.equal(double_tap_item, root[2].sub_item_table[#root[2].sub_item_table])
-            assert.are.same({ "Version", "Device", "Setup Guide", "Report a Bug", "Quit KOReader" }, labels(root[8].sub_item_table))
+            assert.are.same({ "Original control", "Books" }, labels(root[2].sub_item_table))
+            assert.are.equal(double_tap_item, root[2].sub_item_table[2].sub_item_table[1])
+            assert.are.same({ "Version", "Device", "Setup Guide", "Report a Bug" }, labels(root[8].sub_item_table))
             assert.are.same({ "Install ZenPM", "Zen OPDS", "Stats", "Rakuyomi", "Lockdown mode" }, labels(root[5].sub_item_table))
         end
         package.loaded["modules/settings/zen_settings"] = original_builder

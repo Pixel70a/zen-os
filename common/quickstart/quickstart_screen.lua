@@ -21,6 +21,7 @@ local Input          = require("device/input")
 local TextBoxWidget  = require("ui/widget/textboxwidget")
 local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local ZenButton      = require("common/ui/zen_button")
 local TitleStyle     = require("common/ui/zen_title_style")
 local Screen         = Device.screen
@@ -745,7 +746,7 @@ function QuickstartScreen:onShow()
 end
 
 function QuickstartScreen:onClose()
-    UIManager:setDirty(nil, "full")
+    UIManager:setDirty(nil, getFullRefreshMode())
     UIManager:close(self)
     -- Block filebrowser taps for 1.5s so the close-gesture doesn't open a file.
     _G.__ZEN_QUICKSTART_JUST_CLOSED = true

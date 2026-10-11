@@ -76,8 +76,8 @@ describe("home data and book caches", function()
         })
         ZenSpec.replace("common/title_sort", {
             key = function(value) return tostring(value) end,
-            less = function(first, second)
-                return tostring(first) < tostring(second)
+            comparator = function()
+                return function(first, second) return tostring(first) < tostring(second) end
             end,
         })
         ZenSpec.replace("common/widget_resources", {})
@@ -332,6 +332,120 @@ describe("home data and book caches", function()
                 end
             end
         end
+    end)
+
+    it("does not erase shifted book content when painting the goals row", function()
+        ZenSpec.unload("common/ui/background")
+        ZenSpec.replace("ui/widget/imagewidget", {})
+        ZenSpec.replace("libs/libkoreader-lfs", {})
+        ZenSpec.replace("apps/filemanager/filemanagerutil", {})
+        local screen = require("device").screen
+        function screen:scaleBySize(value) return value end
+        local function widget_class(kind)
+            return { new = function(_self, widget)
+                function widget:getSize()
+                    if self.dimen then return self.dimen end
+                    if kind == "span" then return { w = 0, h = self.width } end
+                    local w, h = 0, 0
+                    for _i, child in ipairs(self) do
+                        local size = child:getSize()
+                        w = math.max(w, size.w)
+                        h = kind == "vertical" and h + size.h or math.max(h, size.h)
+                    end
+                    return { w = self.width or w, h = self.height or h }
+                end
+                function widget:paintTo(bb, x, y)
+                    local size = self:getSize()
+                    if self.background then bb:paintRect(x, y, size.w, size.h, self.background) end
+                    for _i, child in ipairs(self) do
+                        if child.paintTo then child:paintTo(bb, x, y) end
+                        if kind == "vertical" then y = y + child:getSize().h end
+                    end
+                end
+                return widget
+            end }
+        end
+        ZenSpec.replace("ui/widget/container/framecontainer", widget_class("frame"))
+        ZenSpec.replace("ui/widget/horizontalgroup", widget_class("horizontal"))
+        ZenSpec.replace("ui/widget/horizontalspan", widget_class("span"))
+        ZenSpec.replace("ui/widget/verticalgroup", widget_class("vertical"))
+        ZenSpec.replace("ui/widget/verticalspan", widget_class("span"))
+        ZenSpec.replace("ui/font", { getFace = function() return {} end })
+        ZenSpec.replace("modules/filebrowser/patches/home/components/registry", {
+            layoutUnits = function() return { 4, 6 } end,
+            gridHeights = function() return { 400, 484 } end,
+            equalSpacingShifts = function() return { 60, 0 } end,
+            setRefreshCallback = function() end,
+        })
+        ZenSpec.unload("modules/filebrowser/patches/home_page")
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local build_home_content = select(2, get_compute_row_heights(Home))
+        local rows = {}
+        for i, id in ipairs({ "featured", "reading_goals" }) do
+            rows[i] = { id = id, build = function(ctx)
+                local shift = 0
+                local top = id == "featured" and 350 or 200
+                ctx.setContentBounds{
+                    top = top, bottom = top + 40,
+                    set_shift = function(value) shift = value end,
+                }
+                return require("ui/widget/container/framecontainer"):new{
+                    width = ctx.width, height = ctx.height, background = "white",
+                    {
+                        getSize = function() return { w = ctx.width, h = ctx.height } end,
+                        paintTo = function(_self, bb, x, y)
+                            bb:paintRect(x, y + top + shift, ctx.width, 40, "black")
+                        end,
+                    },
+                }
+            end }
+        end
+        local content = build_home_content({ height = 900, dimen = { h = 900 } }, {},
+            { show_status_bar = false, modules = {} }, rows, {})
+        local pixel
+        content:paintTo({ paintRect = function(_bb, _x, y, _w, h, color)
+            if y <= 424 and y + h > 424 then pixel = color end
+        end }, 0, 0)
+
+        assert.are.equal("black", pixel)
+    end)
+
+    it("opens the file context menu when holding a recent Rakuyomi manga from Home", function()
+        local file, held, loaded = "/data/rakuyomi/tmpfs/chapter.cbz", {}, {}
+        local fm = require("apps/filemanager/filemanager").instance
+        fm.file_chooser = { showFileDialog = function(_self, item) held[#held + 1] = item end }
+        require("modules/filebrowser/patches/rakuyomi").loadRecentDetails = function(path)
+            loaded[#loaded + 1] = path
+            return path == file
+        end
+        local Widget = { new = function(_self, values) return values end }
+        for _i, name in ipairs({ "ui/widget/horizontalgroup", "ui/widget/horizontalspan",
+                "ui/widget/verticalgroup", "ui/widget/verticalspan", "ui/widget/container/framecontainer",
+                "ui/widget/container/inputcontainer", "ui/gesturerange" }) do
+            ZenSpec.replace(name, Widget)
+        end
+        ZenSpec.replace("ui/font", { getFace = function() return {} end })
+        ZenSpec.replace("apps/filemanager/filemanagerutil", {})
+        require("device").screen.scaleBySize = function(_self, value) return value end
+        require("common/ui/background").clearWhiteBackgrounds = function() end
+        require("modules/filebrowser/patches/home/components/registry").gridHeights = function() return { 900 } end
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local build_home_content = select(2, get_compute_row_heights(Home))
+        local rows = {{ id = "featured", build = function(ctx)
+            assert.is_true(ctx.showBookMenu(file, "recently_read"))
+            assert.is_true(ctx.showBookMenu("/library/alpha.epub", "recently_read"))
+            return { paintTo = function() end }
+        end }}
+        build_home_content({ height = 900, dimen = { h = 900 } },
+            { rakuyomi = { recent_series = {{ file = file }} } },
+            { show_status_bar = false, modules = {} }, rows, {})
+        assert.same({ file, "/library/alpha.epub" }, loaded)
+        assert.equals(file, held[1].path)
+        assert.is_true(held[1]._zen_rakuyomi_book)
+        assert.is_true(held[1]._zen_hide_edit)
+        assert.is_false(held[1]._zen_is_history)
+        assert.is_true(held[2]._zen_is_history)
+        assert.is_false(held[2]._zen_hide_edit)
     end)
 
     it("keeps preset row heights on their original grids", function()
@@ -700,6 +814,122 @@ describe("home data and book caches", function()
             included:getFeaturedBook("recently_read", "default").path)
     end)
 
+    it("always excludes tmpfs chapters from Home history, including paths inside the library", function()
+        history_items[1].file = "/library/rakuyomi/tmpfs/current.cbz"
+        history_items[2] = { file = "/data/rakuyomi/tmpfs/next.cbz" }
+        history_items[3] = { file = "/library/chapter.cbz" }
+        history_items[4] = { file = "/library/alpha.epub" }
+        require("modules/filebrowser/patches/rakuyomi").isTmpfsChapterFile = function(path)
+            return path:find("/rakuyomi/tmpfs/", 1, true) ~= nil
+        end
+        _G.__ZEN_UI_RAKUYOMI = { isChapterFile = function(path) return path:sub(-4) == ".cbz" end }
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local build_data_provider = get_build_data_provider(Home)
+        local dcfg = { rows = { order = { "strip" }, enabled = { strip = true } }, modules = { strip = {} } }
+        for _i, exclude in ipairs({ false, true }) do
+            local provider = build_data_provider({ browser_cover_badges = {},
+                rakuyomi = { exclude_from_home = exclude } }, dcfg)
+            local expected = exclude and { "/library/alpha.epub" }
+                or { "/library/chapter.cbz", "/library/alpha.epub" }
+            assert.same(expected, provider:getContinuePaths())
+            assert.equals(expected[1], provider:getFeaturedBook("recently_read", "default").path)
+            local books = provider:getBooksForStrip("recently_read", 4, "default", "strip")
+            assert.equals(#expected, #books)
+            for index, path in ipairs(expected) do assert.equals(path, books[index].path) end
+        end
+    end)
+
+    it("mixes two Rakuyomi series and two EPUBs by last-read date without duplicate chapter cards", function()
+        local file = "/data/rakuyomi/tmpfs/current.cbz"
+        local other = "/data/rakuyomi/tmpfs/other.cbz"
+        history_items[1] = { file = "/library/alpha.epub", time = 300 }
+        history_items[2] = { file = other, time = 200 }
+        history_items[3] = { file = "/library/beta.epub", time = 100 }
+        history_items[4] = { file = "/library/chapter.cbz", time = 50 }
+        history_items[5] = { file = "/data/rakuyomi/older-series.cbz", time = 10 }
+        local integration = require("modules/filebrowser/patches/rakuyomi")
+        integration.isChapterFile = function(path) return path:sub(-4) == ".cbz" end
+        integration.isTmpfsChapterFile = function(path) return path == file or path == other end
+        integration.getRecentSeries = function()
+            return { { file = file, time = 400 }, { file = other, time = 200 } }
+        end
+        integration.getRecentBook = function(recent)
+            return { path = recent.file, title = recent.file == file and "Series" or "Other series",
+                chapter_label = "Ch. 12", status = "reading" }
+        end
+        _G.__ZEN_UI_RAKUYOMI = integration
+        local attributes = require("libs/libkoreader-lfs").attributes
+        require("libs/libkoreader-lfs").attributes = function(path, key)
+            if path ~= file and path ~= other then return attributes(path, key) end
+        end
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local build_data_provider = get_build_data_provider(Home)
+        local dcfg = { rows = { enabled = { strip = true } }, modules = { strip = {} } }
+        local provider = build_data_provider({ browser_cover_badges = {} }, dcfg)
+        local expected = { file, "/library/alpha.epub", other, "/library/beta.epub" }
+        assert.same(expected, provider:getContinuePaths())
+        local books = provider:getBooksForStrip("recently_read", 4, "default", "strip")
+        assert.equals(4, #books)
+        for index, path in ipairs(expected) do assert.equals(path, books[index].path) end
+        assert.equals("Series", books[1].title)
+        assert.equals("Ch. 12", books[1].chapter_label)
+        assert.equals("Other series", books[3].title)
+        assert.equals(file, provider:getFeaturedBook("recently_read", "default").path)
+        Home.invalidateBookCache(other, true)
+        table.remove(history_items, 2)
+        assert.same(expected, provider:getContinuePaths())
+        local excluded = build_data_provider({ browser_cover_badges = {},
+            rakuyomi = { exclude_from_home = true } }, dcfg)
+        assert.same({ "/library/alpha.epub", "/library/beta.epub" }, excluded:getContinuePaths())
+    end)
+
+    it("marks retained Home stale and reloads chapter details when its book cache is invalidated", function()
+        local recent = { file = "/data/rakuyomi/tmpfs/current.cbz", time = 200, chapter_label = "Ch. 12" }
+        local integration = require("modules/filebrowser/patches/rakuyomi")
+        integration.getRecentSeries = function() return { recent } end
+        integration.getRecentBook = function(series)
+            return { path = series.file, title = "Series", chapter_label = series.chapter_label, status = "reading" }
+        end
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local menu = { _zen_home_suspended = true }
+        set_home_menu(Home, menu)
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, { modules = {} })
+        assert.equals("Ch. 12", provider:getFeaturedBook("recently_read", "default").chapter_label)
+        recent = { file = "/data/rakuyomi/tmpfs/next.cbz", time = 300, chapter_label = "Ch. 13" }
+        Home.invalidateBookCache(recent.file, true)
+        assert.is_true(menu._zen_home_needs_rebuild)
+        local book = provider:getFeaturedBook("recently_read", "default")
+        assert.equals(recent.file, book.path)
+        assert.equals("Ch. 13", book.chapter_label)
+    end)
+
+    it("rejects tmpfs books from custom Home sources before cache or metadata lookup", function()
+        local temporary = "/library/rakuyomi/tmpfs/current.cbz"
+        local is_tmpfs = false
+        require("modules/filebrowser/patches/rakuyomi").isTmpfsChapterFile = function(path)
+            return is_tmpfs and path == temporary
+        end
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = { order = { "strip" }, enabled = { strip = true } },
+            modules = { featured = { path = temporary }, strip = {
+                sources = { custom = { paths = { temporary, "/library/chapter.cbz" } } },
+            } },
+        })
+        assert.is_table(provider:getBook(temporary, true))
+        local reads = book_info_reads
+        is_tmpfs = true
+        assert.is_nil(provider:getBook(temporary, true))
+        assert.is_nil(provider:getFeaturedBook("custom_featured", "default"))
+        assert.equals(reads, book_info_reads)
+        for _i, books in ipairs({ provider:getBooksForStrip("custom_strip", 4, "default", "strip"),
+                (provider:getStripItemsForPage({ kind = "custom", paths = { temporary, "/library/chapter.cbz" } },
+                    4, "default", "strip", 0)) }) do
+            assert.equals(1, #books)
+            assert.equals("/library/chapter.cbz", books[1].path)
+        end
+    end)
+
     it("reuses matching Home stats across provider rebuilds", function()
         local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
         local build_data_provider = get_build_data_provider(Home)
@@ -783,6 +1013,41 @@ describe("home data and book caches", function()
         stats = Home.getCoverCacheStats()
         assert.are.equal(0, stats.bytes)
         assert.are.equal(0, stats.count)
+    end)
+
+    it("hydrates real covers when drilling into books already cached with their bitmaps", function()
+        local function cover()
+            return { stride = 6, h = 1, copy = cover,
+                getHeight = function() return 1 end, free = function() end }
+        end
+        require("bookinfomanager").getBookInfo = function(_self, path, get_cover)
+            book_info_reads = book_info_reads + 1
+            local has_cover = path == "/library/alpha.epub"
+            return {
+                title = "Book", cover_fetched = true, has_cover = has_cover,
+                cover_sizetag = "300x450", cover_w = 300, cover_h = 450,
+                cover_bb = has_cover and get_cover and cover() or nil,
+            }
+        end
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = Home.newDataProvider({ browser_cover_badges = {} }, {
+            rows = { enabled = { strip = true } }, modules = {},
+        })
+        assert.is_table(provider:getBook("/library/alpha.epub").cover_bb)
+        assert.is_nil(provider:getBook("/library/no-cover.epub").cover_bb)
+        local books = provider:getStripItemsForPage({ kind = "series", drill = {
+            label = "Series", files = { "/library/alpha.epub", "/library/no-cover.epub" },
+        } }, 4, "default", "strip", 0)
+
+        assert.is_true(books[1].has_real_cover)
+        assert.is_nil(books[1].cover_bb)
+        assert.is_true(books[1].is_cover_pending)
+        assert.is_false(books[2].has_real_cover)
+        assert.is_nil(books[2].is_cover_pending)
+        assert.equals(2, book_info_reads)
+        local full_book = provider:getBook("/library/alpha.epub")
+        assert.is_table(full_book.cover_bb)
+        assert.is_nil(full_book.is_cover_pending)
     end)
 
     it("warms a strip cover only from scheduled cover work", function()
@@ -976,6 +1241,58 @@ describe("home data and book caches", function()
 
         assert.are.same({ "/library/alpha.epub" }, notified)
         assert.are.equal(0, rebuilds)
+    end)
+
+    it("extracts unindexed end-of-book covers and settles books without covers", function()
+        local scheduled, notified, extracted = {}, {}, 0
+        local fetched = false
+        local indexed = false
+        local UIManager = require("ui/uimanager")
+        UIManager.scheduleIn = function(_self, delay, callback)
+            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        end
+        local BookInfoManager = require("bookinfomanager")
+        BookInfoManager.getBookInfo = function()
+            if not indexed then return end
+            return { title = "Alpha", cover_fetched = fetched, has_cover = false }
+        end
+        BookInfoManager.isExtractingInBackground = function() return false end
+        BookInfoManager.extractInBackground = function(_self, files)
+            assert.equals("/library/alpha.epub", files[1].filepath)
+            extracted = extracted + 1
+            indexed = true
+            fetched = true
+            return true
+        end
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local home_menu = { _home_rebuild = function() error("rebuilt hidden Home") end }
+        set_home_menu(Home, home_menu)
+        local page = { name = "zen_end_book", _zen_home_notify_strip_cover = function(_self, path)
+            notified[#notified + 1] = path
+        end }
+        UIManager._window_stack = { { widget = home_menu }, { widget = page } }
+        local provider = Home.newDataProvider({ browser_cover_badges = {} }, {
+            rows = { enabled = { strip = true } }, modules = {},
+        })
+        local book = provider:getBooksForStrip("recently_read", 4, "default", "strip")[1]
+        assert.is_true(book.is_cover_pending)
+        assert.equals("pending", provider:warmStripCover(book, 200, 300))
+        table.remove(scheduled, 1).callback()
+        assert.equals(1, extracted)
+        UIManager._window_stack = { { widget = page }, { widget = {} } }
+        table.remove(scheduled, 1).callback()
+        assert.same({ "/library/alpha.epub" }, notified)
+        assert.equals("ready", provider:warmStripCover(book, 200, 300))
+        local settled = provider:getBooksForStrip("recently_read", 4, "default", "strip")[1]
+        assert.is_nil(settled.is_cover_pending)
+        assert.is_false(settled.has_real_cover)
+        assert.equals(0, #scheduled)
+        page.closed = true
+        fetched = false
+        assert.equals("pending", provider:warmStripCover(book, 200, 300))
+        table.remove(scheduled, 1).callback()
+        assert.equals(1, extracted)
+        assert.equals(0, #scheduled)
     end)
 
     it("coalesces featured cover extraction into one batch-completion rebuild", function()
@@ -1617,6 +1934,38 @@ describe("home data and book caches", function()
         assert.are.equal(1, list_calls)
     end)
 
+    it("paginates Continue in recent-read order while excluding finished and unstarted books", function()
+        local statuses = { "reading", "complete", "new", "reading", "abandoned", "reading" }
+        history_items = {}
+        for index, status in ipairs(statuses) do
+            local path = "/library/" .. index .. ".epub"
+            history_items[index] = { file = path }
+            statuses[path] = status
+        end
+        require("readhistory").hist = history_items
+        require("common/book_status").getFileStatusData = function(path)
+            return { effective_status = statuses[path], percent_finished = 0.25 }
+        end
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = { order = { "strip" }, enabled = { strip = true } }, modules = { strip = {} },
+        })
+        assert.same({ "/library/1.epub", "/library/4.epub", "/library/6.epub" }, provider:getContinuePaths())
+        local source = { kind = "continue" }
+        local books, adjacent = provider:getStripItemsForPage(source, 2, "reverse", "strip", 0)
+        assert.are.equal("/library/1.epub", books[1].path)
+        assert.are.equal("/library/4.epub", books[2].path)
+        assert.is_true(adjacent)
+        assert.same({ total = 3, total_pages = 2, current_page = 1 },
+            provider:getStripPageInfo(source, 2, "reverse", "strip"))
+        assert.is_true(provider:shiftStripItems(source, 2, "reverse", "next", "strip"))
+        books = provider:getStripItemsForPage(source, 2, "reverse", "strip", 0)
+        assert.are.equal(1, #books)
+        assert.are.equal("/library/6.epub", books[1].path)
+        assert.are.equal(2, provider:getStripPageInfo(source, 2, "reverse", "strip").current_page)
+        assert.are.equal(1, history_reload_count)
+    end)
+
     it("loads a named status as a first-class strip source", function()
         local requested
         ZenSpec.replace("common/tbr_index", {
@@ -1690,6 +2039,31 @@ describe("home data and book caches", function()
         assert.are.equal("/library/Subfolder/nested.epub", items[1].path)
         assert.are.same({ total = 1, total_pages = 1, current_page = 1 },
             provider:getStripPageInfo(source, 1, "default", "strip", 0))
+    end)
+
+    it("refreshes cached book statuses when the file-update setting changes", function()
+        local cfg = { group_view = { file_updates_as_new = true }, browser_cover_badges = { dim_finished_books = true } }
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local build = get_build_data_provider(Home)
+        local dcfg = {
+            rows = { order = { "strip" }, enabled = { strip = true } },
+            modules = { strip = {} },
+        }
+        local source = { kind = "custom", paths = { "/library/alpha.epub" } }
+        resolved_status = "new"
+        local books = build(cfg, dcfg):getStripItemsForPage(source, 4, "default", "strip", 0)
+        assert.are.equal("new", books[1].status)
+
+        cfg.group_view.file_updates_as_new = false
+        resolved_status = "complete"
+        books = build(cfg, dcfg):getStripItemsForPage(source, 4, "default", "strip", 0)
+        assert.are.equal("complete", books[1].status)
+        assert.are.equal(2, doc_open_count)
+
+        cfg.group_view.file_updates_as_new = true
+        resolved_status = "new"
+        books = build(cfg, dcfg):getStripItemsForPage(source, 4, "default", "strip", 0)
+        assert.are.equal("new", books[1].status)
     end)
 
     it("prefers authoritative status for dimming over cached metadata", function()

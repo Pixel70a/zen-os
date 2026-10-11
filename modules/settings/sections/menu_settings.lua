@@ -11,6 +11,7 @@ local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local NativeMenu = require("modules/menu/app_launcher/native_menu")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+local ActionFilter = require("modules/menu/app_launcher/action_filter")
 local DispatcherMenu = require("common/dispatcher_menu")
 local icon_utils = require("common/utils")
 local plugin_root = require("common/plugin_root")
@@ -97,6 +98,7 @@ function M.build(ctx)
         { key = "exit",    text = _("Exit")        },
         { key = "sleep",   text = _("Sleep")       },
         { key = "zen_settings", text = getZenSettingsLabel() },
+        { key = "library_home", text = _("Home") },
         { key = "launcher", text = getLauncherLabel() },
         -- Optional: only shown when the plugin/feature is detected.
         { key = "quickrss",       text = _("QuickRSS"),        detect = function() local ok = pcall(require, "modules/ui/feed_view"); return ok end },
@@ -450,7 +452,8 @@ function M.build(ctx)
         end
         local picker_items = {}
         for _i, item in ipairs(quick_button_items) do
-            if item.key ~= "zen_settings" and not selected[item.key] then
+            if item.key ~= "zen_settings" and item.key ~= "library_home"
+                    and item.key ~= "launcher" and not selected[item.key] then
                 picker_items[#picker_items + 1] = { id = item.key, text = item.text }
             end
         end
@@ -623,7 +626,14 @@ function M.build(ctx)
                             end
                         end,
                     }
-                    if id == "zen_settings" then
+                    if id == "library_home" then
+                        item.checked_func = nil
+                        item.callback = nil
+                        item.sub_title = label
+                        item.sub_item_table_func = function()
+                            return build_control_sub_items(id)
+                        end
+                    elseif id == "zen_settings" then
                         item.checked_func = nil
                         item.callback = nil
                         item.text_func = getZenSettingsLabel
@@ -632,6 +642,8 @@ function M.build(ctx)
                             return build_control_sub_items(id)
                         end
                     elseif id == "launcher" then
+                        item.checked_func = nil
+                        item.callback = nil
                         item.text_func = getLauncherLabel
                         item.sub_title = getLauncherLabel()
                         item.sub_item_table_func = function()
@@ -645,7 +657,7 @@ function M.build(ctx)
                         end
                     elseif id == "rotate" then
                         item.text_func = function()
-                            return T(_("Rotate: %1"), getRotateActionLabel()) .. " \u{25B8}"
+                            return _("Rotate") .. ": " .. getRotateActionLabel() .. " \u{25B8}"
                         end
                         item.sub_title = _("Rotate")
                         item.sub_item_table_func = function()
@@ -805,13 +817,35 @@ function M.build(ctx)
         end
     end
 
+    local function readerActionItem(id, cb)
+        local function isReaderAction()
+            if cb then return ActionFilter.is_reader_entry(Dispatcher, cb) end
+            return (config.quick_settings.reader_actions or {})[id] == true
+        end
+        return IconItem.decorate({
+            text = _("Reader action"),
+            checked_func = isReaderAction,
+            callback = function(touch_menu)
+                local reader_action = not isReaderAction()
+                if cb then
+                    cb.reader_action = reader_action
+                else
+                    config.quick_settings.reader_actions = config.quick_settings.reader_actions or {}
+                    config.quick_settings.reader_actions[id] = reader_action
+                end
+                if not is_draft_button(cb) then save_and_apply_quick_settings() end
+                if touch_menu and touch_menu.updateItems then touch_menu:updateItems(1) end
+            end,
+        }, icons.settings_reader)
+    end
+
     build_cb_sub_items = function(cb)
         local items = {}
 
         if cb.type == "plugin" then
             table.insert(items, IconItem.decorate({
                 text_func = function()
-                    return T(_("Plugin: %1"), cb.plugin_title or cb.label or _("(none)"))
+                    return _("Plugin") .. ": " .. (cb.plugin_title or cb.label or _("(none)"))
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)
@@ -822,8 +856,8 @@ function M.build(ctx)
             table.insert(items, IconItem.decorate({
                 text_func = function()
                     local target = cb.koreader_menu
-                    return T(_("KOReader menu: %1"),
-                        type(target) == "table" and target.title or cb.label or _("(none)"))
+                    return _("KOReader menu") .. ": "
+                        .. (type(target) == "table" and target.title or cb.label or _("(none)"))
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)
@@ -854,7 +888,7 @@ function M.build(ctx)
         elseif cb.type == "tag" then
             table.insert(items, IconItem.decorate({
                 text_func = function()
-                    return T(_("Tag: %1"), cb.tag or _("(none)"))
+                    return _("Tag") .. ": " .. (cb.tag or _("(none)"))
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)
@@ -892,9 +926,9 @@ function M.build(ctx)
             table.insert(items, IconItem.decorate({
                 text_func = function()
                     if cb.action and next(cb.action) then
-                        return T(_("Action: %1"), Dispatcher:menuTextFunc(cb.action))
+                        return _("Action") .. ": " .. Dispatcher:menuTextFunc(cb.action)
                     end
-                    return _("Action: (none)")
+                    return _("Action") .. ": " .. _("(none)")
                 end,
                 keep_menu_open = true,
                 sub_item_table = dispatch_items,
@@ -924,7 +958,7 @@ function M.build(ctx)
         table.insert(items, IconItem.decorate({
             text_func = function()
                 local lbl = (cb.label and cb.label ~= "") and cb.label or _("(auto)")
-                return T(_("Label: %1"), lbl)
+                return _("Label") .. ": " .. lbl
             end,
             keep_menu_open = true,
             callback = function(touch_menu)
@@ -967,6 +1001,8 @@ function M.build(ctx)
                 UIManager:show(dialog)
             end,
         }, icons.label))
+
+        table.insert(items, readerActionItem(cb.id, cb))
 
         -- Delete button
         table.insert(items, IconItem.decorate({
@@ -1039,7 +1075,7 @@ function M.build(ctx)
             }, icons.icon)
             items[#items + 1] = IconItem.decorate({
                 text_func = function()
-                    return T(_("Label: %1"), get_label())
+                    return _("Label") .. ": " .. get_label()
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)
@@ -1079,6 +1115,7 @@ function M.build(ctx)
         elseif id == "tailscale" then
             items = buildTailscaleButtonSubItems()
         end
+        items[#items + 1] = readerActionItem(id)
         if id ~= "zen_settings" then
             items[#items + 1] = IconItem.decorate({
                 text = _("Delete"),
@@ -1125,6 +1162,8 @@ function M.build(ctx)
         config.quick_settings.show_buttons = new_show
         config.quick_settings.button_order = new_order
         config.quick_settings.show_labels = def.show_labels
+        config.quick_settings.hide_reader_actions_in_library = def.hide_reader_actions_in_library
+        config.quick_settings.reader_actions = icon_utils.deepcopy(def.reader_actions)
         config.quick_settings.show_frontlight = def.show_frontlight
         config.quick_settings.show_warmth = def.show_warmth
         config.quick_settings.unified_light_slider = def.unified_light_slider
@@ -1160,7 +1199,7 @@ function M.build(ctx)
 
     local function button_search_label(id)
         if id == "rotate" then
-            return T(_("Rotate: %1"), getRotateActionLabel())
+            return _("Rotate") .. ": " .. getRotateActionLabel()
         end
         if id == "screenshot" then
             return T(_("Screenshot: %1 s"), getScreenshotTimerSeconds())
@@ -1258,6 +1297,24 @@ function M.build(ctx)
                 end,
             }, icons.settings_menu_blur),
             IconItem.decorate({
+                text = _("Show Home in Controls"),
+                checked_func = function()
+                    return config.quick_settings.show_buttons.library_home == true
+                end,
+                callback = function()
+                    toggleQuickButton("library_home")
+                end,
+            }, icons.settings_home),
+            IconItem.decorate({
+                text = _("Show Launcher in Controls"),
+                checked_func = function()
+                    return config.quick_settings.show_buttons.launcher == true
+                end,
+                callback = function()
+                    toggleQuickButton("launcher")
+                end,
+            }, icons.settings_launcher),
+            IconItem.decorate({
                 text = _("Show Zen Settings in Controls"),
                 checked_func = function()
                     return config.quick_settings.show_buttons.zen_settings == true
@@ -1266,6 +1323,17 @@ function M.build(ctx)
                     toggleQuickButton("zen_settings")
                 end,
             }, icons.settings),
+            IconItem.decorate({
+                text = _("Hide reader actions in library"),
+                checked_func = function()
+                    return config.quick_settings.hide_reader_actions_in_library == true
+                end,
+                callback = function()
+                    config.quick_settings.hide_reader_actions_in_library =
+                        config.quick_settings.hide_reader_actions_in_library ~= true
+                    save_and_apply_quick_settings()
+                end,
+            }, icons.hide_reader_actions),
             IconItem.decorate({
                 text = _("Reset to defaults"),
                 separator = true,

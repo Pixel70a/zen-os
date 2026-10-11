@@ -103,6 +103,7 @@ describe("Zen settings page", function()
         })
         ZenSpec.replace("util", { fixUtf8 = function(text) return text end })
         ZenSpec.replace("device", {
+            hasColorScreen = function() return false end,
             screen = {
                 getWidth = function() return 600 end,
                 getHeight = function() return 800 end,
@@ -272,6 +273,33 @@ describe("Zen settings page", function()
         assert.is_true(settings.title_bar.search_visible)
     end)
 
+    it("returns from the font chooser to the page that opened it", function()
+        local fonts = {
+            { text = "Font A", menu_item_id = "a" },
+            { text = "Font B", menu_item_id = "b" },
+            open_on_menu_item_id_func = function() return "b" end,
+        }
+        local font = { text = "Font", sub_item_table = fonts }
+        local reader = { text = "Reader", sub_item_table = { font } }
+        local settings = make_page({ reader })
+        settings.getPageNumber = function(_self, index) return index end
+
+        settings.page = 3
+        settings:onMenuSelect(reader)
+        settings.page = 2
+        settings:onMenuSelect(font)
+        assert.are.equal(2, settings.page)
+        settings.page = 6
+
+        settings:backToUpperMenu()
+        assert.are.equal(reader.sub_item_table, settings.item_table)
+        assert.are.equal(2, settings.page)
+        assert.is_nil(settings.itemnumber)
+        settings:backToUpperMenu()
+        assert.are.equal(settings._root_items, settings.item_table)
+        assert.are.equal(3, settings.page)
+    end)
+
     it("honors disabled controls and resolves callback factories on each action", function()
         local active, taps, holds = false, 0, 0
         local item = {
@@ -392,6 +420,36 @@ describe("Zen settings page", function()
         assert.is_true(settings:onMenuHold(help, true))
         assert.are.equal(2, #shown_widgets)
         assert.are.equal("Helpful details", shown_widgets[2].text)
+    end)
+
+    it("clears controls on opening in dark mode or on color screens without reflashing navigation", function()
+        local Device = require("device")
+        local refreshes = {}
+        require("modules/settings/zen_settings").build = function()
+            return { sub_item_table = {{ text = "Interface", sub_item_table = {{ text = "Option" }} }} }
+        end
+        require("ui/uimanager").show = function(_self, widget, refresh)
+            shown_widgets[#shown_widgets + 1] = widget
+            refreshes[#refreshes + 1] = refresh
+        end
+        for _i, case in ipairs({
+            { night = false, color = false, mode = "ui" },
+            { night = true, color = false, mode = "full" },
+            { night = false, color = true, mode = "full" },
+            { night = true, color = true, mode = "full" },
+        }) do
+            Device.screen.night_mode = case.night
+            Device.hasColorScreen = function() return case.color end
+            local page = PageModule.show({ config = {} })
+            assert.are.equal(_i, #refreshes)
+            assert.are.equal(case.mode, refreshes[_i]())
+            assert.are.equal(page, PageModule.show(page.plugin))
+            page:onMenuSelect(page.item_table[1])
+            page:backToUpperMenu()
+            assert.are.equal(_i, #refreshes)
+            page:closeMenu()
+            assert.is_nil(refreshes[_i]())
+        end
     end)
 
     it("reuses the active settings page", function()
@@ -576,8 +634,20 @@ describe("Zen settings page", function()
         assert.are.equal(1, deferred_apply_flushes)
     end)
 
-    it("refreshes the visible status bar and full screen after closing settings", function()
+    it("refreshes the visible status bar and full screen before the first repaint after closing with X", function()
         local UIManager = require("ui/uimanager")
+        local pending_refresh
+        UIManager.nextTick = function(_self, callback) pending_refresh = callback end
+        UIManager.unschedule = function(_self, callback)
+            assert.are.equal(pending_refresh, callback)
+            pending_refresh = nil
+        end
+        UIManager.close = function(_self, widget)
+            local stack = UIManager._window_stack
+            stack[#stack + 1] = { widget = widget }
+            widget:onCloseWidget()
+            table.remove(stack)
+        end
         local fm = require("apps/filemanager/filemanager").instance
         local reader = {}
         ZenSpec.replace("apps/reader/readerui", { instance = reader })
@@ -597,7 +667,7 @@ describe("Zen settings page", function()
         fm._updateStatusBar = function() refreshes = refreshes + 1 end
 
         UIManager._window_stack = { { widget = fm } }
-        make_page({}):onCloseWidget()
+        make_page({}).title_bar.close_callback()
         assert.are.equal(1, refreshes)
         assert.are.equal(1, full_refreshes)
 
@@ -605,7 +675,7 @@ describe("Zen settings page", function()
             refreshes = refreshes + 1
         end }
         UIManager._window_stack = { { widget = fm }, { widget = group } }
-        make_page({}):onCloseWidget()
+        make_page({}).title_bar.close_callback()
         assert.are.equal(2, refreshes)
         assert.are.equal(2, full_refreshes)
 
@@ -613,14 +683,71 @@ describe("Zen settings page", function()
             refreshes = refreshes + 1
         end }
         UIManager._window_stack = { { widget = fm }, { widget = home }, { widget = { toast = true } } }
-        make_page({}):onCloseWidget()
+        make_page({}).title_bar.close_callback()
         assert.are.equal(3, refreshes)
         assert.are.equal(3, full_refreshes)
 
         UIManager._window_stack = { { widget = reader } }
-        make_page({}):onCloseWidget()
+        make_page({}).title_bar.close_callback()
         assert.are.equal(4, refreshes)
         assert.are.equal(4, full_refreshes)
+        assert.is_nil(pending_refresh)
+    end)
+
+    it("flashes the themed reader immediately after settings leave the window stack", function()
+        local UIManager = require("ui/uimanager")
+        local reader = { document = {} }
+        ZenSpec.replace("apps/reader/readerui", { instance = reader })
+        local pending_refresh
+        UIManager.nextTick = function(_self, callback) pending_refresh = callback end
+        UIManager.unschedule = function(_self, callback)
+            assert.are.equal(pending_refresh, callback)
+            pending_refresh = nil
+        end
+        local settings = make_page({})
+        UIManager._window_stack = { { widget = reader }, { widget = settings } }
+        UIManager.close = function(_self, widget)
+            widget:onCloseWidget()
+            table.remove(UIManager._window_stack)
+        end
+        local flashes = 0
+        ZenSpec.replace("common/reader_themes", {
+            isActive = function() return true end,
+            refreshFull = function(widget)
+                assert.are.equal("all", widget)
+                assert.are.equal(reader, UIManager._window_stack[#UIManager._window_stack].widget)
+                flashes = flashes + 1
+            end,
+        })
+
+        settings.title_bar.close_callback()
+        assert.are.equal(1, flashes)
+        assert.is_nil(pending_refresh)
+        settings:closeMenu()
+        assert.are.equal(1, flashes)
+    end)
+
+    it("skips the settings close refresh when quitting KOReader", function()
+        local UIManager = require("ui/uimanager")
+        UIManager.close = function(_self, widget) widget:onCloseWidget() end
+        local reader = { document = {} }
+        ZenSpec.replace("apps/reader/readerui", { instance = reader })
+        ZenSpec.replace("common/reader_themes", {
+            isActive = function() return true end,
+            refreshFull = function() error("must not flash the reader when quitting") end,
+        })
+        UIManager.setDirty = function() error("must not refresh settings when quitting") end
+        local fm = require("apps/filemanager/filemanager").instance
+        fm._updateStatusBar = function() error("must not refresh the status bar when quitting") end
+
+        for _i, top in ipairs({ fm, reader }) do
+            UIManager._window_stack = { { widget = top } }
+            local settings = make_page({})
+            assert.is_true(settings:onExit())
+            assert.is_true(settings._closed)
+            assert.is_nil(_G.__ZEN_UI_SETTINGS_PAGE)
+        end
+        assert.are.equal(2, deferred_apply_flushes)
     end)
 
     it("flashes the themed reader after settings have closed", function()
@@ -767,12 +894,19 @@ describe("Zen settings page", function()
         first:closeMenu()
 
         shown_widgets = {}
+        local refresh
+        require("device").hasColorScreen = function() return true end
+        require("ui/uimanager").show = function(_self, widget, mode)
+            shown_widgets[#shown_widgets + 1] = widget
+            if widget.name == "zen_settings" then refresh = mode end
+        end
         local restored = PageModule.show(plugin)
         assert.are.equal("Stats", restored.title_bar.title)
         assert.are.same({ "quotes" }, restored_arrange_path)
         assert.are.equal(2, #shown_widgets)
         assert.are.equal(restored, shown_widgets[1])
         assert.is_true(shown_widgets[1].invisible)
+        assert.is_nil(refresh())
         assert.are.equal("Quotes", shown_widgets[2].title)
     end)
 
@@ -858,11 +992,14 @@ describe("Zen settings page", function()
         root.refresh_func = function() return { library } end
         local settings = make_page(root)
 
+        settings.page = 2
         settings:onMenuSelect(library)
         assert.are.equal("Library", settings.title_bar.title)
+        settings.page = 3
 
         settings:backToUpperMenu()
         assert.are.equal("Settings", settings.title_bar.title)
+        assert.are.equal(2, settings.page)
         assert.is_false(settings.title_bar.back_visible)
     end)
 

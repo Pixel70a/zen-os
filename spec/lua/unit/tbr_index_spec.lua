@@ -171,6 +171,9 @@ describe("TBR path inventory", function()
         })
         ZenSpec.replace("common/book_status", {
             isImageFile = function() return false end,
+            fileUpdatesAsNewEnabled = function()
+                return config.group_view and config.group_view.file_updates_as_new == true or false
+            end,
             migrateLegacyMarker = function(_path, status) return status end,
             getComputedStatus = function(_path, status, percent)
                 if status then return status end
@@ -199,7 +202,7 @@ describe("TBR path inventory", function()
                 }
             end,
         })
-        ZenSpec.replace("common/title_sort", { key = function(value) return value end })
+        ZenSpec.replace("common/title_sort", { sortKey = function(value) return value:lower() end })
         ZenSpec.replace("ui/uimanager", {
             nextTick = function(_self, fn) scheduled[#scheduled + 1] = fn end,
             unschedule = function() end,
@@ -318,6 +321,7 @@ describe("TBR path inventory", function()
 
     it("keeps explicit Kindle books outside the configured library", function()
         local kindle_path = "/kindle-cache/book.epub"
+        attrs[kindle_path] = { mode = "file" }
         ZenSpec.replace("modules/filebrowser/patches/kindle_virtual_library", {
             isBookPath = function(path) return path == kindle_path end,
         })
@@ -325,6 +329,21 @@ describe("TBR path inventory", function()
 
         assert.is_true(Index.setExplicit(kindle_path, true))
         assert.same({ kindle_path }, Index.getAll({ include_new = false }))
+    end)
+
+    it("rejects missing TBR files and still removes stale membership", function()
+        local path = "/books/manga.cbz"
+        add_book(path, "reading", 1)
+        local Index = require("common/tbr_index")
+        assert.is_true(Index.setExplicit(path, true))
+        attrs[path] = nil
+        assert.is_true(Index.setExplicit(path, false))
+        local writes = collection_writes
+        ReadCollection.addItem = function() error("attempted to add a missing file") end
+        assert.is_false(Index.setExplicit(path, true))
+        assert.is_false(Index.setExplicit("/books", true))
+        assert.are.equal(writes, collection_writes)
+        assert.is_false(Index.isExplicit(path))
     end)
 
     it("saves a shared manual order and refreshes its views", function()
@@ -483,6 +502,31 @@ describe("TBR path inventory", function()
         Index.invalidateStatusCache()
         assert.same({ "/books/b.epub", "/books/a.epub" },
             Index.getAll({ include_new = true }))
+        assert.are.equal(3, opens)
+    end)
+
+    it("reclassifies unchanged sidecars after the file-update setting changes, including after reload", function()
+        add_book("/books/a.epub", "complete", 1)
+        attrs["/books/a.epub"].modification = 2
+        package.loaded["common/book_status"].getComputedStatus = function(_path, status)
+            return config.group_view.file_updates_as_new and "new" or status
+        end
+        config.group_view = { file_updates_as_new = true }
+        local Index = require("common/tbr_index")
+        assert.same({ "/books/a.epub" }, Index.getByStatuses({ new = true }))
+        assert.are.equal(1, opens)
+
+        config.group_view.file_updates_as_new = false
+        Index.invalidateStatusCache()
+        assert.same({}, Index.getByStatuses({ new = true }))
+        assert.same({ "/books/a.epub" }, Index.getByStatuses({ complete = true }))
+        assert.are.equal(2, opens)
+
+        Index.close()
+        config.group_view.file_updates_as_new = true
+        ZenSpec.unload("common/tbr_index")
+        Index = require("common/tbr_index")
+        assert.same({ "/books/a.epub" }, Index.getByStatuses({ new = true }))
         assert.are.equal(3, opens)
     end)
 

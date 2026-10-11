@@ -54,39 +54,60 @@ describe("Advanced settings", function()
         assert.is_true(clear_gestures.keep_menu_open)
     end)
 
-    it("toggles double-tap book opening", function()
-        local saved = 0
-        local config = { features = {}, developer = {} }
-        local items = require("modules/settings/sections/advanced_settings").build({
-            config = config,
-            plugin = { saveConfig = function() saved = saved + 1 end },
-            settings_apply = { prompt_restart = function() end },
-        })
-        local double_tap_item
-        for _i, item in ipairs(items) do
-            if item.text == "Double tap to open books" then
-                double_tap_item = item
-                break
+    it("keeps diagonal screen refresh when clearing configured or missing gestures", function()
+        for _i, data in ipairs({
+            {
+                gesture_fm = {
+                    short_diagonal_swipe = { full_refresh = true },
+                    hold_top_right_corner = { refresh_content = true },
+                },
+                gesture_reader = {
+                    short_diagonal_swipe = { full_refresh = true },
+                    tap_top_right_corner = { history = true },
+                    multiswipe_west_east = { previous_location = true },
+                },
+            },
+            {},
+        }) do
+            local shown = {}
+            local flushes, restart_prompts = 0, 0
+            ZenSpec.replace("ui/uimanager", {
+                show = function(_self, widget) shown[#shown + 1] = widget end,
+            })
+            ZenSpec.replace("ui/widget/confirmbox", {
+                new = function(_self, widget) return widget end,
+            })
+            ZenSpec.replace("datastorage", { getSettingsDir = function() return "/settings" end })
+            ZenSpec.replace("luasettings", {
+                open = function(_self, path)
+                    assert.are.equal("/settings/gestures.lua", path)
+                    return { data = data, flush = function() flushes = flushes + 1 end }
+                end,
+            })
+            ZenSpec.unload("modules/settings/sections/advanced_settings")
+            local items = require("modules/settings/sections/advanced_settings").build({
+                config = { features = {}, developer = {} },
+                plugin = { saveConfig = function() end },
+                settings_apply = {
+                    prompt_restart = function() restart_prompts = restart_prompts + 1 end,
+                },
+            })
+            for _j, item in ipairs(items) do
+                if item.text == "Clear all gestures" then item.callback() end
             end
+
+            assert.are.equal(1, #shown)
+            shown[1].ok_callback()
+
+            assert.same({ short_diagonal_swipe = { full_refresh = true } }, data.gesture_fm)
+            assert.same({
+                short_diagonal_swipe = { full_refresh = true },
+                tap_top_right_corner = { toggle_bookmark = true },
+            }, data.gesture_reader)
+            assert.are.equal(1, flushes)
+            assert.are.equal(1, restart_prompts)
+            assert.are.equal(1, #shown)
         end
-
-        assert.is_table(double_tap_item)
-        assert.are.equal("\u{F073C}", double_tap_item.icon_glyph)
-        assert.is_false(double_tap_item.checked_func())
-        double_tap_item.checkmark_callback()
-        assert.is_true(double_tap_item.checked_func())
-        assert.are.equal(1, saved)
-
-        local single_tap_item = double_tap_item.sub_item_table[1]
-        assert.are.equal("Single tap to open context menu", single_tap_item.text)
-        assert.is_true(single_tap_item.enabled_func())
-        assert.is_false(single_tap_item.checked_func())
-        single_tap_item.callback()
-        assert.is_true(single_tap_item.checked_func())
-        assert.are.equal(2, saved)
-        double_tap_item.checkmark_callback()
-        assert.is_false(single_tap_item.enabled_func())
-        assert.are.equal(3, saved)
     end)
 
     it("toggles partial pages refresh without requesting a restart", function()

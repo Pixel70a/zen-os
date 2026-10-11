@@ -135,7 +135,7 @@ describe("background Wi-Fi toggles", function()
             end,
         }
         local widget = { new = function(_self, options) return options end }
-        local logger = { dbg = function() end, info = function() end,
+        local logger = { dbg = function() end, info = function() end, isEnabled = function() return true end,
             warn = function(...) warnings[#warnings + 1] = { ... } end }
         ZenSpec.replace("device", Device)
         ZenSpec.replace("ui/uimanager", UIManager)
@@ -180,6 +180,108 @@ describe("background Wi-Fi toggles", function()
         for _i, name in ipairs(names) do package.loaded[name] = originals[name] end
         _G.G_reader_settings = reader_settings
         _G.G_defaults = defaults
+    end)
+
+    describe("Kobo Clara BW cold startup", function()
+        local driver_ready
+
+        before_each(function()
+            driver_ready = false
+            Device.model = "Kobo_spaBW"
+            Device.isMTK = function() return true end
+            package.loaded["util"].pathExists = function(path)
+                assert.are.equal("/proc/driver/wmt_dbg", path)
+                return driver_ready
+            end
+            ZenSpec.unload("ui/network/manager")
+            NetworkMgr = require("ui/network/manager")
+            NetworkMgr.getAllSavedNetworks = function() return ZenSpec.memorySettings() end
+            require("modules/global/patches/nonblocking_wifi")()
+        end)
+
+        for _i, method in ipairs({ "toggleWifiOn", "restoreWifiAsync" }) do
+            it("blocks " .. method .. " before the driver is initialized", function()
+                NetworkMgr[method](NetworkMgr, function() error("Must not connect") end, false, true,
+                    function() error("Must not open the scanner") end)
+                finish_worker()
+
+                assert.is_false(wifi_on)
+                assert.are.equal(0, off_calls)
+                assert.are.equal(1, #workers)
+                assert.is_false(NetworkMgr.pending_connection)
+                assert.is_false(NetworkMgr.pending_connectivity_check)
+                assert.is_false(NetworkMgr:isWifiChanging())
+                assert.are.equal(0, #scheduled)
+                assert.are.equal(0, standby)
+                assert.is_truthy(shown[#shown].text:find("Kobo's native interface", 1, true))
+                assert.are.equal(8, shown[#shown].timeout)
+            end)
+        end
+
+        it("guards direct power calls made by a scan worker", function()
+            local reason
+            NetworkMgr:runWifiAsync(function()
+                return NetworkMgr:turnOnWifi()
+            end, function(_result, err)
+                assert.is_false(in_child)
+                reason = err
+            end)
+            finish_worker()
+
+            assert.is_false(wifi_on)
+            assert.are.equal(0, off_calls)
+            assert.is_false(NetworkMgr.pending_connection)
+            assert.are.equal(0, standby)
+            assert.is_truthy(reason:find("Kobo's native interface", 1, true))
+            assert.are.equal(reason, shown[#shown].text)
+        end)
+
+        it("guards synchronous callers and their abort cleanup", function()
+            assert.is_false(NetworkMgr:enableWifi(nil, false))
+            finish_worker()
+
+            assert.is_false(wifi_on)
+            assert.are.equal(0, off_calls)
+            assert.is_false(NetworkMgr.pending_connection)
+            assert.is_false(NetworkMgr.pending_connectivity_check)
+            assert.are.equal(0, standby)
+            assert.is_truthy(shown[#shown].text:find("Kobo's native interface", 1, true))
+        end)
+
+        it("allows normal toggles once Nickel initializes the driver", function()
+            NetworkMgr:restoreWifiAsync()
+            finish_worker()
+            driver_ready = true
+
+            local completed = 0
+            NetworkMgr:toggleWifiOn(function() completed = completed + 1 end, false, false)
+            finish_worker()
+            tick()
+            assert.is_true(wifi_on)
+            assert.are.equal(1, completed)
+            assert.is_false(NetworkMgr.pending_connection)
+
+            NetworkMgr:toggleWifiOff(function() completed = completed + 1 end, false)
+            finish_worker()
+            assert.is_false(wifi_on)
+            assert.are.equal(1, off_calls)
+            assert.are.equal(2, completed)
+            assert.are.equal(0, standby)
+        end)
+
+        it("preserves cold startup on other MediaTek Kobos", function()
+            Device.model = "Kobo_monza"
+            ZenSpec.unload("ui/network/manager")
+            NetworkMgr = require("ui/network/manager")
+            NetworkMgr.getAllSavedNetworks = function() return ZenSpec.memorySettings() end
+            require("modules/global/patches/nonblocking_wifi")()
+
+            NetworkMgr:restoreWifiAsync()
+            finish_worker()
+            assert.is_true(wifi_on)
+            assert.are.equal(1, #workers)
+            assert.are.equal(0, standby)
+        end)
     end)
 
     it("reports IP, route, DNS and check failures without disconnecting Wi-Fi", function()
@@ -235,6 +337,52 @@ describe("background Wi-Fi toggles", function()
             finish_worker()
             assert.are.equal(before, #shown)
         end
+    end)
+
+    it("does not announce success if the connection drops during verification", function()
+        wifi_on, connected = true, true
+        NetworkMgr.canResolveHostnames = function()
+            assert.is_true(in_child)
+            connected = false
+            return true
+        end
+
+        NetworkMgr:showWifiConnected("Home")
+        finish_worker()
+
+        assert.are.same({}, shown)
+        assert.is_true(wifi_on)
+        NetworkMgr:disableWifi()
+        assert.are.equal(0, standby)
+    end)
+
+    it("keeps automatic restore enabled after a failed resume and releases standby", function()
+        outcome = "error"
+        NetworkMgr.wifi_was_on = true
+        G_reader_settings:makeTrue("wifi_was_on")
+        NetworkMgr:restoreWifiAsync()
+        NetworkMgr:scheduleConnectivityCheck()
+        finish_worker()
+        finish_worker()
+
+        assert.is_false(wifi_on)
+        assert.is_false(NetworkMgr.pending_connection)
+        assert.is_false(NetworkMgr.pending_connectivity_check)
+        assert.is_true(NetworkMgr.wifi_was_on)
+        assert.is_true(G_reader_settings:isTrue("wifi_was_on"))
+        assert.are.equal(0, standby)
+
+        outcome = "connected"
+        NetworkMgr:restoreWifiAsync()
+        NetworkMgr:scheduleConnectivityCheck()
+        finish_worker()
+        while NetworkMgr.pending_connection do tick() end
+        assert.is_true(connected)
+        NetworkMgr:toggleWifiOff(nil, true)
+        finish_worker()
+        assert.is_false(NetworkMgr.wifi_was_on)
+        assert.is_false(G_reader_settings:isTrue("wifi_was_on"))
+        assert.are.equal(0, standby)
     end)
 
     it("keeps the UI usable and runs the complete callback through KOReader's connectivity check", function()
@@ -296,6 +444,38 @@ describe("background Wi-Fi toggles", function()
         assert.is_false(NetworkMgr.pending_connectivity_check)
         assert.is_true(G_reader_settings:isTrue("wifi_was_on"))
         assert.are.equal(0, standby)
+    end)
+
+    it("remembers an existing Kobo connection when suspending after a restart", function()
+        wifi_on, connected = true, true
+        NetworkMgr.wifi_was_on = false
+        G_reader_settings:makeFalse("wifi_was_on")
+
+        NetworkMgr:disableWifi()
+
+        assert.is_false(wifi_on)
+        assert.is_true(NetworkMgr.wifi_was_on)
+        assert.is_true(G_reader_settings:isTrue("wifi_was_on"))
+        NetworkMgr:restoreWifiAsync()
+        NetworkMgr:scheduleConnectivityCheck()
+        finish_worker()
+        while NetworkMgr.pending_connection do tick() end
+        assert.is_true(connected)
+        assert.are.equal(0, standby)
+    end)
+
+    it("does not remember an unconnected radio or a manual Wi-Fi shutdown", function()
+        for _i, interactive in ipairs({ false, true }) do
+            wifi_on, connected = true, interactive
+            NetworkMgr.wifi_was_on = interactive
+            G_reader_settings:saveSetting("wifi_was_on", interactive)
+
+            NetworkMgr:disableWifi(nil, interactive)
+
+            assert.is_false(wifi_on)
+            assert.is_false(NetworkMgr.wifi_was_on)
+            assert.is_false(G_reader_settings:isTrue("wifi_was_on"))
+        end
     end)
 
     it("turns off Kindle Wi-Fi in the worker and preserves its delayed completion callback", function()
@@ -505,8 +685,9 @@ describe("background Wi-Fi toggles", function()
         assert.is_false(NetworkMgr.pending_connection)
     end)
 
-    it("waits for a Nickel profile to authenticate before starting DHCP", function()
+    it("reconnects the only Nickel profile without scanning or input before starting DHCP", function()
         local association_polls, dhcp_calls, dhcp_start_polls = 0, 0, nil
+        local selected = false
         local raw_ssid = "Caf\\xc3\\xa9"
         local ssid = "Café"
         ZenSpec.replace("ffi/crypto", {})
@@ -517,17 +698,21 @@ describe("background Wi-Fi toggles", function()
         ZenSpec.replace("lj-wpaclient/wpaclient", {
             new = function()
                 return {
+                    attach = function() return true end,
+                    sendCtrlCmd = function(_self, command)
+                        if command == "SELECT_NETWORK 7" then selected = true end
+                        return "OK"
+                    end,
+                    readAllEvents = function() return {} end,
                     getConnectedNetwork = function()
-                        if association_polls >= 2 then return { id = "7", ssid = raw_ssid } end
+                        if selected and association_polls >= 2 then return { id = "7", ssid = raw_ssid } end
                         return nil, association_polls == 0 and "ASSOCIATING" or "4WAY_HANDSHAKE"
                     end,
                     getCurrentNetwork = function()
                         return { id = "7", ssid = raw_ssid, bssid = "any", flags = "[CURRENT]" }
                     end,
-                    scanThenGetResults = function()
-                        return {{ ssid = raw_ssid, bssid = "any", getSignalQuality = function() return 80 end }}
-                    end,
-                    listNetworks = function() return {{ id = "7", ssid = ssid }} end,
+                    scanThenGetResults = function() error("The only saved profile should reconnect without a scan") end,
+                    listNetworks = function() return {{ id = "7", ssid = raw_ssid }} end,
                     close = function() end,
                 }
             end,
@@ -785,6 +970,42 @@ describe("background Wi-Fi toggles", function()
         finish_worker()
         assert.is_false(NetworkMgr:isWifiChanging())
         assert.are.same({}, events)
+    end)
+
+    it("cancels reconnects, queued work and connectivity checks before a fresh scan", function()
+        local saved = ZenSpec.memorySettings({ Home = { password = "saved" } })
+        NetworkMgr.getAllSavedNetworks = function() return saved end
+        NetworkMgr:toggleWifiOn(function() error("Cancelled reconnect must not complete") end,
+            false, true, function() error("Cancelled reconnect must not reopen the chooser") end)
+        NetworkMgr:runWifiAsync(function() error("Queued work must not run") end,
+            function() error("Queued callback must not run") end, true)
+        NetworkMgr:scheduleConnectivityCheck(function() error("Cancelled check must not run") end)
+        NetworkMgr.nw_settings = saved
+        wifi_on = true
+
+        NetworkMgr:cancelWifiOperations()
+
+        assert.is_true(workers[1].done)
+        assert.is_false(NetworkMgr.pending_connection)
+        assert.is_false(NetworkMgr.pending_connectivity_check)
+        assert.is_false(NetworkMgr:isWifiChanging())
+        assert.is_nil(NetworkMgr.nw_settings)
+        assert.is_nil(NetworkMgr.wifi_toggle_long_press)
+        assert.are.equal(1, #closed_notices)
+        assert.are.equal(1, #scheduled)
+        local scanned = false
+        NetworkMgr:runWifiAsync(function() return { networks = {} } end,
+            function() scanned = true end, true)
+        tick()
+        assert.are.equal(2, #workers)
+        finish_worker()
+
+        assert.is_true(scanned)
+        assert.is_true(wifi_on)
+        assert.are.equal(0, off_calls)
+        assert.are.equal(0, standby)
+        assert.are.equal(2, closed_fds)
+        assert.are.same({ Home = { password = "saved" } }, saved.data)
     end)
 
     it("cancels a pending enable without letting its callback revive the connection", function()

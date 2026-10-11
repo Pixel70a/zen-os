@@ -17,6 +17,7 @@ describe("TouchMenu panel gestures", function()
         "ui/widget/touchmenu",
         "common/shared_state",
         "common/ui/zen_slider",
+        "common/ui/button_feedback",
         "modules/menu/patches/touch_menu_panel",
     }
 
@@ -59,7 +60,11 @@ describe("TouchMenu panel gestures", function()
                 self.stock_pans = (self.stock_pans or 0) + 1
                 return true
             end,
-            onSwipe = function() end,
+            onSwipe = function(self, arg, ges)
+                self.stock_swipes = (self.stock_swipes or 0) + 1
+                if ges.direction == "north" then self.closed = true end
+                return true
+            end,
             onMultiSwipe = function() end,
             onTapCloseAllMenus = function() end,
             onSetRotationMode = function() end,
@@ -77,6 +82,7 @@ describe("TouchMenu panel gestures", function()
             screen = {
                 getWidth = function() return 600 end,
                 getHeight = function() return 800 end,
+                scaleBySize = function(_self, value) return value end,
             },
         })
         ZenSpec.replace("gettext", function(text) return text end)
@@ -95,6 +101,7 @@ describe("TouchMenu panel gestures", function()
         ZenSpec.replace("ui/widget/focusmanager", { NOT_FOCUS = 0 })
         ZenSpec.replace("ui/widget/touchmenu", TouchMenu)
         ZenSpec.replace("common/shared_state", { get = function() end })
+        ZenSpec.replace("common/ui/button_feedback", { flashButton = function() end })
         ZenSpec.unload("common/ui/zen_slider")
         ZenSpec.unload("modules/menu/patches/touch_menu_panel")
         require("modules/menu/patches/touch_menu_panel").install({})
@@ -104,6 +111,72 @@ describe("TouchMenu panel gestures", function()
         for _i, name in ipairs(module_names) do
             package.loaded[name] = original_modules[name] or nil
         end
+    end)
+
+    local function controls_menu()
+        local menu = new_menu()
+        local slider = require("common/ui/zen_slider"):new{
+            width = 300, value = 50, value_min = 0, value_max = 100,
+        }
+        slider.dimen.x, slider.dimen.y = 20, 100
+        menu.item_table = { id = "quicksettings", panel = true }
+        menu._zen_panel_refs = { sliders = {{ slider = slider }} }
+        return menu, slider
+    end
+
+    it("closes controls on an upward swipe without changing a slider or activating a button", function()
+        local menu, slider = controls_menu()
+        menu._zen_panel_refs.buttons = {{
+            widget = { dimen = {} },
+            callback = function() error("swipe must not activate a button") end,
+        }}
+        local ges = { direction = "north", pos = { x = 300, intersectWith = function() return true end } }
+
+        assert.is_true(menu:onSwipe(nil, ges))
+        assert.is_true(menu.closed)
+        assert.are.equal(1, menu.stock_swipes)
+        assert.are.equal(50, slider:getValue())
+    end)
+
+    it("keeps controls locked against swipes while opening", function()
+        local menu, slider = controls_menu()
+        menu._zen_panel_locked = true
+        local pos = { x = 170, intersectWith = function() return true end }
+
+        assert.is_true(menu:onSwipe(nil, { direction = "north", pos = pos }))
+        assert.is_true(menu:onSwipe(nil, { direction = "east", distance = 50, pos = pos }))
+        assert.is_nil(menu.closed)
+        assert.is_nil(menu.stock_swipes)
+        assert.are.equal(50, slider:getValue())
+    end)
+
+    it("keeps horizontal slider swipes in controls", function()
+        local menu, slider = controls_menu()
+        local ges = {
+            direction = "east", distance = 50,
+            pos = { x = 170, intersectWith = function() return true end },
+        }
+
+        assert.is_true(menu:onSwipe(nil, ges))
+        assert.is_true(slider:getValue() > 50)
+        assert.is_nil(menu.closed)
+        assert.is_nil(menu.stock_swipes)
+    end)
+
+    it("activates panel buttons and toggles without flashing", function()
+        local menu, events = new_menu(), {}
+        local region = { x = 20, y = 30, w = 40, h = 40 }
+        require("common/ui/button_feedback").flashButton = function() error("panel must not flash") end
+        local callback = function() events[#events + 1] = "callback" end
+        menu.item_table = { panel = true }
+        menu._zen_panel_refs = { buttons = {{ widget = { dimen = region }, callback = callback }} }
+        local ges = { pos = { intersectWith = function() return true end } }
+        assert.is_true(menu:onTapCloseAllMenus(nil, ges))
+        assert.are.same({ "callback" }, events)
+        events = {}
+        menu._zen_panel_refs = { toggles = {{ toggle = { dimen = region }, callback = callback }} }
+        assert.is_true(menu:onTapCloseAllMenus(nil, ges))
+        assert.are.same({ "callback" }, events)
     end)
 
     it("repairs a TouchMenu created before the patch is installed", function()

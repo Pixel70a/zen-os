@@ -10,6 +10,9 @@ describe("updater repository redirects", function()
     local original_network_manager
     local original_trapper
     local original_uimanager
+    local original_device
+    local original_ota_manager
+    local original_updates_settings
     local config
     local logs
     local network_up
@@ -31,6 +34,9 @@ describe("updater repository redirects", function()
         original_network_manager = package.loaded["ui/network/manager"]
         original_trapper = package.loaded["ui/trapper"]
         original_uimanager = package.loaded["ui/uimanager"]
+        original_device = package.loaded["device"]
+        original_ota_manager = package.loaded["ui/otamanager"]
+        original_updates_settings = package.loaded["modules/settings/sections/updates_settings"]
         logs = {}
         network_up = true
         release_body = nil
@@ -83,6 +89,10 @@ describe("updater repository redirects", function()
         })
         ZenSpec.replace("ui/network/manager", {
             isWifiOn = function() return network_up end,
+            isConnected = function() return network_up end,
+            runWhenConnected = function(self, callback)
+                if self:isConnected() then callback() end
+            end,
         })
         ZenSpec.replace("ui/trapper", {
             wrap = function(_, fn) fn() end,
@@ -149,6 +159,9 @@ describe("updater repository redirects", function()
         package.loaded["ui/network/manager"] = original_network_manager
         package.loaded["ui/trapper"] = original_trapper
         package.loaded["ui/uimanager"] = original_uimanager
+        package.loaded["device"] = original_device
+        package.loaded["ui/otamanager"] = original_ota_manager
+        package.loaded["modules/settings/sections/updates_settings"] = original_updates_settings
         ZenSpec.unload("modules/settings/zen_updater")
         ZenSpec.unload("config/manager")
     end)
@@ -168,6 +181,139 @@ describe("updater repository redirects", function()
         )
         assert.are.equal("999.0.0", updater.latest_version())
         assert.is_true(updater.has_update())
+    end)
+
+    it("captures network state and a safe response category when HTTPS times out", function()
+        local stages = {}
+        package.loaded["ui/network/manager"].logWifiDiagnostics = function(_self, stage)
+            stages[#stages + 1] = stage
+        end
+        ZenSpec.replace("ssl.https", { request = function() return nil, "timeout" end })
+        local updater = require("modules/settings/zen_updater")
+
+        assert.are.equal("error", updater.check_for_update())
+        assert.are.same({ "update_request_start", "update_request_finish" }, stages)
+        local response
+        for _i, entry in ipairs(logs) do
+            if entry.text:find("Update HTTPS response", 1, true) then response = entry.text end
+        end
+        assert.is_truthy(response)
+        assert.is_truthy(response:find("status_code= transport_error timeout= true", 1, true))
+        assert.is_truthy(response:find("elapsed_ms=", 1, true))
+    end)
+
+    it("logs a dismissed update task separately from an HTTPS response", function()
+        package.loaded["ui/trapper"].dismissableRunInSubprocess = function() return false end
+        package.loaded["ui/uimanager"].forceRePaint = function() end
+        local updater = require("modules/settings/zen_updater")
+        updater.build_update_now_item({}).callback()
+        local screen_closed = false
+        shown_screen.onClose = function() screen_closed = true end
+
+        scheduled[1].callback()
+
+        assert.is_true(screen_closed)
+        assert.are.equal(0, #requests)
+        local task_finished = false
+        for _i, entry in ipairs(logs) do
+            assert.is_nil(entry.text:find("Update HTTPS response", 1, true))
+            if entry.text:find("Update network task finished completed= false network_ok= false", 1, true) then
+                task_finished = true
+            end
+        end
+        assert.is_true(task_finished)
+    end)
+
+    it("waits for a connection before checking or installing with the radio on", function()
+        network_up = false
+        local manager = package.loaded["ui/network/manager"]
+        manager.isWifiOn = function() return true end
+        local waiting = {}
+        manager.runWhenConnected = function(_self, callback) waiting[#waiting + 1] = callback end
+        manager.runWhenOnline = function() error("DNS must stay off the UI thread") end
+        package.loaded["ui/uimanager"].forceRePaint = function() end
+        local updater = require("modules/settings/zen_updater")
+
+        assert.has_no.errors(updater.build_update_now_item({}).callback)
+        assert.has_no.errors(function() updater.run_update({}) end)
+
+        assert.are.equal(2, #waiting)
+        assert.is_nil(shown_screen)
+        assert.are.equal(0, #scheduled)
+        assert.are.equal(0, #requests)
+
+        network_up = true
+        waiting[1]()
+        assert.are.equal("Checking for updates...", shown_screen.subtitle)
+        assert.are.equal(1, #scheduled)
+    end)
+
+    it("shows a dismissable error when the connection is lost during a check", function()
+        package.loaded["ui/uimanager"].forceRePaint = function() end
+        ZenSpec.replace("ssl.https", { request = function() return nil, "Network is unreachable" end })
+        local updater = require("modules/settings/zen_updater")
+        updater.build_update_now_item({}).callback()
+        network_up = false
+        package.loaded["ui/network/manager"].isWifiOn = function() return true end
+
+        assert.has_no.errors(scheduled[1].callback)
+
+        assert.are.equal("Network unavailable.", shown_screen.subtitle)
+        assert.are.equal("OK", shown_screen.button)
+        assert.is_true(shown_screen.dismissable)
+        assert.is_nil(shown_screen._on_button_action)
+    end)
+
+    it("uses the connection helper without a UI-thread DNS check when Wi-Fi is off", function()
+        network_up = false
+        package.loaded["ui/network/manager"].runWhenOnline = function()
+            error("DNS must stay off the UI thread")
+        end
+        local updater = require("modules/settings/zen_updater")
+
+        assert.has_no.errors(updater.build_update_now_item({}).callback)
+        assert.has_no.errors(function() updater.run_update({}) end)
+
+        assert.is_nil(shown_screen)
+        assert.are.equal(0, #scheduled)
+        assert.are.equal(0, #requests)
+    end)
+
+    it("waits for a connection before running the KOReader update action", function()
+        ZenSpec.replace("device", { hasOTAUpdates = function() return true end })
+        local checks = 0
+        ZenSpec.replace("ui/otamanager", { fetchAndProcessUpdate = function() checks = checks + 1 end })
+        local waiting
+        package.loaded["ui/network/manager"].runWhenConnected = function(_self, callback) waiting = callback end
+        package.loaded["ui/network/manager"].runWhenOnline = function()
+            error("DNS must stay off the UI thread")
+        end
+        ZenSpec.unload("modules/settings/sections/updates_settings")
+        local items = require("modules/settings/sections/updates_settings").build({ plugin = {} })
+
+        assert.are.equal("Update KOReader", items[2].text)
+        assert.has_no.errors(items[2].callback)
+        assert.are.equal(0, checks)
+
+        waiting()
+        assert.are.equal(1, checks)
+    end)
+
+    it("records cancellation of an invisible background update check", function()
+        config.updater.auto_check = true
+        package.loaded["ui/trapper"].dismissableRunInSubprocess = function() return false end
+        require("modules/settings/zen_updater").schedule_wakeup_check()
+
+        scheduled[1].callback()
+
+        local task_finished = false
+        for _i, entry in ipairs(logs) do
+            if entry.text:find("Update network task finished completed= false network_ok= false", 1, true) then
+                task_finished = true
+            end
+        end
+        assert.is_true(task_finished)
+        assert.are.equal(0, #requests)
     end)
 
     it("selects the compatibility asset while running from the legacy folder", function()
@@ -282,6 +428,23 @@ describe("updater repository redirects", function()
 
         scheduled[2].callback()
 
+        assert.are.same({ {
+            level = "info",
+            text = "automatic update check status=skipped reason=network_unavailable",
+        } }, logs)
+    end)
+
+    it("skips automatic checks when Wi-Fi is powered on without a connection", function()
+        network_up = false
+        package.loaded["ui/network/manager"].isWifiOn = function() return true end
+        local updater = require("modules/settings/zen_updater")
+
+        updater.schedule_wakeup_check()
+        scheduled[1].callback()
+        assert.are.equal(2, #scheduled)
+        scheduled[2].callback()
+
+        assert.are.equal(0, #requests)
         assert.are.same({ {
             level = "info",
             text = "automatic update check status=skipped reason=network_unavailable",

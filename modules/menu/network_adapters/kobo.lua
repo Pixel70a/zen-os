@@ -25,17 +25,79 @@ function M.install(NetworkMgr)
         return nil, state
     end
     local get_ip = require("modules/settings/zen_settings_utils").get_device_ip_address
+    local time = require("ui/time")
+    local function read_state(path)
+        local file = io.open(path, "r")
+        if not file then return "unavailable" end
+        local value = file:read("*l")
+        file:close()
+        return value or "unavailable"
+    end
+    NetworkMgr.logWifiDiagnostics = function(self, stage)
+        if not logger.isEnabled("dbg") then return end
+        local path = "/sys/class/net/" .. self:getNetworkInterfaceName() .. "/"
+        logger.dbg("Kobo Wi-Fi snapshot", "stage=", stage,
+            "radio_on=", self:isWifiOn() == true, "ipv4_assigned=", get_ip() ~= nil,
+            "default_route=", self:hasDefaultRoute() == true,
+            "pending_connection=", self.pending_connection == true,
+            "operstate=", read_state(path .. "operstate"), "carrier=", read_state(path .. "carrier"),
+            "rx_packets=", read_state(path .. "statistics/rx_packets"),
+            "tx_packets=", read_state(path .. "statistics/tx_packets"),
+            "rx_errors=", read_state(path .. "statistics/rx_errors"),
+            "tx_errors=", read_state(path .. "statistics/tx_errors"),
+            "rx_dropped=", read_state(path .. "statistics/rx_dropped"),
+            "governor=", read_state("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"),
+            "cpu_khz=", read_state("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"))
+    end
+    local UIManager = require("ui/uimanager")
+    if UIManager.event_hook then
+        local last_input = time.now()
+        UIManager.event_hook:register("InputEvent", function()
+            if not logger.isEnabled("dbg") then return end
+            local now = time.now()
+            local idle_ms = time.to_ms(now - last_input)
+            last_input = now
+            if idle_ms < 5000 or not NetworkMgr:isWifiOn() then return end
+            logger.dbg("Kobo Wi-Fi input after idle", "idle_ms=", idle_ms)
+            NetworkMgr:logWifiDiagnostics("input_after_idle")
+        end)
+    end
     local isConnected, obtainIP = NetworkMgr.isConnected, NetworkMgr.obtainIP
     NetworkMgr.isConnected = function(self)
         -- Kobo also counts an IPv6 link-local address after DHCP fails.
         return isConnected(self) and (get_ip() ~= nil or self:hasDefaultRoute()) or false
     end
     NetworkMgr.obtainIP = function(self)
+        self:logWifiDiagnostics("dhcp_start")
         obtainIP(self)
+        self:logWifiDiagnostics("dhcp_finish")
         if not self:isConnected() then
             logger.warn("Kobo DHCP did not assign a usable address; retrying once")
+            self:logWifiDiagnostics("dhcp_retry_start")
             obtainIP(self)
+            self:logWifiDiagnostics("dhcp_retry_finish")
         end
+    end
+    local canResolveHostnames = NetworkMgr.canResolveHostnames
+    NetworkMgr.canResolveHostnames = function(self)
+        local started = time.now()
+        logger.dbg("Kobo Wi-Fi DNS check started")
+        local resolved = canResolveHostnames(self)
+        logger.dbg("Kobo Wi-Fi DNS check finished", "resolved=", resolved == true,
+            "elapsed_ms=", time.to_ms(time.now() - started))
+        return resolved
+    end
+    local reconnect = NetworkMgr.reconnectOrShowNetworkMenu
+    NetworkMgr.reconnectOrShowNetworkMenu = function(self, callback, interactive)
+        local profiles = self:getConfiguredNetworks()
+        if not self.wifi_toggle_long_press and profiles and #profiles == 1
+                and next(self:getAllSavedNetworks().data) == nil and adapter.connect(profiles[1], false) then
+            self:obtainIP()
+            self.lease_ssid = (self:getCurrentNetwork() or profiles[1]).ssid
+            if callback then callback() end
+            return true
+        end
+        return reconnect(self, callback, interactive)
     end
 end
 
@@ -50,6 +112,15 @@ function M.new(NetworkMgr, logger)
         local msg = event.msg or ""
         local wrong_key = msg:find("reason=WRONG_KEY", 1, true) ~= nil
             or msg:find("pre-shared key may be incorrect", 1, true) ~= nil
+        local name = msg:match("^(CTRL%-EVENT%-%S+)")
+        if name == "CTRL-EVENT-ASSOC-REJECT" or name == "CTRL-EVENT-AUTH-REJECT"
+                or name == "CTRL-EVENT-DISCONNECTED" or name == "CTRL-EVENT-SSID-TEMP-DISABLED" then
+            logger.dbg("Kobo authentication event", "event=", name,
+                "status_code=", tonumber(msg:match("%sstatus_code=(%d+)")),
+                "reason_code=", tonumber(msg:match("%sreason=(%d+)")),
+                "locally_generated=", tonumber(msg:match("%slocally_generated=(%d+)")),
+                "wrong_key=", wrong_key)
+        end
         -- Association timeouts and disconnects do not prove a bad password.
         return wrong_key
     end
@@ -62,7 +133,7 @@ function M.new(NetworkMgr, logger)
         if not connected then
             reply, err = wcli:sendCtrlCmd("DISCONNECT")
             logger.dbg("Kobo authentication stopped", "accepted=",
-                reply ~= nil and reply:sub(1, 2) == "OK", "error_present=", err ~= nil)
+                reply ~= nil and reply:sub(1, 2) == "OK", "error_present=", type(err) == "string")
         end
     end
 
@@ -166,12 +237,17 @@ function M.new(NetworkMgr, logger)
                 return false, err or reply
             end
         end
-        local reply
-        reply, err = wcli:sendCtrlCmd("SAVE_CONFIG")
-        if not reply or reply:sub(1, 2) ~= "OK" then
-            wcli:sendCtrlCmd("RECONFIGURE")
-            wcli:close()
-            return false, err or reply
+        -- Keep the scan's paused profiles out of the saved configuration.
+        local commands = NetworkMgr:isConnected() and { "SAVE_CONFIG" }
+            or { "ENABLE_NETWORK all", "DISCONNECT", "SAVE_CONFIG" }
+        for _i, command in ipairs(commands) do
+            local reply
+            reply, err = wcli:sendCtrlCmd(command)
+            if not reply or reply:sub(1, 2) ~= "OK" then
+                wcli:sendCtrlCmd("RECONFIGURE")
+                wcli:close()
+                return false, err or reply
+            end
         end
         wcli:close()
         logger.dbg("Kobo profiles forgotten", "profiles=", #ids)
@@ -290,6 +366,15 @@ function M.new(NetworkMgr, logger)
     end
 
     function adapter.getNetworkList()
+        if not NetworkMgr:isConnected() then
+            local wcli, err = require("lj-wpaclient/wpaclient").new(NetworkMgr.wpa_supplicant.ctrl_interface)
+            if not wcli then return nil, err end
+            -- Pause saved profiles in memory; SELECT_NETWORK resumes the user's choice.
+            local reply
+            reply, err = wcli:sendCtrlCmd("DISABLE_NETWORK all")
+            wcli:close()
+            if not reply or reply:sub(1, 2) ~= "OK" then return nil, err or reply end
+        end
         local networks, err = NetworkMgr:getNetworkList()
         if networks and #networks == 0 then
             local wcli = require("lj-wpaclient/wpaclient").new(NetworkMgr.wpa_supplicant.ctrl_interface)

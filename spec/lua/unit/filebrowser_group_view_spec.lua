@@ -278,7 +278,7 @@ describe("file browser group views", function()
         install_group_view({})
         local author_sort = require("common/author_sort")
         assert.are.equal("Me", author_sort.key("Test Me (Test company)", "authors_last"))
-        assert.are.equal("Martinez", author_sort.key("Miguel Rodrigo Martinez&#x20;", "authors_last"))
+        assert.are.equal("Rodrigo Martinez", author_sort.key("Miguel Rodrigo Martinez&#x20;", "authors_last"))
     end)
 
     it("builds author, series, language, and tag pages from database groups", function()
@@ -318,6 +318,22 @@ describe("file browser group views", function()
         assert.are.equal("Series", series._test_status_label)
         assert.are.equal("Languages", languages._test_status_label)
         assert.are.equal("Tags", tags._test_status_label)
+    end)
+
+    it("sorts multi-author groups by their first author rather than their formatted label", function()
+        install_group_view({ authors = {
+            { author = "Ada Lovelace\nGrace Hopper", files = { "/a.epub" } },
+            { author = "Zelda Berry", files = { "/z.epub" } },
+        } })
+        api.showAuthorsView()
+        local menu = assert(find_menu("authors"))
+        assert.are.equal("Ada Lovelace, Grace Hopper", menu.item_table[1].text)
+        config.group_view.authors_collate = "authors_last"
+        api.closeAll()
+        menus = {}
+        api.showAuthorsView()
+        menu = assert(find_menu("authors"))
+        assert.are.equal("Zelda Berry", menu.item_table[1].text)
     end)
 
     it("uses the tag-group context menu for external group folders", function()
@@ -555,6 +571,8 @@ describe("file browser group views", function()
                 { author = "Jane Austen", files = { "/j.epub" } },
                 { author = "Alice Klein", files = { "/a.epub" } },
                 { author = "Gabriel García Márquez", files = { "/g.epub" } },
+                { author = "Karel Čapek", files = { "/k.epub" } },
+                { author = "Tatiana Țîbuleac", files = { "/t.epub" } },
             },
         })
         package.loaded.device.isTouchDevice = function() return true end
@@ -572,11 +590,16 @@ describe("file browser group views", function()
 
         assert.are.equal("authors_last", config.group_view.authors_collate)
         assert.are.equal(1, home_rebuilds)
-        assert.are.same({ "Jane Austen", "Octavia Butler", "Alice Klein", "Gabriel García Márquez" }, {
+        assert.are.same({
+            "Jane Austen", "Octavia Butler", "Karel Čapek", "Gabriel García Márquez",
+            "Alice Klein", "Tatiana Țîbuleac",
+        }, {
             menu.item_table[1].text,
             menu.item_table[2].text,
             menu.item_table[3].text,
             menu.item_table[4].text,
+            menu.item_table[5].text,
+            menu.item_table[6].text,
         })
 
         menu:onZenGroupBlankHold()
@@ -588,11 +611,16 @@ describe("file browser group views", function()
         assert.is_true(config.group_view.group_reverse.authors)
         assert.are.equal(2, home_rebuilds)
         assert.are.equal(2, saved)
-        assert.are.same({ "Gabriel García Márquez", "Alice Klein", "Octavia Butler", "Jane Austen" }, {
+        assert.are.same({
+            "Tatiana Țîbuleac", "Alice Klein", "Gabriel García Márquez", "Karel Čapek",
+            "Octavia Butler", "Jane Austen",
+        }, {
             menu.item_table[1].text,
             menu.item_table[2].text,
             menu.item_table[3].text,
             menu.item_table[4].text,
+            menu.item_table[5].text,
+            menu.item_table[6].text,
         })
         assert.are.equal(3, menu.update_count)
     end)
@@ -796,6 +824,7 @@ describe("file browser group views", function()
             history = fixture.access,
             authors = { { author = "Writer", files = SortFixtures.paths_from_entries(fixture.entries) } },
         })
+        config.features.automatic_series_grouping = false
         for path, props in pairs(fixture.metadata) do metadata[path] = props end
 
         local methods = { "series_index", "strcoll", "title", "title_natural", "access" }
@@ -837,6 +866,64 @@ describe("file browser group views", function()
         assert.is_truthy(sort_dialog.buttons[3][1].text:find("Order", 1, true))
     end)
 
+    it("groups an author's books into series and preserves grouping after sorting", function()
+        install_group_view({
+            authors = {
+                { author = "Ada", files = { "/second.epub", "/solo.epub", "/first.epub" } },
+                { author = "Zed", files = { "/other.epub" } },
+            },
+        })
+        config.features.automatic_series_grouping = true
+        metadata["/second.epub"] = { title = "Alpha", series = "Saga", series_index = 2 }
+        metadata["/first.epub"] = { title = "Zulu", series = "Saga", series_index = 1 }
+        metadata["/solo.epub"] = { title = "Solo" }
+        metadata["/other.epub"] = { title = "Other", series = "Saga", series_index = 3 }
+        package.loaded.device.isTouchDevice = function() return true end
+        local function inject_navbar(menu, tab_id) menu._test_navbar_tab_id = tab_id end
+
+        api.showAuthorsView(inject_navbar)
+        local root = assert(find_menu("authors"))
+        root.onMenuSelect(root, root.item_table[1])
+        local detail = assert(find_menu("authors_detail"))
+        detail.page = 3
+        assert.are.equal(2, #detail.item_table)
+        local group = detail.item_table[1]
+        assert.is_true(group.is_series_group)
+        assert.are.equal("Saga", group.text)
+        assert.are.same({ "/first.epub", "/second.epub" }, group._zen_files)
+        assert.are.equal("/solo.epub", detail.item_table[2].path)
+
+        detail.onMenuHold(detail, group)
+        assert.are.same(group._zen_files, file_dialog_args._zen_group_files)
+        detail.onMenuSelect(detail, group)
+        local series = assert(find_menu("series_detail"))
+        assert.are.equal("authors", series._test_navbar_tab_id)
+        assert.are.same({ "/first.epub", "/second.epub" }, {
+            series.item_table[1].path, series.item_table[2].path,
+        })
+        assert.are.same({ group_name = "Ada", tab_id = "authors", page = 3 }, api.getActiveDetail())
+        series.onMenuSelect(series, series.item_table[1])
+        assert.are.same({ "/first.epub" }, opened)
+        series._test_back_callback()
+        assert.are.same({ group_name = "Ada", tab_id = "authors", page = 3 }, api.getActiveDetail())
+
+        detail:onZenDetailBlankHold()
+        file_dialog_args._zen_sort_cb()
+        dialogs[#dialogs].buttons[4][1].callback()
+        assert.are.equal(2, #detail.item_table)
+        assert.is_true(detail.item_table[1].is_series_group)
+        assert.are.same(group._zen_files, detail.item_table[1]._zen_files)
+
+        api.closeAll()
+        menus = {}
+        config.features.automatic_series_grouping = false
+        api.showAuthorsView()
+        local ungrouped = assert(api.restoreDetail("Ada", "authors"))
+        assert.are.same({ "/first.epub", "/second.epub", "/solo.epub" }, {
+            ungrouped.item_table[1].path, ungrouped.item_table[2].path, ungrouped.item_table[3].path,
+        })
+    end)
+
     it("groups tagged series in both tag entry points when library grouping is enabled", function()
         install_group_view({
             tags = { { tag = "Fantasy", files = {
@@ -859,7 +946,7 @@ describe("file browser group views", function()
         assert.are.same({ "/first.epub", "/second.epub" }, {
             series.item_table[1].path, series.item_table[2].path,
         })
-        assert.are.equal("Fantasy", api.getActiveDetail().group_name)
+        assert.are.same({ group_name = "Fantasy", tab_id = "tags", page = 1 }, api.getActiveDetail())
 
         api.closeAll()
         assert.are.same({ series, detail, root }, {

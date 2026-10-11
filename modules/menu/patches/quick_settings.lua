@@ -18,6 +18,7 @@ local function apply_quick_settings()
     local ConfirmBox = require("ui/widget/confirmbox")
     local TextWidget = require("ui/widget/textwidget")
     local UIManager = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local library_font = require("modules/filebrowser/patches/library_font")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
@@ -26,7 +27,9 @@ local function apply_quick_settings()
     local restart = require("common/restart")
     local SharedState = require("common/shared_state")
     local SettingsTransition = require("common/settings_transition")
+    local LibraryNavigation = require("common/library_navigation")
     local ButtonLabelWidth = require("common/ui/button_label_width")
+    local ButtonFeedback = require("common/ui/button_feedback")
     local Bluetooth = require("modules/menu/bluetooth/bluetooth")
     local build_brightness_slider = require("modules/menu/patches/brightness_slider")
     local build_warmth_slider = require("modules/menu/patches/warmth_slider")
@@ -37,6 +40,7 @@ local function apply_quick_settings()
     local ButtonModel = require("common/nav_button_model")
     local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+    local ActionFilter = require("modules/menu/app_launcher/action_filter")
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     if not zen_plugin or type(zen_plugin.config) ~= "table" then
@@ -117,6 +121,7 @@ local function apply_quick_settings()
             opds = false,
             airplanemode = false,
             zen_settings = false,
+            library_home = false,
             launcher = false,
             filebrowser = false,
             tailscale = false,
@@ -134,6 +139,8 @@ local function apply_quick_settings()
             screenshot = false,
         },
         show_labels = true,
+        hide_reader_actions_in_library = false,
+        reader_actions = {},
         show_frontlight = true,
         show_warmth = true,
         unified_light_slider = true,
@@ -494,12 +501,26 @@ local function apply_quick_settings()
         end
     end
 
+    local function isWifiConnected()
+        return NetworkMgr:isWifiOn()
+            and (type(NetworkMgr.isConnected) ~= "function" or NetworkMgr:isConnected())
+    end
+
+    local function getWifiName()
+        if not isWifiConnected()
+                or NetworkMgr.isWifiChanging and NetworkMgr:isWifiChanging() then return end
+        local ssid = NetworkMgr.lease_ssid
+        if type(ssid) == "string" and ssid ~= "" then return ssid end
+        local network = NetworkMgr.getCurrentNetwork and NetworkMgr:getCurrentNetwork()
+        if network and type(network.ssid) == "string" and network.ssid ~= "" then return network.ssid end
+    end
+
     local function refreshWifiQuickSettings(touch_menu, retries)
-        local network = NetworkMgr:isWifiOn() and NetworkMgr.getCurrentNetwork
-            and NetworkMgr:getCurrentNetwork()
+        if not (touch_menu and touch_menu._zen_panel_refs and touch_menu.item_table and touch_menu.item_table.panel) then return end
+        local ssid = getWifiName()
         local remaining = retries or 45
         if NetworkMgr:isWifiOn()
-            and (not network or type(network.ssid) ~= "string" or network.ssid == "")
+            and not ssid
             and remaining > 0
         then
             if not retries then refreshQuickSettings(touch_menu) end
@@ -509,11 +530,6 @@ local function apply_quick_settings()
             return
         end
         refreshQuickSettings(touch_menu)
-    end
-
-    local function isWifiConnected()
-        return NetworkMgr:isWifiOn()
-            and (type(NetworkMgr.isConnected) ~= "function" or NetworkMgr:isConnected())
     end
 
     local function isWifiDimmed()
@@ -529,6 +545,7 @@ local function apply_quick_settings()
     local open_quick_setting_settings
 
     local function resolveConfiguredIcon(name, fallback)
+        if type(name) == "string" and name:sub(1, 1) == "/" then return name end
         local path = utils.resolveIcon(_icons_dir, name)
         if path then return path end
         for _i, item in ipairs(utils.getIconPickerList(_plugin_root)) do
@@ -567,13 +584,7 @@ local function apply_quick_settings()
             icon = "quick_wifi",
             label = _("Wi-Fi"),
             label_func = function()
-                if isWifiConnected() then
-                    local net = NetworkMgr.getCurrentNetwork and NetworkMgr:getCurrentNetwork()
-                    if net and type(net.ssid) == "string" and net.ssid ~= "" then
-                        return net.ssid
-                    end
-                end
-                return _("Wi-Fi")
+                return getWifiName() or _("Wi-Fi")
             end,
             active_func = isWifiConnected,
             dim_func = isWifiDimmed,
@@ -599,7 +610,7 @@ local function apply_quick_settings()
                 UIManager:ToggleNightMode(not night_mode)
                 G_reader_settings:saveSetting("night_mode", not night_mode)
                 touch_menu:updateItems(1)
-                UIManager:setDirty("all", "full")
+                UIManager:setDirty("all", getFullRefreshMode())
             end,
         },
         frontlight = {
@@ -819,10 +830,29 @@ local function apply_quick_settings()
             icon = utils.resolveLocalIcon(_icons_dir, "airplane"),
             label = _("Airplane mode"),
             visible_func = function() return hasPlugin("airplanemode") end,
+            active_func = function()
+                local api = package.loaded["utils/flight_utilities"]
+                    or getCandidatePlugin({ key = "airplanemode", slots = { "airplanemode" } })
+                local get_status = api and (api.getFlightStatus or api.getStatus)
+                if type(get_status) ~= "function" then return false end
+                local ok, active = pcall(get_status, api)
+                return ok and active == true
+            end,
             callback = function(touch_menu)
                 touch_menu:closeMenu()
                 UIManager:nextTick(function()
                     Dispatcher:execute({ airplanemode_toggle = true })
+                end)
+            end,
+        },
+        library_home = {
+            icon = resolveConfiguredIcon(LibraryNavigation.defaultTabIcon(zen_plugin), "library"),
+            label = _("Home"),
+            callback = function(touch_menu)
+                local ReaderUI = require("apps/reader/readerui")
+                local ui = ReaderUI.instance or getActiveUI()
+                LibraryNavigation.openDefault(ui, zen_plugin, function()
+                    touch_menu:closeMenu()
                 end)
             end,
         },
@@ -1125,6 +1155,8 @@ local function apply_quick_settings()
     }
 
     local function install_custom_button_defs()
+        button_defs.library_home.icon = resolveConfiguredIcon(
+            LibraryNavigation.defaultTabIcon(zen_plugin), "library")
         if type(config.custom_buttons) ~= "table" then return end
         for _i, cb in ipairs(config.custom_buttons) do
             if cb.type == "koreader_menu" and type(cb.koreader_menu) == "table" then
@@ -1214,6 +1246,7 @@ local function apply_quick_settings()
                     end,
                 }
             end
+            button_defs[cb.id].reader_action = ActionFilter.is_reader_entry(Dispatcher, cb)
         end
     end
 
@@ -1406,10 +1439,15 @@ local function apply_quick_settings()
         install_custom_button_defs()
 
         local visible_buttons = {}
+        local hide_reader_actions = panel_config.hide_reader_actions_in_library == true
+            and touch_menu.item_table and touch_menu.item_table._zen_quick_settings_library == true
         for _i, id in ipairs(panel_config.button_order) do
             if panel_config.show_buttons[id] and button_defs[id] then
                 local def = button_defs[id]
-                if not def.visible_func or def.visible_func() then
+                local reader_action = (panel_config.reader_actions or {})[id]
+                if reader_action == nil then reader_action = def.reader_action end
+                if (not hide_reader_actions or not reader_action)
+                        and (not def.visible_func or def.visible_func()) then
                     table.insert(visible_buttons, { id = id, def = def })
                 end
             end
@@ -1522,6 +1560,7 @@ local function apply_quick_settings()
                     id = entry.id,
                     widget = btn_circle,
                     callback = not disabled and function()
+                        ButtonFeedback.flash(btn_circle.dimen, btn_circle.radius)
                         def.callback(touch_menu)
                     end or nil,
                     hold_callback = def.hold_callback and function()
@@ -1663,12 +1702,15 @@ local function apply_quick_settings()
     -- Quick Settings tab definition
     -- ============================================================
 
-    local quick_settings_tab = {
-        id = "quicksettings",
-        icon = "quicksettings",
-        remember = true,
-        panel = createQuickSettingsPanel,
-    }
+    local function make_quick_settings_tab(library_context)
+        return {
+            id = "quicksettings",
+            icon = "quicksettings",
+            remember = true,
+            panel = createQuickSettingsPanel,
+            _zen_quick_settings_library = library_context == true,
+        }
+    end
 
     -- ============================================================
     -- Inject tab into both FileManager and Reader menus
@@ -1682,7 +1724,7 @@ local function apply_quick_settings()
     function FileManagerMenu:setUpdateItemTable()
         orig_fm_setUpdateItemTable(self)
         if is_enabled() and self.tab_item_table then
-            table.insert(self.tab_item_table, 1, quick_settings_tab)
+            table.insert(self.tab_item_table, 1, make_quick_settings_tab(true))
         end
     end
 
@@ -1691,7 +1733,7 @@ local function apply_quick_settings()
     function ReaderMenu:setUpdateItemTable()
         orig_reader_setUpdateItemTable(self)
         if is_enabled() and self.tab_item_table then
-            table.insert(self.tab_item_table, 1, quick_settings_tab)
+            table.insert(self.tab_item_table, 1, make_quick_settings_tab(false))
         end
     end
 end

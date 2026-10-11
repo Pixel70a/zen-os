@@ -297,5 +297,15 @@
     "docs": [
       "docs/reader.md"
     ]
+  },
+  {
+    "id": "end_book",
+    "group": "reader",
+    "session": "reader",
+    "action": "end_book",
+    "book_title": "Project Hail Mary: A Novel",
+    "docs": [
+      "docs/reader.md"
+    ]
   }
 ]

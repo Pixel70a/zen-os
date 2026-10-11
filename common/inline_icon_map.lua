@@ -104,10 +104,16 @@ return {
     settings_status   = "\u{F12F0}",
     battery           = "\u{F0080}",
     reader_themes     = "\u{F03D8}",
+    reader_status_bar_margins = "\u{F061E}",
+    reader_flash_cbz  = "\u{F0241}",
+    end_book         = "\u{F14F3}",
     settings_folders  = "\u{F0256}",
+    settings_folder_name = "\u{F04FC}",
     settings_covers   = "\u{F168B}",  -- mdi-view-module
     settings_scroll   = "\u{F0BB8}",
     settings_layout   = "\u{F0758}",
+    settings_subfolders = "\u{F0645}",
+    settings_underline = "\u{F0287}",
     settings_background = "\u{F0E09}",
     settings_menu_blur = "\u{F00B5}",
     settings_home_folder = "\u{F10B6}",
@@ -125,6 +131,9 @@ return {
     flip_lh_rh        = "\u{F0A0E}",
     settings_lockdown = "\u{F033E}",
     settings_device   = "\u{F04F7}",
+    settings_storage  = "\u{F02CA}",  -- mdi-harddisk
+    settings_ram      = "\u{F035B}",  -- mdi-memory
+    settings_cpu      = "\u{F061A}",  -- mdi-chip
     settings_setup    = "\u{F0C5A}",
     settings_bug      = "\u{F00E4}",
     settings_advanced = "\u{F1064}",

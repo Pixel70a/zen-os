@@ -75,7 +75,7 @@ end
 
 local function icons_root()
     if test_icons_root then return test_icons_root end
-    return DataStorage:getDataDir() .. "/icons"
+    return DataStorage:getFullDataDir() .. "/icons"
 end
 
 local function packs_root()
@@ -515,7 +515,12 @@ function M.resolve(name, plugin_icons_dir)
     if type(name) ~= "string" then return nil end
     local path = resolved_icons[name]
     if path then return path end
-    return resolve_local_icon(plugin_icons_dir, name)
+    path = resolve_local_icon(plugin_icons_dir, name)
+    if path then return path end
+    for _i, dir in ipairs({ "resources/icons/mdlight", "resources/icons", "resources" }) do
+        path = resolve_local_icon(lfs.currentdir() .. "/" .. dir, name)
+        if path then return path end
+    end
 end
 
 function M.getPickerDirectories(plugin_root_path)

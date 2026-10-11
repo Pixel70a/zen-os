@@ -26,12 +26,13 @@ function M.buildItems()
         row(_("Full capacity"), stats.full_mah and string.format("%.0f mAh", stats.full_mah) or missing),
         row(_("Design capacity"), stats.design_mah and string.format("%.0f mAh", stats.design_mah) or missing),
     }
+    local usage = stats.usage or stats
     local usage_items = {
-        row(_("Used per hour"), rate(stats.overall)),
-        row(_("While awake"), rate(stats.awake)),
-        row(_("While asleep"), rate(stats.asleep)),
-        row(_("Screen on time"), duration(stats.awake_time)),
-        row(_("Screen off time"), duration(stats.asleep_time)),
+        row(_("Used per hour"), rate(usage.overall)),
+        row(_("While awake"), rate(usage.awake)),
+        row(_("While asleep"), rate(usage.asleep)),
+        row(_("Screen on time"), duration(usage.awake_time)),
+        row(_("Screen off time"), duration(usage.asleep_time)),
     }
     local charging_items = {
         row(_("Previous charge, per hour"), rate(stats.charge_rate)),
@@ -52,10 +53,15 @@ function M.buildItems()
             keep_menu_open = true,
             callback = function(touchmenu)
                 require("ui/uimanager"):show(require("ui/widget/confirmbox"):new{
-                    text = _("Reset battery log") .. "?",
+                    text = _("Reset battery log") .. "?\n\n" .. _("Charging history and overall usage will be kept."),
                     ok_text = _("Reset"),
                     ok_callback = function()
-                        BatteryStats.reset()
+                        if BatteryStats.reset() == false then
+                            require("ui/uimanager"):show(require("ui/widget/infomessage"):new{
+                                text = _("Could not save battery history. The log was kept."),
+                            })
+                            return
+                        end
                         if touchmenu and touchmenu.updateItems then
                             local refreshed = M.buildItems()
                             for i = 1, #items do items[i] = refreshed[i] end
@@ -75,7 +81,7 @@ function M.buildItems()
         },
         {
             text = _("Usage"),
-            mandatory = rate(stats.overall),
+            mandatory = rate(usage.overall),
             sub_item_table = usage_items,
         },
         {

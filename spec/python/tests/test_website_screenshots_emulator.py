@@ -1,17 +1,54 @@
+import io
 import os
 from pathlib import Path
 
 import pytest
 from PIL import Image
 
-from fixtures import build_library
-from website_screenshots import CaptureWorkflow, ResolvedBook, load_catalog
+from fixtures import _epub_members, _write_zip, build_library
+from website_screenshots import CaptureWorkflow, ResolvedBook, load_catalog, load_profile
 
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("ZEN_UI_CAPTURE_INTEGRATION") != "1",
     reason="set ZEN_UI_CAPTURE_INTEGRATION=1 with a staged runtime",
 )
+
+
+def test_end_book_capture_finishes_hail_mary_and_selects_continue(tmp_path: Path) -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    profile = Path(__file__).parents[1] / "website_screenshot_books.example.json"
+    _root, requests, _quote = load_profile(profile)
+    cover = io.BytesIO()
+    Image.new("RGB", (240, 360), (32, 96, 192)).save(cover, format="PNG")
+    books = []
+    for index, request in enumerate(requests):
+        authors = "Andy Weir" if request.expected_title in (
+            "Project Hail Mary: A Novel", "The Martian: A Novel",
+        ) else request.authors or "Showcase Author"
+        path = tmp_path / f"{index}.epub"
+        members = _epub_members(request.expected_title, "", index + 1, cover.getvalue())
+        members["OEBPS/content.opf"] = members["OEBPS/content.opf"].replace(
+            b"<dc:creator>Zen Author</dc:creator>",
+            f"<dc:creator>{authors}</dc:creator>".encode(),
+        )
+        _write_zip(path, members)
+        books.append(ResolvedBook(
+            None, request.expected_title, authors, None, path, request.role, "EPUB",
+        ))
+    scenario = next(scenario for scenario in load_catalog() if scenario.id == "end_book")
+    run_dir = tmp_path / "artifacts"
+    report = CaptureWorkflow(runtime, [scenario], books, run_dir, None).run()
+    result, = report["results"]
+    assert result["status"] == "passed", result
+    assert result["finished_book"] == "Project Hail Mary: A Novel"
+    assert result["strip_source"] == "continue"
+    assert result["strip_labels"] == ["More by Andy Weir", "Series", "Continue"]
+    assert result["strip_cover_count"] == 4
+    assert report["source_files_unchanged"] is True
+    assert report["settings_baseline_files_unchanged"] is True
+    with Image.open(run_dir / "end_book.png") as image:
+        assert image.size == (1272, 1696)
 
 
 def test_representative_home_library_stats_reader_and_page_browser_capture(

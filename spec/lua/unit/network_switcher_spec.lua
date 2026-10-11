@@ -30,6 +30,7 @@ describe("network switcher", function()
     local native_profiles
     local profile_read_fails
     local deleted_profile_id
+    local kindle_guest_security
 
     local module_names = {
         "device",
@@ -97,6 +98,7 @@ describe("network switcher", function()
         }
         profile_read_fails = false
         deleted_profile_id = nil
+        kindle_guest_security = "WPA2-PSK"
 
         ZenSpec.replace("device", {
             hasWifiManager = function() return false end,
@@ -171,9 +173,11 @@ describe("network switcher", function()
         ZenSpec.replace("ui/size", {
             padding = { large = 12, default = 8 },
         })
+        ZenSpec.replace("util", { pathExists = function() return true end })
 
         NetworkMgr = {
             wifi_on = true,
+            wpa_supplicant = { ctrl_interface = "/var/run/wpa_supplicant/wlan0" },
             isWifiOn = function(self) return self.wifi_on end,
             isConnected = function(self) return self.current_ssid ~= nil end,
             turnOffWifi = function(self)
@@ -223,6 +227,7 @@ describe("network switcher", function()
                 return true, "Authenticated"
             end,
             obtainIP = function(self) self.obtained = true end,
+            getNetworkInterfaceName = function() return "wlan0" end,
             getCurrentNetwork = function(self) return { ssid = self.current_ssid } end,
             getAllSavedNetworks = function()
                 return { readSetting = function() return nil end }
@@ -233,6 +238,15 @@ describe("network switcher", function()
         ZenSpec.replace("ui/network/manager", NetworkMgr)
         ZenSpec.replace("lj-wpaclient/wpaclient", {
             __index = { enableNetworkByID = function() end },
+            new = function()
+                return {
+                    sendCtrlCmd = function(_self, command)
+                        assert.are.equal("DISABLE_NETWORK all", command)
+                        return "OK\n"
+                    end,
+                    close = function() end,
+                }
+            end,
         })
         ZenSpec.replace("liblipclua", {
             init = function(name)
@@ -310,7 +324,7 @@ describe("network switcher", function()
                                         },
                                         {
                                             essid = "Guest",
-                                            key_mgmt = "WPA2-PSK",
+                                            key_mgmt = kindle_guest_security,
                                             signal = 3,
                                             signal_max = 5,
                                         },
@@ -332,6 +346,7 @@ describe("network switcher", function()
                             }
                         end
                         assert.are.equal("createProfile", property)
+                        assert.is_nil(profile_data.smethod, "Use KOReader's passphrase-based createProfile request")
                         created_profile = profile_data
                         native_profiles[profile_data.essid] = {
                             essid = profile_data.essid,
@@ -1342,6 +1357,74 @@ describe("network switcher", function()
         assert.are.equal(0, kindle_scans)
     end)
 
+    it("logs Kobo link and packet state without probes or network identifiers", function()
+        ZenSpec.replace("modules/settings/zen_settings_utils", {
+            get_device_ip_address = function() return "192.168.1.23" end,
+        })
+        local now, input = 0, nil
+        ZenSpec.replace("ui/time", { now = function() return now end, to_ms = function(value) return value end })
+        package.loaded["ui/uimanager"].event_hook = {
+            register = function(_self, name, callback)
+                assert.are.equal("InputEvent", name)
+                input = callback
+            end,
+        }
+        local enabled = true
+        local logger = {
+            isEnabled = function() return enabled end,
+            dbg = function(...) logs[#logs + 1] = { ... } end,
+        }
+        ZenSpec.replace("common/zen_logger", { new = function() return logger end })
+        require("modules/menu/network_adapters/kobo").install(NetworkMgr)
+        local values = {
+            ["/sys/class/net/wlan0/operstate"] = "up",
+            ["/sys/class/net/wlan0/statistics/rx_packets"] = "120",
+            ["/sys/class/net/wlan0/statistics/tx_packets"] = "45",
+        }
+        local opened, files_closed = 0, 0
+        local open = stub(io, "open", function(path)
+            opened = opened + 1
+            if not values[path] then return nil end
+            return {
+                read = function() return values[path] end,
+                close = function() files_closed = files_closed + 1 end,
+            }
+        end)
+        NetworkMgr.getCurrentNetwork = function() error("Diagnostics must not query wpa_supplicant") end
+        NetworkMgr.canResolveHostnames = function() error("Diagnostics must not send network probes") end
+
+        NetworkMgr:logWifiDiagnostics("update_start")
+        local logged = {}
+        for i = 2, #logs[1], 2 do logged[logs[1][i]] = logs[1][i + 1] end
+        assert.is_true(logged["ipv4_assigned="])
+        assert.is_false(logged["default_route="])
+        assert.are.equal("up", logged["operstate="])
+        assert.are.equal("120", logged["rx_packets="])
+        assert.are.equal("45", logged["tx_packets="])
+        assert.are.equal("unavailable", logged["rx_errors="])
+        assert.are.equal(3, files_closed)
+        for _i, value in ipairs(logs[1]) do assert.is_not_equal("192.168.1.23", value) end
+
+        now = 4999
+        input()
+        assert.are.equal(1, #logs)
+        now = 10000
+        input()
+        assert.are.equal("Kobo Wi-Fi input after idle", logs[2][1])
+        assert.are.equal("input_after_idle", logs[3][3])
+        NetworkMgr.wifi_on = false
+        now = 16000
+        input()
+        local read_count = opened
+        enabled = false
+        now = 22000
+        input()
+        NetworkMgr:logWifiDiagnostics("update_finish")
+        open:revert()
+        assert.are.equal(read_count, opened)
+        assert.are.equal(3, #logs)
+    end)
+
     for _i, case in ipairs({
         { name = "accepts an unchanged IP when reconnecting with a default route",
             route = true, connected = true, sleeps = 0 },
@@ -1544,20 +1627,67 @@ describe("network switcher", function()
         network_menu.item_table[1].callback()
         button_dialog.buttons[4][1].callback()
         confirm_box.ok_callback()
-        assert.are.same({ "REMOVE_NETWORK 7", "SAVE_CONFIG", "RECONFIGURE" }, commands)
+        assert.are.same({ "REMOVE_NETWORK 7", "ENABLE_NETWORK all", "DISCONNECT",
+            "SAVE_CONFIG", "RECONFIGURE" }, commands)
         assert.is_nil(NetworkMgr.deleted)
         assert.is_true(network_menu.item_table[1].network.connected)
 
         save_fails = false
         confirm_box.ok_callback()
-        assert.are.same({ "REMOVE_NETWORK 7", "SAVE_CONFIG", "RECONFIGURE",
-            "REMOVE_NETWORK 7", "SAVE_CONFIG" }, commands)
+        assert.are.same({ "REMOVE_NETWORK 7", "ENABLE_NETWORK all", "DISCONNECT",
+            "SAVE_CONFIG", "RECONFIGURE", "REMOVE_NETWORK 7", "ENABLE_NETWORK all",
+            "DISCONNECT", "SAVE_CONFIG" }, commands)
         assert.are.same({{ ssid = "Guest", id = "8" }}, profiles)
         assert.are.equal("Home", NetworkMgr.deleted.ssid)
         assert.is_true(NetworkMgr.released)
         assert.are.equal("Available", network_menu.item_table[1]._zen_settings_breadcrumb)
         network_menu.item_table[1].callback()
         assert.is_not_nil(password_dialog)
+    end)
+
+    it("keeps the normal Kobo reconnect fallback for scans, preferred networks and profile failures", function()
+        local profiles, saved, rejected
+        local reconnects, selected, completed = 0, 0, 0
+        NetworkMgr.wpa_supplicant = { ctrl_interface = "/test/wlan0" }
+        NetworkMgr.getConfiguredNetworks = function() return profiles end
+        NetworkMgr.getAllSavedNetworks = function() return ZenSpec.memorySettings(saved) end
+        NetworkMgr.reconnectOrShowNetworkMenu = function(_self, callback, interactive)
+            assert.is_true(interactive)
+            reconnects = reconnects + 1
+            callback()
+            return "fallback"
+        end
+        ZenSpec.replace("lj-wpaclient/wpaclient", {
+            new = function()
+                return {
+                    attach = function() return true end,
+                    sendCtrlCmd = function(_self, command)
+                        if command == "SELECT_NETWORK 7" then
+                            selected = selected + 1
+                            return rejected and "FAIL" or "OK"
+                        end
+                        return "OK"
+                    end,
+                    getConnectedNetwork = function() return { id = "7" } end,
+                    close = function() end,
+                }
+            end,
+        })
+        require("modules/menu/network_adapters/kobo").install(NetworkMgr)
+        for _i, case in ipairs({ "none", "multiple", "preferred", "scan", "rejected", "single" }) do
+            profiles = case == "none" and {} or {{ ssid = "Home", id = "7" }}
+            if case == "multiple" then profiles[2] = { ssid = "Guest", id = "8" } end
+            saved = case == "preferred" and { Guest = { password = "saved" } } or {}
+            rejected = case == "rejected"
+            NetworkMgr.wifi_toggle_long_press = case == "scan"
+            local result = NetworkMgr:reconnectOrShowNetworkMenu(function() completed = completed + 1 end, true)
+            assert.are.equal(case == "single" and true or "fallback", result)
+            assert.are.equal(_i, completed)
+        end
+        assert.are.equal(5, reconnects)
+        assert.are.equal(2, selected)
+        assert.are.equal("Home", NetworkMgr.lease_ssid)
+        assert.is_true(NetworkMgr.obtained)
     end)
 
     it("reuses a Kobo-configured network after disconnect without a KOReader password", function()
@@ -1618,7 +1748,7 @@ describe("network switcher", function()
         assert.is_truthy(button_dialog.buttons[3][1].text:find("Forget", 1, true))
         network_menu.item_table[1].callback()
         assert.is_nil(password_dialog)
-        assert.are.same({ "DISCONNECT", "SELECT_NETWORK 7",
+        assert.are.same({ "DISCONNECT", "DISABLE_NETWORK all", "SELECT_NETWORK 7",
             "ENABLE_NETWORK all" }, commands)
         assert.are.equal(2, association_checks)
         assert.are.equal(1, verification_sleeps)
@@ -1630,7 +1760,7 @@ describe("network switcher", function()
         ip_calls = 0
         password_dialog.buttons[1][3].callback()
         assert.are.equal("guest-password", NetworkMgr.authenticated.password)
-        assert.are.same({ "DISCONNECT", "SELECT_NETWORK 7",
+        assert.are.same({ "DISCONNECT", "DISABLE_NETWORK all", "SELECT_NETWORK 7",
             "ENABLE_NETWORK all" }, commands)
     end)
 
@@ -1763,9 +1893,10 @@ describe("network switcher", function()
                     return {
                         attach = function() attached = true return true end,
                         sendCtrlCmd = function(_self, command)
+                            if command == "DISABLE_NETWORK all" then return "OK\n" end
                             assert.is_true(attached)
                             commands[#commands + 1] = command
-                            return "OK\n"
+                            return "OK\n", 3
                         end,
                         getConnectedNetwork = function() return nil end,
                         readAllEvents = function()
@@ -1791,6 +1922,12 @@ describe("network switcher", function()
             assert.are.equal(case.failures + 1, polls)
             assert.is_true(client_closed)
             assert.are.same({ "SELECT_NETWORK 7", "ENABLE_NETWORK all", "DISCONNECT" }, commands)
+            local stopped
+            for _j, entry in ipairs(logs) do
+                if entry[2] == "Kobo authentication stopped" then stopped = entry end
+            end
+            assert.are.same({ "dbg", "Kobo authentication stopped", "accepted=", true,
+                "error_present=", false }, stopped)
             assert.is_nil(NetworkMgr.deleted)
             assert.is_nil(NetworkMgr.obtained)
             assert.are.equal("Home", password_dialog.title)
@@ -1805,9 +1942,15 @@ describe("network switcher", function()
         end)
     end
 
-    it("keeps associating through transient Kobo disconnects and timeouts", function()
+    it("logs Kobo rejection codes without identifiers and keeps retrying transient failures", function()
         NetworkMgr.wpa_supplicant = { ctrl_interface = "/var/run/wpa_supplicant/wlan0" }
         local polls = 0
+        local messages = {
+            "CTRL-EVENT-ASSOC-REJECT bssid=aa:bb:cc:dd:ee:ff status_code=16",
+            "Authentication with aa:bb:cc:dd:ee:ff timed out.",
+            "CTRL-EVENT-DISCONNECTED bssid=aa:bb:cc:dd:ee:ff reason=3 locally_generated=0",
+            'CTRL-EVENT-SSID-TEMP-DISABLED id=7 ssid="Home" reason=CONN_FAILED',
+        }
         ZenSpec.replace("lj-wpaclient/wpaclient", {
             new = function()
                 return {
@@ -1819,8 +1962,7 @@ describe("network switcher", function()
                     readAllEvents = function()
                         polls = polls + 1
                         return {{
-                            msg = polls % 2 == 0 and "Authentication with AP timed out."
-                                or "CTRL-EVENT-DISCONNECTED reason=3 locally_generated=0",
+                            msg = messages[polls],
                             isAuthFailed = function() return true end,
                         }}
                     end,
@@ -1832,6 +1974,21 @@ describe("network switcher", function()
             NetworkMgr, require("common/zen_logger").new())
         assert.is_true(adapter.connect({ ssid = "Home", wpa_supplicant_id = "7" }))
         assert.are.equal(4, polls)
+        local diagnostics = {}
+        for _i, entry in ipairs(logs) do
+            if entry[2] == "Kobo authentication event" then diagnostics[#diagnostics + 1] = entry end
+            for _j, value in pairs(entry) do
+                if type(value) == "string" then assert.is_nil(value:find("aa:bb:cc:dd:ee:ff", 1, true)) end
+            end
+        end
+        assert.are.same({
+            { "dbg", "Kobo authentication event", "event=", "CTRL-EVENT-ASSOC-REJECT",
+                "status_code=", 16, "reason_code=", nil, "locally_generated=", nil, "wrong_key=", false },
+            { "dbg", "Kobo authentication event", "event=", "CTRL-EVENT-DISCONNECTED",
+                "status_code=", nil, "reason_code=", 3, "locally_generated=", 0, "wrong_key=", false },
+            { "dbg", "Kobo authentication event", "event=", "CTRL-EVENT-SSID-TEMP-DISABLED",
+                "status_code=", nil, "reason_code=", nil, "locally_generated=", nil, "wrong_key=", false },
+        }, diagnostics)
     end)
 
     it("resets a stalled Kobo radio once with the same KOReader-only credentials", function()
@@ -1847,13 +2004,13 @@ describe("network switcher", function()
         end
         NetworkMgr.turnOffWifi = function() resets = resets + 1 end
         NetworkMgr.reconnectOrShowNetworkMenu = function() error("Must not recurse into authentication") end
-        local reconnect = NetworkMgr.reconnectOrShowNetworkMenu
         NetworkMgr.turnOnWifi = function(self)
             starts = starts + 1
             return self:reconnectOrShowNetworkMenu()
         end
         local Kobo = require("modules/menu/network_adapters/kobo")
         Kobo.install(NetworkMgr)
+        local reconnect = NetworkMgr.reconnectOrShowNetworkMenu
         assert.is_true(NetworkMgr:authenticateNetwork(network))
         assert.are.equal(2, attempts)
         assert.are.equal(1, resets)
@@ -1868,7 +2025,7 @@ describe("network switcher", function()
         assert.are.equal(reconnect, NetworkMgr.reconnectOrShowNetworkMenu)
     end)
 
-    it("queues Kobo scans in the worker while a connection is pending", function()
+    it("cancels a pending connection before scanning Kobo networks", function()
         ZenSpec.replace("device", {
             hasWifiManager = function() return true end,
             isKobo = function() return true end,
@@ -1876,6 +2033,11 @@ describe("network switcher", function()
         })
         NetworkMgr.current_ssid = nil
         NetworkMgr.pending_connection = true
+        local cancellations = 0
+        NetworkMgr.cancelWifiOperations = function(self)
+            cancellations = cancellations + 1
+            self.pending_connection = false
+        end
         local action, callback, scans = nil, nil, 0
         local get_networks = NetworkMgr.getNetworkList
         NetworkMgr.getNetworkList = function(self)
@@ -1884,20 +2046,154 @@ describe("network switcher", function()
         end
         NetworkMgr.runWifiAsync = function(_self, work, complete, queued_only)
             assert.is_true(queued_only)
+            assert.is_false(NetworkMgr.pending_connection)
             action, callback = work, complete
         end
         assert.is_true(require("modules/menu/network_switcher").open())
         scan_task()
         assert.are.equal(0, scans)
         assert.are.equal("Searching for networks…", network_menu.item_table[1].text)
+        network_menu.custom_title_bar.action.callback()
+        assert.are.equal(2, cancellations)
         callback(action())
         assert.are.equal(1, scans)
         assert.are.equal("Home", network_menu.item_table[1].text)
-        assert.is_true(NetworkMgr.pending_connection)
+        assert.is_false(NetworkMgr.pending_connection)
+        assert.are.equal(2, cancellations)
         network_menu.custom_title_bar.action.callback()
         callback(nil, "Scan failed")
         assert.are.equal(1, scans)
         assert.are.equal("Scan failed", network_menu.item_table[1].text)
+    end)
+
+    it("lets Search cancel manual connection work and a pending power change", function()
+        ZenSpec.replace("device", {
+            hasWifiManager = function() return true end,
+            isKobo = function() return true end,
+            isKindle = function() return false end,
+        })
+        NetworkMgr.current_ssid = nil
+        local pending, cancellations, shutting_down = nil, 0, false
+        NetworkMgr.runWifiAsync = function(self, action, callback, queued_only)
+            if queued_only then
+                if shutting_down then self.wifi_on = false end
+                return callback(action())
+            end
+            pending = callback
+        end
+        NetworkMgr.cancelWifiOperations = function(self)
+            cancellations = cancellations + 1
+            pending = nil
+            self.pending_connection = false
+        end
+        require("modules/menu/network_switcher").open()
+        scan_task()
+        network_menu.item_table[1].callback()
+        assert.is_function(pending)
+        network_menu.custom_title_bar.action.callback()
+        assert.is_nil(pending)
+        assert.are.equal("Home", network_menu.item_table[1].text)
+
+        NetworkMgr.toggleWifiOff = function(_self, callback)
+            pending = callback
+            shutting_down = true
+        end
+        network_menu.custom_title_bar.toggle.callback()
+        assert.is_function(pending)
+        network_menu.custom_title_bar.action.callback()
+        assert.is_nil(pending)
+        assert.is_true(NetworkMgr.wifi_on)
+        assert.are.equal("Home", network_menu.item_table[1].text)
+        assert.are.equal(3, cancellations)
+    end)
+
+    it("finishes interrupted Kobo radio startup before scanning", function()
+        ZenSpec.replace("device", {
+            hasWifiManager = function() return true end,
+            isKobo = function() return true end,
+            isKindle = function() return false end,
+        })
+        NetworkMgr.current_ssid = nil
+        local ready, starts = false, 0
+        package.loaded["util"].pathExists = function() return ready end
+        NetworkMgr.turnOnWifi = function()
+            ready = true
+            starts = starts + 1
+            return true
+        end
+        NetworkMgr.runWifiAsync = function(_self, action, callback) callback(action()) end
+        require("modules/menu/network_switcher").open()
+        scan_task()
+        assert.are.equal(1, starts)
+        assert.are.equal("Home", network_menu.item_table[1].text)
+    end)
+
+    it("pauses Kobo automatic connections during a scan and resumes the selected profile", function()
+        NetworkMgr.current_ssid = nil
+        NetworkMgr.getConfiguredNetworks = function()
+            return {{ ssid = "Home", id = "7" }, { ssid = "Guest", id = "8" }}
+        end
+        local commands, selected = {}, nil
+        ZenSpec.replace("lj-wpaclient/wpaclient", {
+            new = function()
+                return {
+                    sendCtrlCmd = function(_self, command)
+                        commands[#commands + 1] = command
+                        if command == "SELECT_NETWORK 8" then selected = "8" end
+                        return "OK\n"
+                    end,
+                    getConnectedNetwork = function() return selected and { id = selected } end,
+                    attach = function() return true end,
+                    close = function() end,
+                }
+            end,
+        })
+        local adapter = require("modules/menu/network_adapters/kobo").new(NetworkMgr,
+            package.loaded["common/zen_logger"].new())
+        assert.are.equal(2, #adapter.getNetworkList())
+        assert.is_nil(selected)
+        assert.is_true(adapter.connect({ ssid = "Guest" }))
+        assert.are.same({ "DISABLE_NETWORK all", "SELECT_NETWORK 8", "ENABLE_NETWORK all" }, commands)
+        assert.is_nil(NetworkMgr.deleted)
+    end)
+
+    it("preserves a working Kobo connection when searching", function()
+        ZenSpec.replace("lj-wpaclient/wpaclient", {
+            new = function() error("A scan must not disable connected profiles") end,
+        })
+        local adapter = require("modules/menu/network_adapters/kobo").new(NetworkMgr,
+            package.loaded["common/zen_logger"].new())
+        assert.are.equal("Home", adapter.getNetworkList()[1].ssid)
+        assert.are.equal("Home", NetworkMgr.current_ssid)
+    end)
+
+    it("keeps paused Kobo profiles enabled on disk when forgetting another network", function()
+        NetworkMgr.current_ssid = nil
+        NetworkMgr.getConfiguredNetworks = function()
+            return {{ ssid = "Home", id = "7" }, { ssid = "Guest", id = "8" }}
+        end
+        local commands, paused = {}, false
+        ZenSpec.replace("lj-wpaclient/wpaclient", {
+            new = function()
+                return {
+                    sendCtrlCmd = function(_self, command)
+                        commands[#commands + 1] = command
+                        if command == "DISABLE_NETWORK all" then paused = true end
+                        if command == "ENABLE_NETWORK all" then paused = false end
+                        if command == "SAVE_CONFIG" then assert.is_false(paused) end
+                        return "OK\n"
+                    end,
+                    close = function() end,
+                }
+            end,
+        })
+        local adapter = require("modules/menu/network_adapters/kobo").new(NetworkMgr,
+            package.loaded["common/zen_logger"].new())
+        adapter.getNetworkList()
+        assert.is_true(paused)
+        assert.is_true(adapter.forgetNetwork({ ssid = "Guest" }))
+        assert.are.same({ "DISABLE_NETWORK all", "REMOVE_NETWORK 8", "ENABLE_NETWORK all",
+            "DISCONNECT", "SAVE_CONFIG" }, commands)
     end)
 
     it("keeps saved Kobo credentials after a connection timeout", function()
@@ -2007,8 +2303,9 @@ describe("network switcher", function()
             assert.is_true(require("modules/menu/network_switcher").open())
             scan_task()
             assert.are.equal(2, scans)
-            assert.are.same(state == "DISCONNECTED" and { "RECONNECT" } or {}, commands)
-            assert.are.equal(1, scan_handle_closes)
+            assert.are.same(state == "DISCONNECTED" and { "DISABLE_NETWORK all", "RECONNECT" }
+                or { "DISABLE_NETWORK all" }, commands)
+            assert.are.equal(2, scan_handle_closes)
             assert.are.equal("Home", network_menu.item_table[1].text)
         end)
     end
@@ -2345,7 +2642,7 @@ describe("network switcher", function()
         assert.are.equal("Guest", network_menu.item_table[2].text)
     end)
 
-    it("rescans from the title bar without overlapping scans", function()
+    it("restarts a pending scan from the title bar without overlapping polls", function()
         local Switcher = require("modules/menu/network_switcher")
         assert.is_true(Switcher.open())
         local refresh = network_menu.custom_title_bar.action
@@ -2359,8 +2656,12 @@ describe("network switcher", function()
         refresh.callback()
         assert.are.equal("Searching for networks…", network_menu.item_table[1].text)
         assert.are.equal(2, kindle_scans)
+        local pending_poll = scheduled[1]
         refresh.callback()
-        assert.are.equal(2, kindle_scans)
+        assert.are.equal(3, kindle_scans)
+        assert.are.equal(1, #scheduled)
+        pending_poll()
+        assert.are.equal(1, #scheduled)
         while #scheduled > 0 do table.remove(scheduled, 1)() end
         assert.are.equal("Guest", network_menu.item_table[2].text)
     end)
@@ -2442,7 +2743,6 @@ describe("network switcher", function()
             essid = "Guest",
             psk = "guest-password",
             secured = "yes",
-            smethod = "wpa2",
             store_nw_user_pref = 0,
         }, created_profile)
         assert.are.equal(0, kindle_disconnects)
@@ -2509,6 +2809,55 @@ describe("network switcher", function()
         }, events)
     end)
 
+    it("creates a Kindle profile for a first-time connection when the scan reports SAE", function()
+        native_profiles = {}
+        NetworkMgr.current_ssid = nil
+        kindle_guest_security = "SAE"
+        local Switcher = require("modules/menu/network_switcher")
+        assert.is_true(Switcher.open())
+        finish_scan()
+
+        network_menu.item_table[2].callback()
+        assert.are.equal("password", password_dialog.kind)
+        password_dialog.buttons[1][2].callback()
+
+        assert.are.same({
+            essid = "Guest",
+            psk = "guest-password",
+            secured = "yes",
+            store_nw_user_pref = 0,
+        }, created_profile)
+        assert.are.equal(0, kindle_deletes)
+        assert.are.equal(1, kindle_connects)
+        assert.are.equal("Guest", NetworkMgr.current_ssid)
+        assert.are.equal("Guest", NetworkMgr.lease_ssid)
+        assert.is_true(NetworkMgr.obtained)
+    end)
+
+    it("shows the Kindle profile creation error when joining a new network", function()
+        kindle_guest_security = "SAE"
+        local Switcher = require("modules/menu/network_switcher")
+        assert.is_true(Switcher.open())
+        finish_scan()
+        network_menu.item_table[2].callback()
+        local lipc = package.loaded["libopenlipclua"]
+        local open = lipc.open_no_name
+        lipc.open_no_name = function()
+            local handle = open()
+            local access = handle.access_hash_property
+            handle.access_hash_property = function(self, service, property, input)
+                if property == "createProfile" then error("Kindle rejected the profile", 0) end
+                return access(self, service, property, input)
+            end
+            return handle
+        end
+        password_dialog.buttons[1][2].callback()
+        assert.are.equal("Kindle rejected the profile", password_dialog.description)
+        assert.is_nil(native_profiles.Guest)
+        assert.are.equal(0, kindle_connects)
+        assert.are.equal(0, kindle_deletes)
+    end)
+
     it("explains a target mismatch and prompts to replace the saved password", function()
         NetworkMgr.guest_password = "old-password"
         native_profiles.Guest = { essid = "Guest", netid = 22, psk = "old-password" }
@@ -2538,14 +2887,15 @@ describe("network switcher", function()
         assert.are.equal(1, kindle_deletes)
         assert.are.equal(22, deleted_profile_id)
         assert.are.equal("guest-password", created_profile.psk)
-        assert.are.equal("wpa2", created_profile.smethod)
+        assert.is_nil(created_profile.smethod)
         assert.are.equal("Guest", NetworkMgr.lease_ssid)
         assert.is_true(NetworkMgr.queried)
         assert.are.equal(60, verification_sleeps)
         assert.is_true(#logs > 0)
     end)
 
-    it("forgets a saved Kindle profile on hold", function()
+    it("forgets a saved Kindle profile and rejoins when the scan reports SAE", function()
+        kindle_guest_security = "SAE"
         NetworkMgr.guest_password = string.rep("ab", 32)
         native_profiles.Guest = {
             essid = "Guest",
@@ -2573,5 +2923,18 @@ describe("network switcher", function()
         assert.is_nil(NetworkMgr.deleted.password)
         assert.are.equal("Guest", network_menu.item_table[2].text)
         assert.are.equal("60%", network_menu.item_table[2]._zen_settings_breadcrumb)
+
+        network_menu.item_table[2].callback()
+        assert.are.equal("password", password_dialog.kind)
+        password_dialog.buttons[1][2].callback()
+        assert.are.same({
+            essid = "Guest",
+            psk = "guest-password",
+            secured = "yes",
+            store_nw_user_pref = 0,
+        }, created_profile)
+        assert.are.equal(1, kindle_deletes)
+        assert.are.equal(1, kindle_connects)
+        assert.are.equal("Guest", NetworkMgr.current_ssid)
     end)
 end)

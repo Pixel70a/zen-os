@@ -9,6 +9,7 @@ describe("library navigation", function()
             "__ZEN_UI_KEEP_BOOK_LOCATION", "__ZEN_UI_LAST_READ_FILE",
             "__ZEN_UI_LIBRARY_STATE", "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB",
             "__ZEN_UI_NAVBAR_OPEN_FOLDER",
+            "__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE", "__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON",
         }) do
             _G[name] = nil
         end
@@ -22,6 +23,10 @@ describe("library navigation", function()
         ZenSpec.replace("device", { home_dir = "/sdcard" })
         ZenSpec.replace("config/manager", { get = function() return {} end })
         ZenSpec.replace("MangaReader", { is_showing = false })
+        ZenSpec.replace("apps/filemanager/filemanager", {})
+        ZenSpec.replace("ui/uimanager", {
+            scheduleIn = function(_self, _delay, callback) callback() end,
+        })
         ZenSpec.replace("common/utils", {
             closeWidgetsAbove = function(anchor)
                 assert.is_true(anchor.tearing_down)
@@ -53,6 +58,71 @@ describe("library navigation", function()
         end
         return state
     end
+
+    it("opens the default navbar tab after closing the menu and library overlays", function()
+        local order = {}
+        local fm = {}
+        ZenSpec.replace("apps/filemanager/filemanager", { instance = fm })
+        ZenSpec.replace("common/utils", {
+            closeWidgetsAbove = function(anchor)
+                assert.are.equal(fm, anchor)
+                order[#order + 1] = "overlays"
+            end,
+        })
+        _G.__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB = function() order[#order + 1] = "default" end
+        Navigation.openDefault(fm, nil, function() order[#order + 1] = "menu" end)
+        assert.are.same({ "menu", "overlays", "default" }, order)
+        _G.__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE = function() return true end
+        Navigation.openDefault(fm, nil, function() order[#order + 1] = "menu" end)
+        assert.are.same({ "menu", "overlays", "default", "menu" }, order)
+    end)
+
+    it("returns Home from the reader safely and preserves restore behavior", function()
+        local ui = reader()
+        local callback
+        require("ui/uimanager").scheduleIn = function(_self, delay, scheduled)
+            assert.are.equal(0, delay)
+            callback = scheduled
+        end
+        Navigation.openDefault(ui, {
+            config = { features = { restore_library_view = true } },
+        }, function() assert.is_true(ui.tearing_down) end)
+        assert.is_true(ui.tearing_down)
+        assert.is_nil(ui.closed)
+        callback()
+        assert.is_false(ui.tearing_down)
+        assert.is_true(ui.closed)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
+
+    it("forces the default from an outside book even when restore is enabled", function()
+        Navigation.openDefault(reader("/outside/Book.epub"), {
+            config = { features = { restore_library_view = true } },
+        }, function() end)
+        assert.is_true(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+        assert.is_nil(_G.__ZEN_UI_KEEP_BOOK_LOCATION)
+    end)
+
+    it("uses the configured home directory when Navbar is disabled", function()
+        local chooser = {
+            path_items = { ["/library"] = 4 },
+            changeToPath = function(self, path) self.path = path end,
+        }
+        local fm = { file_chooser = chooser }
+        ZenSpec.replace("apps/filemanager/filemanager", { instance = fm })
+        ZenSpec.replace("common/utils", { closeWidgetsAbove = function() end })
+        Navigation.openDefault(fm, nil, function() end)
+        assert.are.equal("/library", chooser.path)
+        assert.is_nil(chooser.path_items["/library"])
+    end)
+
+    it("uses the default navbar icon with a Library fallback", function()
+        assert.are.equal("library", Navigation.defaultTabIcon(nil))
+        local plugin = { config = { menu = { library_home_icon = "folder" } } }
+        assert.are.equal("folder", Navigation.defaultTabIcon(plugin))
+        _G.__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON = function() return "tab_series" end
+        assert.are.equal("tab_series", Navigation.defaultTabIcon(plugin))
+    end)
 
     it("closes reader overlays before rebuilding the library", function()
         local ui = reader()
@@ -367,6 +437,7 @@ describe("library navigation", function()
         local returns = 0
         ZenSpec.replace("MangaReader", {
             is_showing = true,
+            chapter = { _zen_rakuyomi_source_tab = "manga" },
             onReturn = function() returns = returns + 1 end,
         })
         local ui = reader()
@@ -382,16 +453,73 @@ describe("library navigation", function()
         assert.is_nil(ui.closed)
     end)
 
-    it("closes Rakuyomi chapters when their own return is disabled", function()
+    it("returns a Rakuyomi UI open from the default button regardless of navbar return settings", function()
+        local returns = 0
+        G_reader_settings:saveSetting("allow_commaneer_filemanager", false)
         ZenSpec.replace("MangaReader", {
             is_showing = true,
-            onReturn = function() error("Rakuyomi return is disabled") end,
+            chapter = { _zen_rakuyomi_source_tab = "manga" },
+            onReturn = function() returns = returns + 1 end,
+        })
+        local ui = reader("/data/rakuyomi/chapter.cbz")
+
+        Navigation.openDefault(ui, { config = {
+            features = { restore_library_view = false },
+            rakuyomi = { return_to_chapter_list_on_exit = false },
+        } }, function() end)
+
+        assert.equals(1, returns)
+        assert.is_nil(ui.closed)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
+
+    it("restores Home for a Home manga open when library restore is enabled", function()
+        ZenSpec.replace("MangaReader", {
+            is_showing = true,
+            chapter = { _zen_rakuyomi_source_tab = "home" },
+            onReturn = function() error("Home manga must use navbar return settings") end,
+        })
+        local ui = reader("/library/chapter.cbz")
+        local state = { tab = "home", page = 2 }
+        _G.__ZEN_UI_LIBRARY_STATE = state
+
+        Navigation.openDefault(ui, { config = {
+            features = { restore_library_view = true },
+            rakuyomi = { return_to_chapter_list_on_exit = true },
+        } }, function() end)
+
+        assert.is_true(ui.closed)
+        assert.equals(state, _G.__ZEN_UI_LIBRARY_STATE)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
+
+    it("opens the configured default for a Home manga when library restore is disabled", function()
+        ZenSpec.replace("MangaReader", {
+            is_showing = true,
+            chapter = { _zen_rakuyomi_source_tab = "home" },
+            onReturn = function() error("Home manga must use navbar return settings") end,
+        })
+        local ui = reader("/library/chapter.cbz")
+
+        Navigation.openDefault(ui, { config = {
+            features = { restore_library_view = false },
+            rakuyomi = { return_to_chapter_list_on_exit = true },
+        } }, function() end)
+
+        assert.is_true(ui.closed)
+        assert.is_true(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
+
+    it("uses normal navbar return for chapters opened without Rakuyomi", function()
+        ZenSpec.replace("MangaReader", {
+            is_showing = true,
+            onReturn = function() error("This chapter was not opened from the Rakuyomi UI") end,
         })
         local ui = reader("/library/chapter.cbz")
 
         Navigation.showFromReader(ui, { config = {
             features = { restore_library_view = false },
-            rakuyomi = { return_to_chapter_list_on_exit = false },
+            rakuyomi = { return_to_chapter_list_on_exit = true },
         } })
 
         assert.is_true(ui.closed)

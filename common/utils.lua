@@ -91,6 +91,16 @@ function M.deepcopy(value)
     return result
 end
 
+function M.controlReplacesMenuTab(config, id)
+    local features = config and config.features
+    local controls = config and config.quick_settings
+    local buttons = type(controls) == "table" and controls.show_buttons
+    local tour_pending = config and config._meta
+        and config._meta.quickstart_menu_tour_pending == true
+    return not tour_pending and type(features) == "table" and features.quick_settings == true
+        and type(buttons) == "table" and buttons[id] == true
+end
+
 -- Returns true when t is a sequential array (no holes, integer keys from 1).
 local function _is_array(t)
     local n = 0
@@ -211,7 +221,7 @@ function M.isCustomIconsEnabled()
     return _custom_icons_enabled
 end
 
---- Resolve an icon from the active pack or loose icons, then bundled icons.
+--- Resolve an icon from the active pack or loose icons, then Zen and KOReader icons.
 --- @param plugin_icons_dir string  absolute path ending with "/"
 --- @param name             string  icon name without extension
 --- @return                 string|nil
@@ -415,6 +425,30 @@ end
 --- @return number
 function M.getBadgeInset(r)
     return math.floor(r * 0.40)
+end
+
+function M.paintBadgeCircle(bb, cx, cy, radius, color)
+    for row = -radius, radius do
+        local half = math.floor(math.sqrt(math.max(0, radius * radius - row * row)))
+        if half > 0 then bb:paintRectRGB32(cx - half, cy + row, 2 * half, 1, color) end
+    end
+end
+
+function M.paintBadgeCheck(bb, x, y, width, height, color)
+    local thickness = math.max(2, math.floor(math.min(width, height) / 8))
+    local function line(x0, y0, x1, y1)
+        local steps = math.max(math.abs(x1 - x0), math.abs(y1 - y0))
+        if steps == 0 then steps = 1 end
+        for step = 0, steps do
+            local t = step / steps
+            bb:paintRectRGB32(math.floor(x0 + t * (x1 - x0)),
+                math.floor(y0 + t * (y1 - y0)), thickness, thickness, color)
+        end
+    end
+    local lx0, ly0 = x + math.floor(width * 0.08), y + math.floor(height * 0.62)
+    local lx1, ly1 = x + math.floor(width * 0.30), y + math.floor(height * 0.82)
+    line(lx0, ly0, lx1, ly1)
+    line(lx1, ly1, x + math.floor(width * 0.82), y + math.floor(height * 0.18))
 end
 
 --- @param config table|nil  the plugin config table (p.config)

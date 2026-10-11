@@ -2,6 +2,7 @@ describe("night mode schedule", function()
     local plugin
     local ui_manager
     local screen
+    local device
     local ReaderUI
     local ReaderThemes
 
@@ -47,6 +48,9 @@ describe("night mode schedule", function()
                 self.hw_night_mode = enabled
             end,
         }
+        device = { screen = screen, canHWInvert = function() return true end }
+        screen.device = device
+        screen.toggleNightMode = require("ffi/framebuffer").toggleNightMode
         ReaderUI = { instance = nil }
         ReaderThemes = {
             isEnabled = function()
@@ -57,7 +61,7 @@ describe("night mode schedule", function()
             end,
         }
         ZenSpec.replace("ui/uimanager", ui_manager)
-        ZenSpec.replace("device", { screen = screen })
+        ZenSpec.replace("device", device)
         ZenSpec.replace("apps/reader/readerui", ReaderUI)
         ZenSpec.replace("common/reader_themes", ReaderThemes)
         ZenSpec.unload("modules/global/patches/night_mode_schedule")
@@ -93,6 +97,40 @@ describe("night mode schedule", function()
         assert.are.equal(1, ReaderThemes.applied)
         assert.are.equal(1, _G.brightness_mode_reapplies)
         assert.are.equal(1, _G.warmth_mode_reapplies)
+    end)
+
+    it("inverts the software framebuffer and preserves cover colors", function()
+        ZenSpec.unload("ffi/blitbuffer")
+        local Blitbuffer = require("ffi/blitbuffer")
+        device.canHWInvert = function() return false end
+        screen.bb = Blitbuffer.new(2, 2, Blitbuffer.TYPE_BBRGB32)
+        screen.bb:fill(Blitbuffer.COLOR_WHITE)
+
+        require("modules/global/patches/night_mode_schedule")()
+
+        assert.is_true(screen.night_mode)
+        assert.are.equal(1, screen.bb:getInverse())
+        screen.bb:fill(Blitbuffer.COLOR_WHITE)
+        assert.are.equal(0, tonumber(screen.bb.data[0].r))
+        _G.__ZEN_UI_NIGHT_SCHEDULE.force_reschedule()
+        assert.are.equal(1, screen.bb:getInverse())
+
+        local cover = Blitbuffer.new(1, 1, Blitbuffer.TYPE_BBRGB32)
+        cover:setPixel(0, 0, Blitbuffer.ColorRGB32(220, 40, 20, 255))
+        screen.bb:blitFrom(cover, 0, 0, 0, 0, 1, 1)
+        screen.bb:invertRect(0, 0, 1, 1)
+        assert.are.same({ 220, 40, 20 }, {
+            tonumber(screen.bb.data[0].r), tonumber(screen.bb.data[0].g),
+            tonumber(screen.bb.data[0].b),
+        })
+
+        plugin.config.night_mode_schedule.night_off_h = plugin.config.night_mode_schedule.night_on_h
+        plugin.config.night_mode_schedule.night_off_m = plugin.config.night_mode_schedule.night_on_m
+        _G.__ZEN_UI_NIGHT_SCHEDULE.reschedule()
+        assert.is_false(screen.night_mode)
+        assert.are.equal(0, screen.bb:getInverse())
+        cover:free()
+        screen.bb:free()
     end)
 
     it("restores hardware inversion on wake without restyling an unchanged reader", function()

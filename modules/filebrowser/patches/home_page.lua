@@ -256,9 +256,12 @@ local function new_home_dataset()
     }
 end
 
-local function get_home_dataset()
-    if not _home_dataset_cache or os.time() >= _home_dataset_cache.expires_at then
+local function get_home_dataset(cfg)
+    local file_updates_as_new = cfg.group_view and cfg.group_view.file_updates_as_new == true or false
+    if not _home_dataset_cache or os.time() >= _home_dataset_cache.expires_at
+            or _home_dataset_cache.file_updates_as_new ~= file_updates_as_new then
         _home_dataset_cache = new_home_dataset()
+        _home_dataset_cache.file_updates_as_new = file_updates_as_new
     end
     return _home_dataset_cache
 end
@@ -317,10 +320,11 @@ local function clone_cached_book(book, include_internal, include_cover)
         local ok, cover_bb = pcall(book.cover_bb.copy, book.cover_bb)
         if ok then out.cover_bb = cover_bb end
     end
+    if include_cover == false and book.has_real_cover then out.is_cover_pending = true end
     return out
 end
 
-local function get_home_book_cache_key(path)
+local function get_home_book_cache_key(path, cfg)
     local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
     local file_mtime = ok_lfs and lfs.attributes(path, "modification") or 0
     local sidecar_mtime = 0
@@ -335,6 +339,7 @@ local function get_home_book_cache_key(path)
         path,
         tostring(file_mtime or 0),
         tostring(sidecar_mtime or 0),
+        tostring(cfg.group_view and cfg.group_view.file_updates_as_new == true or false),
     }, "|")
 end
 
@@ -444,6 +449,19 @@ local _cover_upgrade_consumers = {}
 -- through a batch was terminating the whole batch and orphaning the rest.
 local _inflight_cover_upgrade_paths = {}
 
+local function active_cover_menu()
+    local stack = UIManager._window_stack or {}
+    for index = #stack, 1, -1 do
+        local widget = stack[index] and stack[index].widget
+        if widget and not widget.toast then
+            if widget == _home_menu or widget.name == "zen_end_book" and not widget.closed then
+                return widget
+            end
+            return
+        end
+    end
+end
+
 -- Takes everything queued in _pending_cover_upgrade_paths and launches a
 -- single extractInBackground() batch at each path's requested cover size, then
 -- polls until each path's extraction completes (or the subprocess dies),
@@ -467,10 +485,11 @@ local function flush_cover_upgrade_queue()
     end
 
     -- CoverBrowser owns a single extraction subprocess. Do not let a delayed
-    -- home-screen upgrade cancel the file browser's in-flight page batch after
+    -- cover upgrade cancel the file browser's in-flight page batch after
     -- the user has navigated away; those unresolved rows otherwise keep their
     -- loading placeholder until a manual page change creates a new batch.
-    if not M.isActiveOnTop() then
+    local cover_menu = active_cover_menu()
+    if not cover_menu then
         for _i, path in ipairs(paths) do
             invalidate_home_book_cache(path)
             _cover_upgrade_consumers[path] = nil
@@ -525,9 +544,10 @@ local function flush_cover_upgrade_queue()
                 _cover_upgrade_consumers[path] = nil
                 if consumers and consumers.full then needs_full_rebuild = true end
                 if consumers and consumers.strip then
-                    if M.isActiveOnTop()
-                            and _home_menu and _home_menu._zen_home_notify_strip_cover then
-                        _home_menu:_zen_home_notify_strip_cover(path)
+                    local menu = active_cover_menu()
+                    if cover_menu.name == "zen_end_book" and not cover_menu.closed then menu = cover_menu end
+                    if menu and menu._zen_home_notify_strip_cover then
+                        menu:_zen_home_notify_strip_cover(path)
                     else
                         mark_home_rebuild_needed(false, false)
                     end
@@ -941,13 +961,18 @@ end
 
 local function build_data_provider(cfg, dcfg, strip_page_state)
     local provider = {}
-    local dataset = get_home_dataset()
+    local dataset = get_home_dataset(cfg)
+    local function is_tmpfs_chapter(path)
+        local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
+        return type(Rakuyomi.isTmpfsChapterFile) == "function" and Rakuyomi.isTmpfsChapterFile(path)
+    end
     local rakuyomi_cfg = type(cfg) == "table" and cfg.rakuyomi or nil
     local exclude_rakuyomi = type(rakuyomi_cfg) == "table"
         and rakuyomi_cfg.exclude_from_home == true
     if dataset.exclude_rakuyomi ~= exclude_rakuyomi then
         dataset.exclude_rakuyomi = exclude_rakuyomi
         dataset.history = nil
+        dataset.rakuyomi_recent = nil
         clear_home_dataset_derived(dataset)
     end
     local cover_badges = type(cfg) == "table" and type(cfg.browser_cover_badges) == "table"
@@ -1054,38 +1079,56 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         end
 
         local hist = ReadHistory.hist or {}
+        local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
+        local recent = not exclude_rakuyomi and type(Rakuyomi.getRecentSeries) == "function"
+            and Rakuyomi.getRecentSeries(hist) or {}
+        dataset.rakuyomi_recent = {}
+        for _i, series in ipairs(recent) do dataset.rakuyomi_recent[series.file] = series end
+        local recent_index = 1
         local lfs = require("libs/libkoreader-lfs")
         local ok_kindle, Kindle = pcall(
             require, "modules/filebrowser/patches/kindle_virtual_library")
         local function is_rakuyomi_history_path(path)
             if path:lower():sub(-4) ~= ".cbz" then return false end
-            local Rakuyomi = rawget(_G, "__ZEN_UI_RAKUYOMI")
-            if not (type(Rakuyomi) == "table"
-                    and type(Rakuyomi.isChapterFile) == "function") then
+            local integration = rawget(_G, "__ZEN_UI_RAKUYOMI")
+            if not (type(integration) == "table"
+                    and type(integration.isChapterFile) == "function") then
                 return false
             end
-            local ok_chapter, is_chapter = pcall(Rakuyomi.isChapterFile, path)
+            local ok_chapter, is_chapter = pcall(integration.isChapterFile, path)
             return ok_chapter and is_chapter == true
         end
 
         for _i, entry in ipairs(hist) do
             local raw_path = entry and entry.file
             local path = type(raw_path) == "string" and LibraryPaths.normPath(raw_path) or nil
+            while recent[recent_index] and (entry.time or 0) <= recent[recent_index].time do
+                table.insert(dataset.history, recent[recent_index].file)
+                recent_index = recent_index + 1
+                if #dataset.history >= HOME_STRIP_MAX_BOOKS then break end
+            end
+            if #dataset.history >= HOME_STRIP_MAX_BOOKS then break end
             local in_library = path ~= nil and LibraryPaths.isInHomeDir(path)
             local is_kindle = path ~= nil and not in_library and ok_kindle
                 and type(Kindle.isBookPath) == "function"
                 and Kindle.isBookPath(path)
             local is_rakuyomi = path ~= nil and not is_kindle
-                and (exclude_rakuyomi or not in_library)
+                and (#recent > 0 or exclude_rakuyomi or not in_library)
                 and is_rakuyomi_history_path(path)
             if path ~= nil
                 and path ~= ""
+                and not is_tmpfs_chapter(path)
                 and (is_kindle or lfs.attributes(path, "mode") == "file")
                 and (is_kindle or in_library or is_rakuyomi)
-                and not (exclude_rakuyomi and is_rakuyomi) then
+                and not dataset.rakuyomi_recent[path]
+                and not ((#recent > 0 or exclude_rakuyomi) and is_rakuyomi) then
                 table.insert(dataset.history, path)
                 if #dataset.history >= HOME_STRIP_MAX_BOOKS then break end
             end
+        end
+        while recent[recent_index] and #dataset.history < HOME_STRIP_MAX_BOOKS do
+            table.insert(dataset.history, recent[recent_index].file)
+            recent_index = recent_index + 1
         end
 
         return dataset.history
@@ -1166,9 +1209,13 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
     end
 
     local function get_book(path, need_time_left, metadata_only)
-        if not path then return nil end
+        if dataset.rakuyomi_recent and dataset.rakuyomi_recent[path] then
+            return require("modules/filebrowser/patches/rakuyomi")
+                .getRecentBook(dataset.rakuyomi_recent[path], metadata_only)
+        end
+        if not path or is_tmpfs_chapter(path) then return nil end
         local started_at = os.clock()
-        local cache_key = get_home_book_cache_key(path)
+        local cache_key = get_home_book_cache_key(path, cfg)
         local cached = _home_book_cache[cache_key]
         if cached and (metadata_only or cached._zen_cover_loaded ~= false) then
             book_cache_hits = book_cache_hits + 1
@@ -1221,8 +1268,8 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
             end
             has_real_cover = not not (bi and bi.cover_fetched and bi.has_cover
                 and not bi.ignore_cover)
-            cover_pending = has_real_cover
-                or not not (bi and not bi.cover_fetched and not bi.ignore_cover)
+            cover_pending = not bi or has_real_cover
+                or not not (not bi.cover_fetched and not bi.ignore_cover)
             cover_loaded = not metadata_only
             if metadata_only and bi and bi.cover_bb then
                 bi.cover_bb:free()
@@ -1396,6 +1443,10 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         return book
     end
 
+    function provider:getBook(path, metadata_only)
+        return get_book(path, false, metadata_only)
+    end
+
     local function get_tbr_index()
         if tbr_index_checked then return tbr_index end
         tbr_index_checked = true
@@ -1450,6 +1501,7 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
     end
 
     local function get_effective_status(path)
+        if dataset.rakuyomi_recent and dataset.rakuyomi_recent[path] then return "reading" end
         local cached = dataset.effective_status[path]
         if cached then return cached end
         local loaded_status = type(book_status.getFileStatusData) == "function"
@@ -1486,6 +1538,10 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
 
     local function get_paths_by_status(status_key, limit)
         return get_paths_by_statuses({ [status_key] = true }, limit)
+    end
+
+    function provider:getContinuePaths()
+        return get_paths_by_status("reading", HOME_STRIP_MAX_BOOKS)
     end
 
     local function append_unique_paths(dst, src, limit, include_path)
@@ -1929,8 +1985,9 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         local group_view = type(cfg.group_view) == "table" and cfg.group_view or {}
         if kind == "authors" and #groups > 1 then
             local collate = author_sort.normalize(group_view.authors_collate)
+            local compare = author_sort.comparator(collate)
             table.sort(groups, function(a, b)
-                return author_sort.less(a.label, b.label, collate)
+                return compare(a.label, b.label)
             end)
             local reverse = type(group_view.group_reverse) == "table"
                 and group_view.group_reverse.authors == true
@@ -1940,8 +1997,9 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
             local collate = type(group_view.group_collate) == "table"
                 and group_view.group_collate[kind] or "title"
             local natural = collate == "title_natural"
+            local compare = title_sort.comparator(natural)
             table.sort(groups, function(a, b)
-                return title_sort.less(a.label, b.label, natural)
+                return compare(a.label, b.label)
             end)
             local reverse = type(group_view.group_reverse) == "table"
                 and group_view.group_reverse[kind] == true
@@ -2019,6 +2077,7 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
     end
 
     local function descriptor_paths(request)
+        if request.kind == "continue" then return provider:getContinuePaths() end
         if request.kind == "kindle" then
             if not dataset.kindle_paths then
                 dataset.kindle_paths = require(
@@ -2116,10 +2175,10 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
             end
             return items, adjacent
         end
-        if kind == "kindle" or kind == "favorites" or kind == "tag" or kind == "status"
+        if kind == "continue" or kind == "kindle" or kind == "favorites" or kind == "tag" or kind == "status"
                 or kind == "custom" then
             local paths = descriptor_paths(request)
-            if normalize_order(order_key) == "reverse" then paths = reverse_copy(paths) end
+            if kind ~= "continue" and normalize_order(order_key) == "reverse" then paths = reverse_copy(paths) end
             if kind == "tag" then paths = group_tag_paths(paths) end
             local page, adjacent = paginate(
                 paths, request, count, order_key, component_id, page_delta)
@@ -2254,9 +2313,8 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         local metadata = type(DecodeCache.getFreshMetadata) == "function"
             and DecodeCache:getFreshMetadata(path, now(), 30) or nil
         metadata = metadata or BookInfoManager:getBookInfo(path, false)
-        if not metadata then return "failed" end
         local specs = { max_cover_w = width, max_cover_h = height }
-        if not metadata.cover_fetched then
+        if not metadata or not metadata.cover_fetched then
             queue_cover_upgrade(path, "strip", specs)
             return "pending"
         end
@@ -2516,6 +2574,8 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
     return provider
 end
 
+M.newDataProvider = build_data_provider
+
 local function compute_row_heights(rows, body_h, row_gap, capacity, width, modules, config, data)
     local specs = {}
     local row_count = #rows
@@ -2579,6 +2639,8 @@ local function compute_row_heights(rows, body_h, row_gap, capacity, width, modul
     end
     return specs
 end
+
+M.computeRowHeights = compute_row_heights
 
 local function paint_focus_rect(bb, x, y, w, h, color)
     if not (bb and x and y and w and h and w > 2 and h > 2) then return end
@@ -3063,6 +3125,8 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
     local function open_book(path)
         if not path then return end
         _G.__ZEN_UI_LIBRARY_SOURCE_TAB = "home"
+        local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
+        if type(Rakuyomi.resumeRecentSeries) == "function" and Rakuyomi.resumeRecentSeries(path) then return end
         local fm = FileManager.instance
         if filemanagerutil.openFile then
             filemanagerutil.openFile(fm, path)
@@ -3080,6 +3144,8 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
         local fm = FileManager.instance
         local fc = fm and fm.file_chooser
         if not (fc and type(fc.showFileDialog) == "function") then return false end
+        local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
+        local is_rakuyomi = type(Rakuyomi.loadRecentDetails) == "function" and Rakuyomi.loadRecentDetails(path)
         local explicit_collection
         local ok_index, index = pcall(require, "common/tbr_index")
         if source ~= "to_be_read" or not ok_index then index = nil end
@@ -3091,7 +3157,9 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
             is_file = true,
             _zen_home_context = true,
             _zen_disable_select = true,
-            _zen_is_history = source == "recently_read",
+            _zen_rakuyomi_book = is_rakuyomi,
+            _zen_hide_edit = is_rakuyomi,
+            _zen_is_history = source == "recently_read" and not is_rakuyomi,
             _zen_collection_name = explicit_collection,
             _zen_widget_settings = dcfg.edit_mode == true and function()
                 return require("modules/settings/sections/library_settings/home_settings")
@@ -3419,6 +3487,8 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
         set_home_focus(menu, restore_i)
     end
 
+    -- Row backgrounds would erase neighboring content shifted across row boundaries.
+    Background.clearWhiteBackgrounds(children)
     return HorizontalGroup:new{
         HorizontalSpan:new{ width = side_pad },
         FrameContainer:new{
@@ -3988,6 +4058,7 @@ end
 function M.invalidateBookCache(path, history_changed)
     invalidate_home_book_cache(path)
     invalidate_home_dataset_path(path, history_changed == true)
+    mark_home_rebuild_needed()
     pcall(function()
         require("common/tbr_index").refreshPath(path)
     end)

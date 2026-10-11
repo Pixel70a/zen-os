@@ -18,6 +18,8 @@ describe("quick settings plugin controls", function()
     local settings_shows
     local save_calls
     local slider_options
+    local library_open
+    local default_tab_icon
 
     local module_names = {
         "ffi/blitbuffer",
@@ -45,7 +47,9 @@ describe("quick settings plugin controls", function()
         "common/restart",
         "common/shared_state",
         "common/settings_transition",
+        "common/library_navigation",
         "common/ui/button_label_width",
+        "common/ui/button_feedback",
         "common/ui/zen_button",
         "modules/menu/bluetooth/bluetooth",
         "modules/menu/patches/brightness_slider",
@@ -72,11 +76,17 @@ describe("quick settings plugin controls", function()
         "apps/filemanager/filemanager",
         "apps/reader/readerui",
         "pluginloader",
+        "utils/flight_utilities",
     }
 
     local function apply_launcher(plugin)
         ZenSpec.replace("ui/widget/container/inputcontainer", {
-            extend = function(_self, definition) return definition end,
+            extend = function(_self, definition)
+                definition.new = function(class, values)
+                    return setmetatable(require("ui/widget/container/centercontainer"):new(values), { __index = class })
+                end
+                return definition
+            end,
         })
         for _i, name in ipairs({
             "ui/gesturerange", "common/ui/zen_button",
@@ -109,6 +119,8 @@ describe("quick settings plugin controls", function()
         settings_shows = 0
         save_calls = 0
         slider_options = nil
+        library_open = nil
+        default_tab_icon = "library"
 
         local no_op = {}
         local function widget_class()
@@ -178,12 +190,14 @@ describe("quick settings plugin controls", function()
             broadcastEvent = function() end,
             nextTick = function(_self, callback) callback() end,
         })
+        ZenSpec.replace("common/ui/button_feedback", { flash = function() end })
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
             getFace = function() return {} end,
         })
         ZenSpec.replace("ui/widget/verticalgroup", Widget)
         ZenSpec.replace("ui/widget/verticalspan", Widget)
         ZenSpec.replace("common/utils", {
+            controlReplacesMenuTab = assert(loadfile(ZenSpec.root .. "/common/utils.lua"))().controlReplacesMenuTab,
             deepcopy = function(value)
                 if type(value) ~= "table" then return value end
                 local copy = {}
@@ -203,6 +217,13 @@ describe("quick settings plugin controls", function()
         ZenSpec.replace("common/restart", no_op)
         ZenSpec.replace("common/shared_state", { get = function() end })
         ZenSpec.replace("common/settings_transition", { close = function() end })
+        ZenSpec.replace("common/library_navigation", {
+            defaultTabIcon = function() return default_tab_icon end,
+            openDefault = function(ui, plugin, close_menu)
+                library_open = { ui = ui, plugin = plugin }
+                close_menu()
+            end,
+        })
         ZenSpec.replace("common/ui/button_label_width", {
             equalCellWidth = function(width, count) return width / count end,
             maxWidth = function(width) return width end,
@@ -303,6 +324,7 @@ describe("quick settings plugin controls", function()
         ZenSpec.replace("pluginloader", {
             loaded_plugins = { tailscale = tailscale, zenfm = zenfm },
         })
+        ZenSpec.replace("utils/flight_utilities", nil)
 
         _G.__ZEN_UI_PLUGIN = {
             config = {
@@ -442,6 +464,114 @@ describe("quick settings plugin controls", function()
         assert.are.same({ "tailscale" }, rendered_ids())
     end)
 
+    it("hides reader controls only in the library without changing their saved order", function()
+        local config = _G.__ZEN_UI_PLUGIN.config.quick_settings
+        local settingsList = {
+            reader_action = { reader = true },
+            rolling_action = { rolling = true },
+            paging_action = { paging = true },
+        }
+        require("dispatcher").registerAction = function(key) return settingsList[key] end
+        require("common/dispatch_action").isActionActive = function() return false end
+        ZenSpec.unload("modules/menu/app_launcher/action_filter")
+        ZenSpec.unload("modules/menu/patches/quick_settings")
+        require("modules/menu/patches/quick_settings")()
+        config.custom_buttons = {
+            { id = "cb_1", type = "action", label = "Reader", action = { reader_action = true } },
+            { id = "cb_2", type = "action", label = "Rolling", action = { rolling_action = true } },
+            { id = "cb_3", type = "action", label = "Paging", action = { paging_action = true } },
+            { id = "cb_4", type = "folder", label = "Folder", reader_action = true },
+            { id = "cb_5", type = "action", label = "Override",
+                action = { reader_action = true }, reader_action = false },
+        }
+        config.button_order = { "tailscale", "cb_1", "cb_2", "cb_3", "cb_4", "cb_5" }
+        local order = { unpack(config.button_order) }
+        for _i, id in ipairs(order) do config.show_buttons[id] = true end
+        config.reader_actions = { tailscale = true }
+        local menu, reader_menu = {}, { tab_item_table = {} }
+        FileManagerMenu.setUpdateItemTable(menu)
+        require("apps/reader/modules/readermenu").setUpdateItemTable(reader_menu)
+        local library_host, reader_host = {}, {}
+        require("apps/filemanager/filemanager").instance = { menu = menu }
+        require("apps/reader/readerui").instance = { document = {} }
+        local function rendered_ids(host)
+            local tab = (host == library_host and menu or reader_menu).tab_item_table[1]
+            local touch_menu = { item_width = 600, show_parent = host, item_table = tab }
+            tab.panel(touch_menu)
+            local ids = {}
+            for _i, ref in ipairs(touch_menu._zen_panel_refs.buttons) do ids[#ids + 1] = ref.id end
+            return ids
+        end
+
+        assert.are.same(order, rendered_ids(library_host))
+        config.hide_reader_actions_in_library = true
+        assert.are.same({ "cb_5" }, rendered_ids(library_host))
+        assert.are.same(order, rendered_ids(reader_host))
+        menu.menu_container = library_host
+        assert.are.same({ "cb_5" }, rendered_ids(library_host))
+        assert.are.same(order, config.button_order)
+        for _i, id in ipairs(order) do assert.is_true(config.show_buttons[id]) end
+        config.custom_buttons[5].reader_action = true
+        assert.are.same({}, rendered_ids(library_host))
+        assert.are.same(order, rendered_ids(reader_host))
+        config.custom_buttons[5].reader_action = false
+        config.custom_buttons[1].reader_action = false
+        assert.are.same({ "cb_1", "cb_5" }, rendered_ids(library_host))
+        config.hide_reader_actions_in_library = false
+        assert.are.same(order, rendered_ids(library_host))
+    end)
+
+    it("flashes the tapped Controls circle before running its action", function()
+        local menu, touch_menu = {}, { item_width = 600 }
+        FileManagerMenu.setUpdateItemTable(menu)
+        menu.tab_item_table[1].panel(touch_menu)
+        local button = touch_menu._zen_panel_refs.buttons[1]
+        button.widget.dimen = { x = 20, y = 30, w = 64, h = 64 }
+        require("common/ui/button_feedback").flash = function(region, radius)
+            assert.are.equal(button.widget.dimen, region)
+            assert.are.equal(32, radius)
+            actions[#actions + 1] = "flash"
+        end
+        button.callback()
+        assert.are.same({ "flash", "tailscale_on" }, actions)
+    end)
+
+    it("flashes the Launcher circle for both cell and panel activation", function()
+        local plugin = _G.__ZEN_UI_PLUGIN
+        plugin.config.features.app_launcher = true
+        apply_launcher(plugin)
+        require("device").screen.getHeight = function() return 800 end
+        local TextWidget = require("ui/widget/textwidget")
+        local original_new = TextWidget.new
+        TextWidget.new = function(self, values)
+            local widget = original_new(self, values)
+            widget.free = function() end
+            return widget
+        end
+        local cfg = { entries = {{ id = "folder", type = "folder", label = "Tools" }} }
+        local Model = require("modules/menu/app_launcher/model")
+        Model.ensure = function() return cfg end
+        Model.enabled_entries = function(entries) return entries end
+        Model.display_label = function(entry) return entry.label end
+        local menu, touch_menu = {}, {
+            item_width = 600,
+            updateItems = function() actions[#actions + 1] = "open" end,
+        }
+        FileManagerMenu.setUpdateItemTable(menu)
+        menu.tab_item_table[2].panel(touch_menu)
+        local button = touch_menu._zen_panel_refs.buttons[1]
+        local circle = button.widget.frame[1][1][2]
+        circle.dimen = { x = 20, y = 30, w = 64, h = 64 }
+        require("common/ui/button_feedback").flash = function(region, radius)
+            assert.are.equal(circle.dimen, region)
+            assert.are.equal(32, radius)
+            actions[#actions + 1] = "flash"
+        end
+        assert.is_true(button.widget:onTapSelect())
+        button.callback()
+        assert.are.same({ "flash", "open", "flash", "open" }, actions)
+    end)
+
     it("shows both unified controls while preserving separate visibility choices", function()
         local device = require("device")
         device.hasFrontlight = function() return true end
@@ -472,6 +602,7 @@ describe("quick settings plugin controls", function()
         local Blitbuffer = require("ffi/blitbuffer")
         Blitbuffer.COLOR_GRAY, Blitbuffer.COLOR_BLACK = "gray", "black"
         NetworkMgr.isWifiChanging = function() return true end
+        NetworkMgr.getCurrentNetwork = function() error("Controls must not query the changing radio") end
         local config = _G.__ZEN_UI_PLUGIN.config.quick_settings
         config.button_order = { "wifi" }
         config.show_buttons.wifi = true
@@ -481,6 +612,7 @@ describe("quick settings plugin controls", function()
         assert.are.equal("gray", touch_menu._zen_panel_refs.buttons[1].widget.background)
 
         NetworkMgr.isWifiChanging = function() return false end
+        NetworkMgr.lease_ssid = "Home"
         menu.tab_item_table[1].panel(touch_menu)
         assert.are.equal("black", touch_menu._zen_panel_refs.buttons[1].widget.background)
 
@@ -565,6 +697,8 @@ describe("quick settings plugin controls", function()
 
         _G.__ZEN_UI_PLUGIN.config._meta.installed_plugins.airplanemode = true
         local closes = 0
+        local toggle
+        require("ui/uimanager").nextTick = function(_self, callback) toggle = callback end
         assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.activate("airplanemode", {
             closeMenu = function() closes = closes + 1 end,
             updateItems = function() end,
@@ -572,7 +706,43 @@ describe("quick settings plugin controls", function()
         }))
 
         assert.are.equal(1, closes)
+        assert.are.same({}, dispatched_actions)
+        toggle()
         assert.are.same({ { airplanemode_toggle = true } }, dispatched_actions)
+    end)
+
+    it("reads the current Airplane mode state on every refresh", function()
+        local flight = {
+            active = true,
+            getFlightStatus = function(self) return self.active end,
+        }
+        ZenSpec.replace("utils/flight_utilities", flight)
+
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.isActive("airplanemode"))
+        flight.active = false
+        assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.isActive("airplanemode"))
+        flight.active = true
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.isActive("airplanemode"))
+    end)
+
+    it("reads the legacy Airplane mode state from the reader plugin", function()
+        local airplane = {
+            active = true,
+            getStatus = function(self) return self.active end,
+        }
+        require("apps/reader/readerui").instance = { airplanemode = airplane }
+
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.isActive("airplanemode"))
+        airplane.active = false
+        assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.isActive("airplanemode"))
+    end)
+
+    it("handles unavailable or failing Airplane mode status APIs", function()
+        assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.isActive("airplanemode"))
+        ZenSpec.replace("utils/flight_utilities", {
+            getFlightStatus = function() error("settings unavailable") end,
+        })
+        assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.isActive("airplanemode"))
     end)
 
     it("closes Controls and opens Zen Settings in the same UI tick", function()
@@ -601,6 +771,54 @@ describe("quick settings plugin controls", function()
         assert.are.equal(1, settings_shows)
         assert.are.equal(2, #callbacks)
         callbacks[2]()
+    end)
+
+    it("opens Home from the active reader and refreshes its default navbar icon", function()
+        local reader = { document = {} }
+        require("apps/reader/readerui").instance = reader
+        require("apps/filemanager/filemanager").instance = {}
+        default_tab_icon = "tab_series"
+        local home
+        for _i, item in ipairs(_G.__ZEN_UI_QUICK_SETTINGS.getItems()) do
+            if item.id == "library_home" then home = item end
+        end
+        assert.are.equal("Home", home.label)
+        assert.are.equal("/tmp/zen-ui/icons/tab_series.svg", home.icon)
+        local closes = 0
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.activate("library_home", {
+            closeMenu = function() closes = closes + 1 end,
+        }))
+        assert.are.equal(reader, library_open.ui)
+        assert.are.equal(_G.__ZEN_UI_PLUGIN, library_open.plugin)
+        assert.are.equal(1, closes)
+        default_tab_icon = "/tmp/zen-ui/icons/archive.svg"
+        for _i, item in ipairs(_G.__ZEN_UI_QUICK_SETTINGS.getItems()) do
+            if item.id == "library_home" then
+                assert.are.equal(default_tab_icon, item.icon)
+            end
+        end
+    end)
+
+    it("renders the default Home tab's selected-pack icon in Controls", function()
+        local utils = require("common/utils")
+        local resolve = utils.resolveIcon
+        local home_icon = "/koreader/icons/zen/solar/home.svg"
+        utils.resolveIcon = function(icons_dir, name)
+            if name == "home" then return home_icon end
+            if name == "quick_home" then error("Home must use the default navbar icon") end
+            return resolve(icons_dir, name)
+        end
+        default_tab_icon = "home"
+        local config = _G.__ZEN_UI_PLUGIN.config.quick_settings
+        config.button_order = { "library_home" }
+        config.show_buttons = { library_home = true }
+        local menu = {}
+        FileManagerMenu.setUpdateItemTable(menu)
+        local touch_menu = { item_width = 600 }
+        menu.tab_item_table[1].panel(touch_menu)
+        local home = touch_menu._zen_panel_refs.buttons[1]
+        assert.are.equal("library_home", home.id)
+        assert.are.equal(home_icon, home.widget[1][1].file)
     end)
 
     it("keeps the Zen Settings control inert when Lockdown disables settings", function()
@@ -673,8 +891,11 @@ describe("quick settings plugin controls", function()
         local plugin = _G.__ZEN_UI_PLUGIN
         plugin.ui = { file_chooser = {} }
         _G.__ZEN_UI_PLUGIN = nil
-        apply_launcher(plugin)
         local ReaderMenu = require("apps/reader/modules/readermenu")
+        for _i, Menu in ipairs({ FileManagerMenu, ReaderMenu }) do
+            Menu.onShowMenu = function(self) return self.tab_item_table end
+        end
+        apply_launcher(plugin)
         local ReaderUI = require("apps/reader/readerui")
         local PagePlan = require("modules/menu/app_launcher/page_plan")
         local cfg = {
@@ -690,6 +911,7 @@ describe("quick settings plugin controls", function()
         }) do
             ReaderUI.instance = case[2] or nil
             plugin.config.features.app_launcher = true
+            plugin.config.quick_settings.show_buttons.launcher = false
             local menu = setmetatable({ tab_item_table = {} }, { __index = case[1] })
             menu:setUpdateItemTable()
             local launcher
@@ -712,6 +934,110 @@ describe("quick settings plugin controls", function()
             assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.activate("launcher", controls))
             assert.are.same(case[3], PagePlan.build(1, cfg,
                 controls.item_table._zen_app_launcher_library))
+
+            plugin.config.features.app_launcher = true
+            plugin.config.quick_settings.show_buttons.launcher = true
+            menu:setUpdateItemTable()
+            for _j, tab in ipairs(menu:onShowMenu()) do
+                assert.are_not.equal("app_launcher", tab.id)
+            end
+            controls.item_table = { id = "quicksettings" }
+            controls.tab_item_table = menu.tab_item_table
+            assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.activate("launcher", controls))
+            assert.are.equal("app_launcher", controls.item_table.id)
+            assert.are.same(case[3], PagePlan.build(1, cfg,
+                controls.item_table._zen_app_launcher_library))
+        end
+    end)
+
+    it("places the shared status row like Controls and reserves space on every Launcher page", function()
+        local plugin = _G.__ZEN_UI_PLUGIN
+        plugin.config.features.app_launcher = true
+        apply_launcher(plugin)
+        local Widget = require("ui/widget/container/centercontainer")
+        local TextWidget = require("ui/widget/textwidget")
+        local original_new = TextWidget.new
+        TextWidget.new = function(self, values)
+            local widget = original_new(self, values)
+            widget.free = function() end
+            return widget
+        end
+        require("device").screen.getHeight = function() return 600 end
+        local cfg = {
+            entries = {},
+            show_book_details = true,
+            show_book_switcher = true,
+            page_order = { "buttons", "book_details", "book_switcher" },
+        }
+        for index = 1, 18 do
+            cfg.entries[index] = { type = "folder", label = "Folder", children = {} }
+        end
+        local Model = require("modules/menu/app_launcher/model")
+        Model.ensure = function() return cfg end
+        Model.enabled_entries = function(entries) return entries end
+        Model.display_label = function(entry) return entry.label end
+        Model.find_by_id = function() return nil, nil, cfg.entries[1] end
+        local content_height
+        for _i, name in ipairs({ "book_details_page", "book_switcher_page" }) do
+            require("modules/menu/app_launcher/" .. name).build = function(opts)
+                content_height = opts.height
+                return Widget:new{ width = opts.width, height = opts.height },
+                    { buttons = {}, layout_rows = {} }
+            end
+        end
+        local status_row = Widget:new{ width = 600, height = 32 }
+        local status_enabled = true
+        require("common/shared_state").get = function(owner, key)
+            assert.are.equal(plugin, owner)
+            if key == "buildStatusRow" then
+                return function(width, opts)
+                    assert.are.equal(600, width)
+                    assert.are.same({ padding = 6, font_name = "x_smallinfofont" }, opts)
+                    return status_enabled and status_row or nil
+                end
+            end
+        end
+        local menu = {}
+        FileManagerMenu.setUpdateItemTable(menu)
+        local controls = menu.tab_item_table[1].panel({ item_width = 600 })
+        assert.are.equal(8, controls[1].width)
+        assert.are.equal(status_row, controls[2])
+        local launcher = _G.__ZEN_UI_BUILD_APP_LAUNCHER_PREVIEW
+        for _i, enabled in ipairs({ true, false }) do
+            status_enabled = enabled
+            local button_pages = enabled and 2 or 1
+            for page = 1, button_pages + 2 do
+                local touch_menu = {
+                    item_width = 600, height = 504, screen_size = { h = 600 },
+                    bar = Widget:new{ height = 40 },
+                    footer = Widget:new{ height = 40 },
+                    footer_top_margin = Widget:new{ height = 8 },
+                    _app_launcher_page = page,
+                }
+                local panel = menu.tab_item_table[2].panel(touch_menu)
+                assert.are.equal(button_pages + 2, touch_menu._zen_panel_refs.page_num)
+                if enabled then
+                    assert.are.equal(controls[1].width, panel[1].width)
+                    assert.are.equal(status_row, panel[2])
+                end
+                if page > button_pages then
+                    assert.are.equal(enabled and 376 or 416, content_height)
+                end
+            end
+            cfg.entries = {}
+            cfg.show_book_details, cfg.show_book_switcher = false, false
+            local empty = launcher(600)
+            assert.are.equal(enabled and status_row or "Launcher",
+                enabled and empty[2] or empty[2].text)
+            cfg.entries = {{ type = "folder", label = "Folder", children = {} }}
+            local folder_menu = { item_width = 600, _app_launcher_folder_id = "folder" }
+            local folder = menu.tab_item_table[2].panel(folder_menu)
+            assert.are.equal(1, folder_menu._zen_panel_refs.page_num)
+            if enabled then assert.are.equal(status_row, folder[2]) end
+            for index = 2, 18 do
+                cfg.entries[index] = { type = "folder", label = "Folder", children = {} }
+            end
+            cfg.show_book_details, cfg.show_book_switcher = true, true
         end
     end)
 

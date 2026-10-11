@@ -33,6 +33,7 @@ describe("reader themes", function()
             hasColorScreen = function() return false end,
             screen = {
                 night_mode = false,
+                refreshPartialImp = function() end,
                 toggleNightMode = function(self) self.night_mode = not self.night_mode end,
             },
         })
@@ -198,8 +199,10 @@ describe("reader themes", function()
 
         plugin.config.features.reader_themes = false
         G_reader_settings:saveSetting("cre_background_color", "#ffffff")
+        G_reader_settings:saveSetting("avoid_flashing_ui", true)
         assert.is_true(Themes.applyCurrent(plugin))
         assert.are.equal("#ffffff", backgrounds[2])
+        assert.are.equal("ui", dirty_calls[2][3])
     end)
 
     it("makes the footer container transparent while colors are enabled", function()
@@ -257,7 +260,7 @@ describe("reader themes", function()
         assert.matches("#17233a", older_themes.appendCss(plugin, "base", document), 1, true)
     end)
 
-    it("uses the normal full waveform only when opening a themed book in dark mode", function()
+    it("honors UI flash avoidance when opening themed books in either mode", function()
         local Screen = require("device").screen
         Screen.waveform_full = 2
         Screen.waveform_flashnight = 8
@@ -284,18 +287,23 @@ describe("reader themes", function()
         local UIManager = require("ui/uimanager")
         UIManager.forceRePaint = function()
             assert.is_not_nil(ReaderUI.instance.document)
-            assert.are.equal("full", dirty_calls[#dirty_calls][3])
+            assert.are.equal(G_reader_settings:isTrue("avoid_flashing_ui") and "ui" or "full",
+                dirty_calls[#dirty_calls][3])
             waveform = Screen.waveform_flashnight
         end
 
-        for _i, dark_mode in ipairs({ false, true }) do
-            Screen.night_mode = dark_mode
-            G_reader_settings:saveSetting("night_mode", dark_mode)
-            assert.are.equal("opened", ReaderUI:doShowReader("themed.epub"))
-            assert.are.equal(dark_mode and 2 or 8, waveform)
-            assert.are.equal(8, Screen.waveform_flashnight)
-            assert.are.equal(dark_mode, Screen.night_mode)
+        for _i, avoid in ipairs({ false, true }) do
+            G_reader_settings:saveSetting("avoid_flashing_ui", avoid)
+            for _j, dark_mode in ipairs({ false, true }) do
+                Screen.night_mode = dark_mode
+                G_reader_settings:saveSetting("night_mode", dark_mode)
+                assert.are.equal("opened", ReaderUI:doShowReader("themed.epub"))
+                assert.are.equal(dark_mode and not avoid and 2 or 8, waveform)
+                assert.are.equal(8, Screen.waveform_flashnight)
+                assert.are.equal(dark_mode, Screen.night_mode)
+            end
         end
+        G_reader_settings:saveSetting("avoid_flashing_ui", false)
 
         waveform = nil
         plugin.config.features.reader_themes = false
@@ -315,6 +323,88 @@ describe("reader themes", function()
         UIManager.forceRePaint = function() error("paint failed", 0) end
         assert.has_error(function() ReaderUI:doShowReader("themed.epub") end, "paint failed")
         assert.are.equal(8, Screen.waveform_flashnight)
+    end)
+
+    it("uses the clearing waveform without flashing promotions for themed page refreshes", function()
+        local plugin = {
+            config = {
+                features = { reader_themes = true },
+                reader_themes = { dark_mode = "dark_graphite", light_mode = "light_tan" },
+            },
+        }
+        _G.__ZEN_UI_PLUGIN = plugin
+        ZenSpec.replace("document/credocument", {})
+        ZenSpec.replace("apps/reader/modules/readertypeset", {})
+        ZenSpec.replace("apps/reader/modules/readerfooter", {})
+        local ReaderUI = { instance = {} }
+        ZenSpec.replace("apps/reader/readerui", ReaderUI)
+        local Device = require("device")
+        local Screen = Device.screen
+        local refresh_calls = {}
+        local fail_refresh = false
+        Screen.waveform_partial, Screen.waveform_night, Screen.waveform_full = 3, 9, 2
+        Screen.night_is_reagl = true
+        Screen.refreshPartialImp = require("ffi/framebuffer_mxcfb").refreshPartialImp
+        Screen.debug = function() end
+        Screen.mech_refresh = function(self, flashing, waveform, x, y, w, h, dither)
+            refresh_calls[#refresh_calls + 1] = {
+                flashing = flashing, waveform = waveform, night_waveform = self.waveform_night,
+                night_is_reagl = self.night_is_reagl, region = { x, y, w, h }, dither = dither,
+            }
+            if fail_refresh then error("refresh failed", 0) end
+        end
+        ZenSpec.unload("modules/reader/patches/reader_themes")
+        require("modules/reader/patches/reader_themes")()
+
+        for _i, dark_mode in ipairs({ false, true }) do
+            Screen.night_mode = dark_mode
+            G_reader_settings:saveSetting("night_mode", dark_mode)
+            Screen:refreshPartialImp(10, 20, 100, 200, true)
+            assert.are.same({
+                flashing = false, waveform = 2, night_waveform = 2, night_is_reagl = false,
+                region = { 10, 20, 100, 200 }, dither = false,
+            }, refresh_calls[#refresh_calls])
+            assert.are.equal(3, Screen.waveform_partial)
+            assert.are.equal(9, Screen.waveform_night)
+            assert.is_true(Screen.night_is_reagl)
+        end
+
+        ReaderUI.instance = nil
+        Screen:refreshPartialImp(10, 20, 100, 200, true)
+        assert.are.equal(3, refresh_calls[#refresh_calls].waveform)
+        assert.is_true(refresh_calls[#refresh_calls].dither)
+        ReaderUI.instance = {}
+        plugin.config.features.reader_themes = false
+        Screen:refreshPartialImp(10, 20, 100, 200, true)
+        assert.are.equal(3, refresh_calls[#refresh_calls].waveform)
+        assert.is_true(refresh_calls[#refresh_calls].dither)
+
+        for _i, device_state in ipairs({
+            { kindle = true, color = true, night = true, waveform = 2 },
+            { kindle = true, color = true, night = false, waveform = 3 },
+            { kindle = false, color = true, night = true, waveform = 3 },
+            { kindle = true, color = false, night = true, waveform = 3 },
+        }) do
+            Device.isKindle = function() return device_state.kindle end
+            Device.hasColorScreen = function() return device_state.color end
+            Screen.night_mode = device_state.night
+            Screen:refreshPartialImp(10, 20, 100, 200, true)
+            assert.are.equal(device_state.waveform, refresh_calls[#refresh_calls].waveform)
+            assert.is_false(refresh_calls[#refresh_calls].flashing)
+        end
+
+        plugin.config.features.reader_themes = true
+        Screen.waveform_full = nil
+        Screen:refreshPartialImp(10, 20, 100, 200, true)
+        assert.are.equal(3, refresh_calls[#refresh_calls].waveform)
+        assert.is_true(refresh_calls[#refresh_calls].dither)
+
+        Screen.waveform_full = 2
+        fail_refresh = true
+        assert.has_error(function() Screen:refreshPartialImp(10, 20, 100, 200, true) end, "refresh failed")
+        assert.are.equal(3, Screen.waveform_partial)
+        assert.are.equal(9, Screen.waveform_night)
+        assert.is_true(Screen.night_is_reagl)
     end)
 
     it("wraps CRE stylesheets only while the feature is enabled", function()
@@ -382,7 +472,7 @@ describe("reader themes", function()
         ReaderUI.instance = {}
         require("ui/uimanager"):setDirty(ReaderUI.instance, "partial")
         assert.are.equal("partial", dirty_calls[1][3])
-        assert.are.equal("ui", require("ui/uimanager")._refresh_stack[1].mode)
+        assert.are.equal("partial", require("ui/uimanager")._refresh_stack[1].mode)
         dirty_calls = {}
         require("ui/uimanager")._refresh_stack = {}
         promote_partial = true
@@ -396,36 +486,6 @@ describe("reader themes", function()
         assert.are.equal("partial", dirty_calls[1][3])
         assert.are.equal("partial", require("ui/uimanager")._refresh_stack[1].mode)
 
-        local Device = require("device")
-        local UIManager = require("ui/uimanager")
-        Device.isKindle = function() return true end
-        Device.hasColorScreen = function() return true end
-        Device.screen.night_mode = true
-        ReaderUI.instance.dialog = {}
-        for _i, widget in ipairs({ ReaderUI.instance, ReaderUI.instance.dialog, {} }) do
-            UIManager._refresh_stack = {}
-            UIManager:setDirty(widget, "partial")
-            local is_reader = widget == ReaderUI.instance or widget == ReaderUI.instance.dialog
-            assert.are.equal(is_reader and "ui" or "partial", UIManager._refresh_stack[1].mode)
-        end
-        UIManager._refresh_stack = {}
-        promote_partial = true
-        UIManager:setDirty(ReaderUI.instance, "partial")
-        assert.are.equal("full", UIManager._refresh_stack[1].mode)
-        promote_partial = false
-        for _i, device_state in ipairs({
-            { kindle = true, color = true, night = false },
-            { kindle = false, color = true, night = true },
-            { kindle = true, color = false, night = true },
-        }) do
-            Device.isKindle = function() return device_state.kindle end
-            Device.hasColorScreen = function() return device_state.color end
-            Device.screen.night_mode = device_state.night
-            UIManager._refresh_stack = {}
-            UIManager:setDirty(ReaderUI.instance, "partial")
-            assert.are.equal("partial", UIManager._refresh_stack[1].mode)
-        end
-        Device.screen.night_mode = false
         dirty_calls = {}
         plugin.config.features.reader_themes = true
         ReaderUI.instance = nil

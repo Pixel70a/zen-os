@@ -18,6 +18,7 @@ describe("Zen arrange list settings resume", function()
         "ui/widget/horizontalgroup",
         "ui/widget/horizontalspan",
         "ui/widget/iconwidget",
+        "ui/widget/infomessage",
         "ui/widget/container/inputcontainer",
         "ui/widget/container/leftcontainer",
         "ui/widget/linewidget",
@@ -32,6 +33,7 @@ describe("Zen arrange list settings resume", function()
         "ui/widget/verticalgroup",
         "gettext",
         "common/ui/icon_menu_item",
+        "common/ui/button_feedback",
         "common/ui/truncated_text_message",
         "common/ui/zen_settings_titlebar",
         "modules/global/patches/menu_top_swipe",
@@ -111,6 +113,7 @@ describe("Zen arrange list settings resume", function()
         ZenSpec.replace("ui/widget/horizontalgroup", {})
         ZenSpec.replace("ui/widget/horizontalspan", {})
         ZenSpec.replace("ui/widget/iconwidget", {})
+        ZenSpec.replace("ui/widget/infomessage", { new = function(_self, opts) return opts end })
         ZenSpec.replace("ui/widget/container/inputcontainer", class())
         ZenSpec.replace("ui/widget/container/leftcontainer", {})
         ZenSpec.replace("ui/widget/linewidget", {})
@@ -125,6 +128,7 @@ describe("Zen arrange list settings resume", function()
         ZenSpec.replace("ui/widget/verticalgroup", {})
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("common/ui/icon_menu_item", {})
+        ZenSpec.replace("common/ui/button_feedback", { flash = function() end })
         ZenSpec.replace("common/ui/truncated_text_message", { show = function() end })
         ZenSpec.replace("common/ui/zen_settings_titlebar", {})
         ZenSpec.replace("modules/global/patches/menu_top_swipe", {
@@ -229,6 +233,202 @@ describe("Zen arrange list settings resume", function()
         item:hold_callback(function() end)
 
         assert.are.equal(picker._zen_menu_proxy, callback_host)
+    end)
+
+    it("shows help on root and nested widget setting holds without toggling", function()
+        ZenSpec.unload("common/arrange_state")
+        ZenSpec.unload("common/ui/zen_arrange_list")
+        ArrangeList = require("common/ui/zen_arrange_list")
+        local sort = package.loaded["ui/widget/sortwidget"]
+        local original_new = sort.new
+        sort.new = function(self, options)
+            local picker = original_new(self, options)
+            picker._populateItems = function(parent)
+                parent.main_content = {}
+                for index, item in ipairs(parent.item_table) do
+                    parent.main_content[index] = {
+                        item = item, index = index, show_parent = parent,
+                        onTap = function(row)
+                            if row.item.callback then row.item:callback() end
+                            return true
+                        end,
+                        onHoldTouch = function(row)
+                            if row.item.callback then row.item:callback() end
+                            return true
+                        end,
+                    }
+                end
+            end
+            return picker
+        end
+        local help = "When disabled, widget is read only and does not respond to taps, holds, or swipes"
+        for _i, menu_mode in ipairs({ false, true }) do
+            local active = true
+            local item = {
+                text = "Interactive", help_text = help,
+                checked_func = function() return active end,
+                callback = function() active = not active end,
+            }
+            local picker = ArrangeList.show{
+                allow_arrange = false, menu_mode = menu_mode,
+                item_table = { item, { text = "Widget", sub_item_table = { item } } },
+            }
+            local row = picker.main_content[1]
+            local shown_count = #shown_widgets
+            assert.is_true(row:onHoldTouch())
+            assert.are.equal(shown_count + 1, #shown_widgets)
+            assert.are.equal(help, shown_widgets[#shown_widgets].text)
+            assert.is_true(active)
+            row:onTap()
+            assert.is_false(active)
+
+            picker.main_content[2]:onTap()
+            local submenu = shown_widgets[#shown_widgets]
+            assert.are_not.equal(picker, submenu)
+            row = submenu.main_content[1]
+            assert.is_true(row:onHoldTouch())
+            assert.are.equal(help, shown_widgets[#shown_widgets].text)
+            assert.is_false(active)
+
+            item.help_text_func = function(menu)
+                assert.are.equal(submenu._zen_menu_proxy, menu)
+                return "Dynamic help"
+            end
+            row._zen_settings_text_truncated = true
+            assert.is_true(row:onHoldTouch())
+            assert.are.equal("Dynamic help", shown_widgets[#shown_widgets].text)
+            assert.is_false(active)
+
+            local help_calls = 0
+            item.help_text_func = function()
+                help_calls = help_calls + 1
+                return "Drag help"
+            end
+            local arrange = ArrangeList.show{ menu_mode = menu_mode, item_table = { item } }
+            row = arrange.main_content[1]
+            row._zen_settings_text_truncated = true
+            shown_count = #shown_widgets
+            assert.is_true(arrange._zen_arrange_enabled)
+            assert.is_true(row:onHoldTouch())
+            assert.are.equal(0, help_calls)
+            assert.are.equal(shown_count, #shown_widgets)
+            assert.is_false(active)
+        end
+    end)
+
+    it("flashes the tapped row before opening root and nested submenus", function()
+        local original_settings = G_reader_settings
+        finally(function() _G.G_reader_settings = original_settings end)
+        local flash_disabled = false
+        _G.G_reader_settings = { isFalse = function(_self, key)
+            assert.are.equal("flash_ui", key)
+            return flash_disabled
+        end }
+        package.loaded["device"].screen = { isColorScreen = function() return false end }
+        ZenSpec.unload("common/ui/button_feedback")
+        ZenSpec.unload("common/arrange_state")
+        ZenSpec.unload("common/ui/zen_arrange_list")
+        ArrangeList = require("common/ui/zen_arrange_list")
+        local sort = package.loaded["ui/widget/sortwidget"]
+        local original_new = sort.new
+        sort.new = function(self, options)
+            local picker = original_new(self, options)
+            picker._populateItems = function(parent)
+                parent.main_content = {}
+                for index, item in ipairs(parent.item_table) do
+                    parent.main_content[index] = {
+                        item = item, index = index, show_parent = parent,
+                        onTap = function(row)
+                            if row.item.callback then row.item:callback() end
+                            return true
+                        end,
+                        _zen_arrange_row_frame = {
+                            dimen = { x = 7, y = 19 + index * 20, w = 86, h = 20 },
+                            invert = false,
+                        },
+                    }
+                end
+            end
+            return picker
+        end
+        local events, inverted = {}, false
+        require("common/ui/button_feedback").invert = function(region)
+            assert.are.same({ x = 7, y = 39, w = 86, h = 20 }, region)
+            inverted = not inverted
+            events[#events + 1] = inverted and "highlight" or "restore"
+        end
+        ui_manager.setDirty = function(_self, widget, mode, region)
+            if not widget then
+                assert.are.same({ x = 7, y = 39, w = 86, h = 20 }, region)
+                events[#events + 1] = mode
+            end
+        end
+        ui_manager.forceRePaint = function()
+            assert.is_true(inverted)
+            events[#events + 1] = "paint"
+        end
+        ui_manager.yieldToEPDC = function() events[#events + 1] = "yield" end
+        local original_show = ui_manager.show
+        ui_manager.show = function(self, widget)
+            assert.is_false(inverted)
+            events[#events + 1] = "show"
+            original_show(self, widget)
+        end
+        local first = {
+            text = "First",
+            sub_item_table = {{
+                text = "Second",
+                sub_item_table_func = function() return {{
+                    text = "Third", _zen_settings_submenu = true, keep_menu_open = true,
+                    callback = function() ui_manager:show({ title = "Destination" }) end,
+                }} end,
+            }},
+        }
+        local picker = ArrangeList.show{ item_table = { first }, menu_mode = true }
+        local expected = { "highlight", "fast", "paint", "yield", "restore", "ui", "show" }
+        for depth = 1, 3 do
+            events = {}
+            local row = shown_widgets[depth].main_content[1]
+            assert.is_true(row:onTap())
+            assert.are.same(expected, events)
+            assert.is_false(row._zen_arrange_row_frame.invert)
+        end
+
+        local row = picker.main_content[1]
+        first.checked_func = function() return false end
+        first.checkmark_callback = function() events[#events + 1] = "toggle" end
+        row.checkmark_widget = { dimen = { x = 70, y = 39, w = 20, h = 20 } }
+        local toggle_gesture = { pos = { intersectWith = function() return true end } }
+        package.loaded["ui/size"].padding.default = 1
+        events = {}
+        row:onTap(nil, toggle_gesture)
+        assert.are.same({ "toggle" }, events)
+        row._zen_arrange_handle = { dimen = {} }
+        events = {}
+        row:onTap(nil, toggle_gesture)
+        assert.are.same({}, events)
+
+        first.enabled = false
+        events = {}
+        picker.main_content[1]:onTap()
+        assert.are.same({}, events)
+        first.enabled = true
+        flash_disabled = true
+        events = {}
+        picker.main_content[1]:onTap()
+        assert.are.same({ "show" }, events)
+
+        flash_disabled = false
+        local callback_picker = ArrangeList.show{ allow_arrange = false, item_table = {{
+            text = "Callback", _zen_settings_submenu = true,
+            callback = function() ui_manager:show({ title = "Destination" }) end,
+        }} }
+        events = {}
+        local focused_frame = callback_picker.main_content[1]._zen_arrange_row_frame
+        focused_frame.invert = true
+        callback_picker.main_content[1]:onTap()
+        assert.are.same(expected, events)
+        assert.is_true(focused_frame.invert)
     end)
 
     it("renders numeric radio selections and refreshes disabled execution options", function()

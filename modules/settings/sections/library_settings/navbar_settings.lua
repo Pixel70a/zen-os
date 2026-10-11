@@ -6,6 +6,7 @@
 local _ = require("gettext")
 local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local utils = require("modules/settings/zen_settings_utils")
 local icon_utils = require("common/utils")
 local plugin_root = require("common/plugin_root")
@@ -146,7 +147,7 @@ function M.build(ctx)
                         save_and_defer_navbar_refresh()
                         if touchmenu_instance then touchmenu_instance:updateItems() end
                     end,
-                }, "full")
+                }, getFullRefreshMode())
             end,
         }
     end
@@ -749,7 +750,7 @@ function M.build(ctx)
         if ct.type == "tag" then
             table.insert(items, IconItem.decorate({
                 text_func = function()
-                    return T(_("Tag: %1"), ct.tag or _("(none)"))
+                    return _("Tag") .. ": " .. (ct.tag or _("(none)"))
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)
@@ -769,7 +770,7 @@ function M.build(ctx)
         elseif ct.type == "quick_setting" then
             table.insert(items, IconItem.decorate({
                 text_func = function()
-                    return T(_("Control: %1"), ct.label or _("(none)"))
+                    return _("Control") .. ": " .. (ct.label or _("(none)"))
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)
@@ -789,7 +790,7 @@ function M.build(ctx)
         elseif ct.type == "plugin" then
             table.insert(items, IconItem.decorate({
                 text_func = function()
-                    return T(_("Plugin: %1"), ct.plugin_title or ct.label or _("(none)"))
+                    return _("Plugin") .. ": " .. (ct.plugin_title or ct.label or _("(none)"))
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)
@@ -800,8 +801,8 @@ function M.build(ctx)
             table.insert(items, IconItem.decorate({
                 text_func = function()
                     local target = ct.koreader_menu
-                    return T(_("KOReader menu: %1"),
-                        type(target) == "table" and target.title or ct.label or _("(none)"))
+                    return _("KOReader menu") .. ": "
+                        .. (type(target) == "table" and target.title or ct.label or _("(none)"))
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)
@@ -826,9 +827,9 @@ function M.build(ctx)
             table.insert(items, IconItem.decorate({
                 text_func = function()
                     if ct.action and next(ct.action) then
-                        return T(_("Action: %1"), Dispatcher:menuTextFunc(ct.action))
+                        return _("Action") .. ": " .. Dispatcher:menuTextFunc(ct.action)
                     end
-                    return _("Action: (none)")
+                    return _("Action") .. ": " .. _("(none)")
                 end,
                 keep_menu_open = true,
                 sub_item_table = dispatch_items,
@@ -855,7 +856,7 @@ function M.build(ctx)
         table.insert(items, IconItem.decorate({
             text_func = function()
                 local lbl = (ct.label and ct.label ~= "") and ct.label or _("(auto)")
-                return T(_("Label: %1"), lbl)
+                return _("Label") .. ": " .. lbl
             end,
             keep_menu_open = true,
             callback = function(touch_menu)
@@ -986,7 +987,7 @@ function M.build(ctx)
                 text_func = function()
                     local label = config.navbar.home_label
                     if label == nil or label == "" then label = "Home" end
-                    return _("Label: ") .. label
+                    return _("Label") .. ": " .. label
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)
@@ -995,7 +996,7 @@ function M.build(ctx)
                     dialog = InputDialog:new{
                         title = _("Home tab label"),
                         input = config.navbar.home_label or "Home",
-                        input_hint = _("Default: Home"),
+                        input_hint = _("Default") .. ": " .. _("Home"),
                         buttons = {{
                             { text = _("Cancel"), callback = function() UIManager:close(dialog) end },
                             {
@@ -1054,7 +1055,7 @@ function M.build(ctx)
                 text_func = function()
                     local label = config.navbar.books_label or ""
                     if presets[label] then return _("Custom") end
-                    return _("Custom: ") .. label
+                    return _("Custom") .. ": " .. label
                 end,
                 radio = true,
                 checked_func = function()
@@ -1194,7 +1195,7 @@ function M.build(ctx)
             }, icons.icon),
             IconItem.decorate({
                 text_func = function()
-                    return T(_("Label: %1"), get_folder_tab_label())
+                    return _("Label") .. ": " .. get_folder_tab_label()
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)

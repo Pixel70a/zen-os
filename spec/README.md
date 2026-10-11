@@ -17,11 +17,24 @@ runs stage those bundled plugins alongside ZenOS and the test driver. The
 runner never uses a system Lua interpreter for behavior tests and creates a
 temporary `KO_HOME` for every invocation.
 
+Tests keep the emulator in the background without taking desktop focus. Its
+windows still render normally, including framebuffer screenshots. Launching
+KOReader manually is unchanged.
+Pass `--fg` before or after the command to run in the foreground, for example
+`./spec/run smoke --fg` or `./spec/run --fg full`.
+
+LuaCheck caches analysis of unchanged files under `spec/.cache/luacheck`.
+The emulator test driver polls for commands every 20 ms; each scenario still
+starts with its own emulator and temporary settings.
+Commands wait for deferred UI work and repaint before replying.
+
 Runtime versions live in `koreader-lock.json`. Update a pin deliberately, then
 regenerate the affected goldens and review every PNG diff. Test artifacts belong
 under `spec/.artifacts/` and are ignored by Git.
 
-Run the migration contract against the pinned minimum and current stable runtimes with:
+CI runs the migration contract only through the manual `Zen UI to ZenOS Migration`
+workflow, against the pinned minimum and current stable runtimes. Release and regular
+test workflows do not run it. To run it locally:
 
 ```sh
 KOREADER_DIR="$(./spec/provision-koreader.sh compat)" ./spec/run legacy-upgrade

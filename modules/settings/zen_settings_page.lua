@@ -3,6 +3,7 @@ local Device = require("device")
 local InfoMessage = require("ui/widget/infomessage")
 local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local Utf8Proc = require("ffi/utf8proc")
 local util = require("util")
 local _ = require("gettext")
@@ -468,6 +469,7 @@ function ZenSettingsPage:_openSubmenu(item, items, defer_update)
         self.title_bar:collapseSearch()
     end
     self.item_table._zen_title = self:_currentTitle()
+    self.item_table._zen_page = self.page
     table.insert(self.item_table_stack, self.item_table)
     self._resume_path[#self._resume_path + 1] = self:_resumeSelector(item)
     items._zen_title = item.sub_title or item_text(item)
@@ -631,6 +633,7 @@ function ZenSettingsPage:backToUpperMenu(no_close)
     local parent = table.remove(self.item_table_stack)
     table.remove(self._resume_path)
     local parent_title = parent._zen_title
+    local parent_page = parent._zen_page or 1
     if parent.needs_refresh and type(parent.refresh_func) == "function" then
         parent = parent.refresh_func() or parent
     end
@@ -639,6 +642,8 @@ function ZenSettingsPage:backToUpperMenu(no_close)
     if previous._zen_on_leave then previous._zen_on_leave() end
     self.parent_id = nil
     self._pending_navigation_title = nil
+    self.itemnumber = nil
+    self.page = parent_page
     self:updateItems(1)
     return true
 end
@@ -648,6 +653,7 @@ function ZenSettingsPage:onClose()
 end
 
 function ZenSettingsPage:onExit()
+    self._exiting = true
     return self:closeMenu()
 end
 
@@ -707,6 +713,12 @@ function ZenSettingsPage:closeMenu()
     end
     UIManager:close(self)
     self:_flushDeferredSettingsApplies()
+    local refresh = self._close_refresh
+    if refresh then
+        -- Join the first repaint after the page leaves the window stack.
+        UIManager:unschedule(refresh)
+        refresh()
+    end
     return true
 end
 
@@ -729,7 +741,9 @@ function ZenSettingsPage:onCloseWidget()
         _G.__ZEN_UI_SETTINGS_PAGE = nil
     end
     self:_flushDeferredSettingsApplies()
-    UIManager:nextTick(function()
+    self._close_refresh = function()
+        self._close_refresh = nil
+        if self._exiting then return end
         local stack = UIManager._window_stack or {}
         local top
         for i = #stack, 1, -1 do
@@ -758,8 +772,9 @@ function ZenSettingsPage:onCloseWidget()
                 end
             end
         end
-        UIManager:setDirty("all", "full")
-    end)
+        UIManager:setDirty("all", getFullRefreshMode())
+    end
+    UIManager:nextTick(self._close_refresh)
     return Menu.onCloseWidget(self)
 end
 
@@ -1041,7 +1056,10 @@ function M.show(plugin, opts)
         page._deferred_arrange_resume = true
     end
     active_page = page
-    UIManager:show(page)
+    UIManager:show(page, function()
+        if page._closed or page.invisible then return end
+        return (Device.screen.night_mode or Device:hasColorScreen()) and getFullRefreshMode() or "ui"
+    end)
     if resume and resume.arrange then
         UIManager:nextTick(function()
             if page._closed then return end

@@ -1,6 +1,7 @@
 describe("settings title bar", function()
     local SettingsTitleBar
     local saved_modules
+    local saved_reader_settings
     local scheduled
     local unscheduled
 
@@ -28,8 +29,10 @@ describe("settings title bar", function()
         "common/clock_timer",
         "common/shared_state",
         "common/ui/icon_menu_item",
+        "common/ui/button_feedback",
         "common/ui/zen_icon_button",
         "common/ui/zen_solid_circle",
+        "common/ui/zen_button",
         "common/ui/zen_toggle",
         "common/ui/zen_settings_titlebar",
         "common/ui/zen_title_style",
@@ -42,6 +45,7 @@ describe("settings title bar", function()
 
     before_each(function()
         saved_modules = {}
+        saved_reader_settings = _G.G_reader_settings
         scheduled = {}
         unscheduled = {}
         for _i, name in ipairs(dependency_names) do
@@ -67,6 +71,7 @@ describe("settings title bar", function()
             end,
         })
         ZenSpec.replace("common/clock_timer", { unbind = function() end })
+        ZenSpec.replace("common/ui/button_feedback", { flash = function() end })
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.unload("ui/geometry")
         ZenSpec.unload("ui/gesturerange")
@@ -77,6 +82,7 @@ describe("settings title bar", function()
     end)
 
     after_each(function()
+        _G.G_reader_settings = saved_reader_settings
         for _i, name in ipairs(dependency_names) do
             package.loaded[name] = saved_modules[name] or nil
         end
@@ -101,10 +107,11 @@ describe("settings title bar", function()
             end
             if widget_class == package.loaded["ui/widget/button"] then
                 spec.label_container = { dimen = {
-                    w = spec.width - 2 * spec.padding, h = spec.height,
+                    w = (spec.width or 40) - 2 * (spec.padding or spec.padding_h or 0),
+                    h = spec.height,
                 } }
             end
-            return spec
+            return setmetatable(spec, { __index = widget_class })
         end
         for _i, name in ipairs(dependency_names) do
             if name:find("^ui/widget/") or name == "common/ui/zen_icon_button"
@@ -125,12 +132,45 @@ describe("settings title bar", function()
         icon_item.SETTINGS_TOGGLE_WIDTH, icon_item.SETTINGS_TOGGLE_HEIGHT = 50, 25
         package.loaded["common/widget_resources"].free = function() end
         package.loaded["common/utils"].resolveLocalIcon = function() return "/zen/icon.svg" end
+        package.loaded["common/utils"].resolveIcon = function() return "/zen/icon.svg" end
         package.loaded["common/plugin_root"] = "/zen"
         options.ges_events = {}
         local title_bar = setmetatable(options, SettingsTitleBar)
         title_bar:init()
         return title_bar
     end
+
+    it("enables native tap feedback on each actionable header icon", function()
+        local title_bar = init_title_bar({
+            title = "Settings", back_visible = true,
+            action = { file = "/zen/refresh.svg", callback = function() end },
+        })
+
+        for _i, button in ipairs({ title_bar.back_button, title_bar.action_button,
+                title_bar.search_button, title_bar.close_button }) do
+            assert.is_true(button.allow_flash)
+        end
+        assert.is_false(title_bar.root_icon.allow_flash)
+    end)
+
+    it("inherits shared feedback for styled header actions", function()
+        local Button = require("ui/widget/button")
+        Button._doFeedbackHighlight = function() end
+        Button._undoFeedbackHighlight = function() end
+        package.loaded["ui/size"].padding = { small = 4, default = 8 }
+
+        for _i, filled in ipairs({ false, true }) do
+            local title_bar = init_title_bar({
+                title = "Settings", search_visible = false,
+                action = { text = "Update", zen_button = true, filled = filled },
+            })
+            local button = title_bar.action_button
+            assert.are.equal(Button._doFeedbackHighlight, button._doFeedbackHighlight)
+            assert.are.equal(Button._undoFeedbackHighlight, button._undoFeedbackHighlight)
+            assert.is_nil(rawget(button, "_doFeedbackHighlight"))
+            assert.is_nil(rawget(button, "_undoFeedbackHighlight"))
+        end
+    end)
 
     it("waits for typing to pause before searching settings", function()
         local queries = {}
@@ -230,17 +270,18 @@ describe("settings title bar", function()
             back_callback = function() taps = taps + 1 end,
             back_hold_callback = function() holds = holds + 1 end,
         })
+        _G.G_reader_settings = { isFalse = function() return true end }
         local Geom = require("ui/geometry")
         title_bar.back_button.dimen = Geom:new{ x = 20, y = 20, w = 44, h = 44 }
         title_bar.title_container.dimen = Geom:new{ x = 72, y = 20, w = 150, h = 44 }
         title_bar.title_widget.getSize = function() return { w = 100, h = 24 } end
         local tap_range = title_bar.ges_events.TapBackTitle[1]
-        for _i, x in ipairs({ 24, 68, 110 }) do
+        for _i, x in ipairs({ 24, 68, 110, 176 }) do
             assert.is_true(tap_range:match({ ges = "tap", pos = Geom:new{ x = x, y = 40 } }))
             assert.is_true(title_bar:onTapBackTitle())
         end
-        assert.are.equal(3, taps)
-        assert.is_false(tap_range:match({ ges = "tap", pos = Geom:new{ x = 173, y = 40 } }))
+        assert.are.equal(4, taps)
+        assert.is_false(tap_range:match({ ges = "tap", pos = Geom:new{ x = 181, y = 40 } }))
         assert.is_false(tap_range:match({ ges = "tap", pos = Geom:new{ x = 68, y = 19 } }))
         assert.is_true(title_bar.ges_events.HoldBackTitle[1]:match({
             ges = "hold", pos = Geom:new{ x = 68, y = 40 },
@@ -252,8 +293,41 @@ describe("settings title bar", function()
         assert.is_false(tap_range:match({ ges = "tap", pos = Geom:new{ x = 68, y = 40 } }))
         assert.is_false(title_bar:onTapBackTitle())
         assert.is_false(title_bar:onHoldBackTitle())
-        assert.are.equal(3, taps)
+        assert.are.equal(4, taps)
         assert.are.equal(1, holds)
+    end)
+
+    it("keeps back/title feedback aligned without repainting the centered title", function()
+        local UIManager = require("ui/uimanager")
+        local Geom = require("ui/geometry")
+        local events = {}
+        local title_bar = init_title_bar({
+            title = "Library", back_visible = true, search_visible = false,
+            back_callback = function() events[#events + 1] = "back" end,
+            back_hold_callback = function() events[#events + 1] = "root" end,
+        })
+        title_bar.back_button.dimen = Geom:new{ x = 20, y = 20, w = 44, h = 44 }
+        title_bar.title_container.dimen = Geom:new{ x = 72, y = 30, w = 150, h = 44 }
+        title_bar.title_widget.getSize = function() return { w = 100, h = 24 } end
+        require("common/ui/button_feedback").flash = function(region)
+            assert.are.same({ x = 20, y = 20, w = 160, h = 44 }, region)
+            events[#events + 1] = "flash"
+        end
+        UIManager.forceRePaint = function() events[#events + 1] = "refresh" end
+        UIManager.widgetRepaint = function() error("header feedback must not repaint the title") end
+        _G.G_reader_settings = { isFalse = function() return false end }
+
+        assert.is_true(title_bar:onTapBackTitle())
+        assert.are.same({ "flash", "back", "refresh" }, events)
+        events = {}
+        assert.is_true(title_bar.back_button:onTapIconButton())
+        assert.are.same({ "flash", "back", "refresh" }, events)
+        events = {}
+        assert.is_true(title_bar:onHoldBackTitle())
+        assert.are.same({ "flash", "root", "refresh" }, events)
+        events = {}
+        title_bar.back_button.hold_callback()
+        assert.are.same({ "flash", "root", "refresh" }, events)
     end)
 
     it("refreshes when the network connects, disconnects, or finishes changing", function()

@@ -111,7 +111,7 @@ function M.build(ctx)
         local default_font_size = id == "goal_progress" and DEFAULT_GOALS_FONT_SIZE or settings.font_size or 15
         return {{
             text_func = function()
-                return string.format("%s %s", _("Font size:"),
+                return string.format("%s %s", _("Font size") .. ":",
                     tostring(widget().font_size or default_font_size))
             end,
             keep_menu_open = true,
@@ -337,6 +337,7 @@ function M.build(ctx)
             }, icons.widgets),
             IconItem.decorate({
                 text = _("Edit mode"),
+                help_text = _("Hold a widget to open settings directly"),
                 checked_func = function()
                     return StatsSettings.load().edit_mode == true
                 end,

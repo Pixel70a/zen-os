@@ -92,7 +92,8 @@ Reader settings control the reading screen. They cover status bars, themes, font
 | Bottom status bar > Font | Sets footer font face, size, and bold style. |
 | Bottom status bar > Hide in CBZ/PDF files | Hides the footer for CBZ and PDF documents. |
 | Bottom status bar > KOReader status bar options | Exposes KOReader's built-in footer/status bar settings. |
-| Reader > Align status bars with book margins | Aligns both status bars with the book's horizontal margins. Off by default; disabling restores the previous spacing. |
+| Reader > Align status bars with book margins | Aligns both status bars with the book's horizontal margins. On by default; disabling uses KOReader's standard horizontal padding. |
+| Reader > Flash on every CBZ page turn | Uses a full screen refresh when the page changes in a CBZ file. On by default; takes effect on the next page turn. |
 
 ## Dictionary lookup menu
 
@@ -119,3 +120,13 @@ The reader has two independent status bars: a top bar and a bottom bar. Each bar
 ## Time until chapter end
 
 Open **Zen Settings > Reader > Time until chapter end** to choose how the current chapter estimate appears: `5 min left in chapter`, `5 min left`, abbreviated `5m`/`1h 5m`, or KOReader's default `hh:mm` format. The abbreviated hour and minute units are localized.
+
+## End of book
+
+The Zen end-of-book screen reuses Home's featured book, statistics, quotes, and book strip widgets. Open **Zen Settings > Reader > End of book > Widgets** to reorder or hide widgets and customize their content independently of Home. **Preview** opens the screen for the current book without marking it finished.
+
+Swipe a highlight left or right to browse this book's highlights and notes; each shows its page label. Tap it to return to that passage. The book strip offers books by the same author, the next unfinished volume in this series, and a next book from each other series already started. Recommendations use the library's indexed metadata.
+
+Statistics cover only the current book: active reading days, recorded reading time, minutes per page, and minutes per reading day. Choose any three in the statistics widget's settings. The toggle on the **Label** row shows or hides the heading; its submenu caret opens the text, font, size, bold weight, and default-style controls. The text defaults to **Statistics**; an empty label restores it. Missing statistics appear as a dash.
+
+**Zen Settings > Reader > End of book > End of document action** uses KOReader's action setting. **Zen end of book** and **Always mark as finished** are the defaults for unset preferences; saved choices survive restarts. Turning off automatic marking keeps the current status in both Book Status and Zen's end-of-book screen. Book Status remains available from the action menu.

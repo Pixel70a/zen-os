@@ -23,6 +23,7 @@ function M.show(options)
     local Size = require("ui/size")
     local TextWidget = require("ui/widget/textwidget")
     local UIManager = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local ZenButton = require("common/ui/zen_button")
     local _ = require("gettext")
 
@@ -78,7 +79,10 @@ function M.show(options)
     end
 
     function ZenClearButton:onTapSelect()
-        if self.enabled and self.callback then self.callback() end
+        if self.enabled and self.callback then
+            require("common/ui/button_feedback").flashButton(self.dimen)
+            self.callback()
+        end
         return true
     end
 
@@ -499,7 +503,7 @@ function M.show(options)
         self:updateItems(1, false)
         return result
     end
-    UIManager:show(menu, "full")
+    UIManager:show(menu, getFullRefreshMode())
     return menu
 end
 

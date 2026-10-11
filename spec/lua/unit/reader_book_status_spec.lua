@@ -339,6 +339,26 @@ describe("reader book status", function()
         end
     end)
 
+    it("leaves the end-of-document default to the End of book patch", function()
+        require("modules/reader/patches/book_status")()
+
+        assert.is_nil(G_reader_settings:readSetting("end_document_action"))
+    end)
+
+    it("preserves saved end-of-document actions across launches", function()
+        require("modules/reader/patches/book_status")()
+        for _i, action in ipairs({
+            "zen_end_book", "nothing", "pop-up", "book_status", "delete_file", "next_file",
+            "goto_beginning", "file_browser", "mark_read", "book_status_file_browser",
+        }) do
+            G_reader_settings:saveSetting("end_document_action", action)
+            ZenSpec.unload("modules/reader/patches/book_status")
+            require("modules/reader/patches/book_status")()
+
+            assert.are.equal(action, G_reader_settings:readSetting("end_document_action"))
+        end
+    end)
+
     it("adds the header and restart controls to hardware focus navigation", function()
         G_reader_settings:saveSetting("collate", "natural")
         rawset(_G, "__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON", function() return "home" end)

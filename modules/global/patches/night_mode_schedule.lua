@@ -6,6 +6,7 @@ local function apply_night_mode_schedule()
     --]]
 
     local UIManager = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local Device    = require("device")
     local Screen    = Device.screen
 
@@ -95,37 +96,35 @@ local function apply_night_mode_schedule()
         end
     end
 
-    -- Apply night mode to a specific state. Directly set and check
-    -- Screen.night_mode (the real display state) instead of G_reader_settings,
-    -- which can drift during suspend/resume or when the OS changes the HW
-    -- inversion flag while KOReader is sleeping.
-    --
-    -- When `force` is true the guard is skipped so the HW flag is always
-    -- re-written.  This is used on device resume where the OS may have
-    -- changed the EPDC inversion flag while KOReader was sleeping.
+    -- Force hardware inversion on resume; software inversion changes only on transitions.
     local function set_night_mode(enable, force)
         local ReaderThemes = require("common/reader_themes")
         local changed = Screen.night_mode ~= enable
         if not force and not changed then return end
         G_reader_settings:saveSetting("night_mode", enable)
-        Screen.night_mode = enable
-        if type(Screen.setHWNightmode) == "function" then
+        local hw_invert = Device:canHWInvert()
+        if hw_invert then
+            Screen.night_mode = enable
             pcall(Screen.setHWNightmode, Screen, enable)
+        elseif changed then
+            Screen:toggleNightMode()
         end
-        if changed and ReaderThemes.isEnabled(zen_plugin) then
+        if hw_invert and changed and ReaderThemes.isEnabled(zen_plugin) then
             ReaderThemes.applyCurrent(zen_plugin)
         end
-        for _i, name in ipairs({
-            "__ZEN_UI_BRIGHTNESS_SCHEDULE",
-            "__ZEN_UI_WARMTH_SCHEDULE",
-        }) do
-            local frontlight_state = rawget(_G, name)
-            if type(frontlight_state) == "table"
-                    and type(frontlight_state.apply_mode_value) == "function" then
-                pcall(frontlight_state.apply_mode_value)
+        if hw_invert or not changed then
+            for _i, name in ipairs({
+                "__ZEN_UI_BRIGHTNESS_SCHEDULE",
+                "__ZEN_UI_WARMTH_SCHEDULE",
+            }) do
+                local frontlight_state = rawget(_G, name)
+                if type(frontlight_state) == "table"
+                        and type(frontlight_state.apply_mode_value) == "function" then
+                    pcall(frontlight_state.apply_mode_value)
+                end
             end
         end
-        UIManager:setDirty("all", "full")
+        UIManager:setDirty("all", getFullRefreshMode())
     end
 
     -- -------------------------------------------------------------------------

@@ -9,7 +9,10 @@ describe("standalone battery stats", function()
         local shown_plugin, shown_options
         local page = {}
         ZenSpec.replace("common/battery_stats", {
-            snapshot = function() return { samples = 0 } end,
+            snapshot = function() return {
+                samples = 0, overall = 10, awake_time = 3600, asleep_time = 7200,
+                usage = { awake_time = 0, asleep_time = 0 },
+            } end,
         })
         ZenSpec.replace("datetime", { secondsToClockDuration = function() return "0s" end })
         ZenSpec.replace("modules/settings/zen_settings_page", {
@@ -27,7 +30,45 @@ describe("standalone battery stats", function()
         assert.are.equal("Health", shown_options.root_items[1].text)
         assert.are.equal("Usage", shown_options.root_items[2].text)
         assert.are.equal("Charging", shown_options.root_items[3].text)
+        local usage = shown_options.root_items[2]
+        assert.are.equal("-", usage.mandatory)
+        assert.are.equal("Used per hour: -", usage.sub_item_table[1].text)
+        assert.are.equal("Screen on time: 0s", usage.sub_item_table[4].text)
+        assert.are.equal("Screen off time: 0s", usage.sub_item_table[5].text)
 
+        for _i, name in ipairs(names) do package.loaded[name] = originals[name] end
+    end)
+
+    it("shows an archive failure and leaves the menu unchanged", function()
+        local names = {
+            "modules/settings/battery_stats_menu", "common/battery_stats", "datetime",
+            "ui/uimanager", "ui/widget/confirmbox", "ui/widget/infomessage",
+        }
+        local originals = {}
+        for _i, name in ipairs(names) do originals[name] = package.loaded[name] end
+        local shown, updates = nil, 0
+        ZenSpec.replace("common/battery_stats", {
+            snapshot = function() return { samples = 12 } end,
+            reset = function() return false end,
+        })
+        ZenSpec.replace("datetime", { secondsToClockDuration = function() return "0s" end })
+        ZenSpec.replace("ui/uimanager", { show = function(_, dialog) shown = dialog end })
+        for _i, name in ipairs({ "ui/widget/confirmbox", "ui/widget/infomessage" }) do
+            ZenSpec.replace(name, { new = function(_, options) return options end })
+        end
+        ZenSpec.unload("modules/settings/battery_stats_menu")
+        local items = require("modules/settings/battery_stats_menu").buildItems()
+        local settings_items = items[#items].sub_item_table
+        local menu = {
+            item_table = settings_items,
+            updateItems = function() updates = updates + 1 end,
+        }
+        settings_items[2].callback(menu)
+        shown.ok_callback()
+        assert.are.equal("Could not save battery history. The log was kept.", shown.text)
+        assert.are.equal(0, updates)
+        assert.are.equal(settings_items, menu.item_table)
+        assert.are.equal("Tracked samples: 12", settings_items[1].text)
         for _i, name in ipairs(names) do package.loaded[name] = originals[name] end
     end)
 end)

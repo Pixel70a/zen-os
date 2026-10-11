@@ -159,11 +159,11 @@ function ColorWheel:_renderToBuffer(x, y)
             local s = sat_t[idx]
             if s >= 0 then
                 if sat_t[idx] >= 1 - Size.border.window / dr then
-                    buf:setPixel(dr + 1 + px, dr + 1 + py, bordercolor)
+                    buf:setPixel(dr + px, dr + py, bordercolor)
                 else -- Draw colors
                     local r, g, b = hsvToRgb(hue_t[idx], s, v)
                     if nm then r, g, b = 255 - r, 255 - g, 255 - b end
-                    buf:setPixel(dr + 1 + px, dr + 1 + py,
+                    buf:setPixel(dr + px, dr + py,
                         Blitbuffer.ColorRGB32(r, g, b, 0xFF))
                 end
             end
@@ -540,8 +540,6 @@ function ColorWheelWidget:update()
         ZenButton.paintFilled(bb, x, y, button.dimen.w, button.dimen.h,
             button.text, button.text_font_size)
     end
-    ok_button._doFeedbackHighlight = function() end
-    ok_button._undoFeedbackHighlight = function() end
 
     self.layout[#self.layout + 1] = { ok_button }
 

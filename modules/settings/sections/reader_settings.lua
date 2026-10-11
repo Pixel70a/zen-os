@@ -5,6 +5,7 @@
 local _ = require("gettext")
 local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local dispatch_action = require("common/dispatch_action")
 local utils = require("modules/settings/zen_settings_utils")
 local constants = require("common/constants")
@@ -104,7 +105,7 @@ function M.build(ctx)
                 UIManager:setDirty(nil, "ui")
             end,
             cancel_callback = function() UIManager:setDirty(nil, "ui") end,
-        }, "full")
+        }, getFullRefreshMode())
     end
 
     local function make_highlight_items()
@@ -254,7 +255,7 @@ function M.build(ctx)
                         and config.reader_top_status_bar.custom_text or ""
                     local Device = require("device")
                     if name == nil or name == "" then name = Device.model or "" end
-                    return _("Custom text: ") .. name
+                    return _("Custom text") .. ": " .. name
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
@@ -511,13 +512,13 @@ function M.build(ctx)
                     local text = (not face or face == "default") and _("default")
                         or (ok_fc and FontChooser.getFontNameText(face) or face)
                     local size = type(config.reader_top_status_bar) == "table" and config.reader_top_status_bar.font_size or 14
-                    return string.format("%s %s, %s", _("Font:"), text, size)
+                    return string.format("%s %s, %s", _("Font") .. ":", text, size)
                 end,
                 sub_item_table = {
                     {
                         text_func = function()
                             local size = type(config.reader_top_status_bar) == "table" and config.reader_top_status_bar.font_size or 14
-                            return string.format("%s %s", _("Font size:"), size)
+                            return string.format("%s %s", _("Font size") .. ":", size)
                         end,
                         keep_menu_open = true,
                         callback = function(touchmenu_instance)
@@ -544,7 +545,7 @@ function M.build(ctx)
                             local face = type(config.reader_top_status_bar) == "table" and config.reader_top_status_bar.font_face
                             local text = (not face or face == "default") and _("default")
                                 or (ok_fc and FontChooser.getFontNameText(face) or face)
-                            return string.format("%s %s", _("Font:"), text)
+                            return string.format("%s %s", _("Font") .. ":", text)
                         end,
                         keep_menu_open = true,
                         callback = function(touchmenu_instance)
@@ -1205,10 +1206,12 @@ function M.build(ctx)
             ui.font:addToMainMenu(mock)
             if not mock.change_font then return {} end
             local entry = mock.change_font
-            if entry.sub_item_table_func then
-                return entry.sub_item_table_func()
+            local font_items = entry.sub_item_table_func and entry.sub_item_table_func()
+                or entry.sub_item_table or {}
+            for _i, font_item in ipairs(font_items) do
+                if font_item.checked_func then font_item.radio = true end
             end
-            return entry.sub_item_table or {}
+            return font_items
         end,
     })
 
@@ -1321,7 +1324,7 @@ function M.build(ctx)
         return {
             text_func = function()
                 local cfg = type(config.page_browser) == "table" and config.page_browser or {}
-                return string.format("%s — %s %s", section, _("Font size:"), tonumber(cfg[key]) or 18)
+                return string.format("%s — %s %s", section, _("Font size") .. ":", tonumber(cfg[key]) or 18)
             end,
             keep_menu_open = true,
             callback = function(touchmenu_instance)
@@ -1405,7 +1408,7 @@ function M.build(ctx)
                     text_func = function()
                         local footer_settings = G_reader_settings:readSetting("footer") or {}
                         local size = footer_settings.text_font_size or 14
-                        return string.format("%s %s", _("Font size:"), size)
+                        return string.format("%s %s", _("Font size") .. ":", size)
                     end,
                     keep_menu_open = true,
                     callback = function(touchmenu_instance)
@@ -1434,7 +1437,7 @@ function M.build(ctx)
                         local face = footer_settings.text_font_face
                         local text = (not face or face == "NotoSans-Regular.ttf")
                             and _("default") or FontChooser.getFontNameText(face)
-                        return string.format("%s %s", _("Font:"), text)
+                        return string.format("%s %s", _("Font") .. ":", text)
                     end,
                     keep_menu_open = true,
                     callback = function(touchmenu_instance)
@@ -1519,7 +1522,18 @@ function M.build(ctx)
         end,
     })
 
-    table.insert(items, {
+    table.insert(items, IconItem.decorate({
+        text = _("Flash on every CBZ page turn"),
+        checked_func = function()
+            return config.features.reader_flash_cbz == true
+        end,
+        callback = function()
+            config.features.reader_flash_cbz = config.features.reader_flash_cbz ~= true
+            plugin:saveConfig()
+        end,
+    }, icons.reader_flash_cbz))
+
+    table.insert(items, IconItem.decorate({
         text = _("Align status bars with book margins"),
         checked_func = function()
             return config.features.reader_status_bar_margins == true
@@ -1535,13 +1549,20 @@ function M.build(ctx)
                 UIManager:setDirty(reader, "ui")
             end
         end,
-    })
+    }, icons.reader_status_bar_margins))
 
     IconItem.decorate(items[1], icons.settings_status)
     IconItem.decorate(items[2], icons.reader_themes)
     IconItem.decorate(items[3], icons.title)
     IconItem.decorate(items[4], icons.search)
     IconItem.decorate(items[9], icons.settings_status)
+
+    items[#items + 1] = IconItem.decorate({
+        text = _("End of book"),
+        sub_item_table_func = function()
+            return require("modules/settings/sections/end_book_settings").build(ctx)
+        end,
+    }, icons.end_book)
 
     return items
 end

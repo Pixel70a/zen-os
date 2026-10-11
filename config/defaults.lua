@@ -15,6 +15,7 @@ local defaults = {
         quickstart_reader_tour_pending = false,
         reader_defaults_apply_on_next_open = false,
         sort_defaults_applied = false,
+        statistics_freeze_finished_default_applied = false,
         bim_fbc_migrated = false,
         reader_footer_hide_cbz_default_migrated = false,
         context_menu_allow_delete_default_migrated = false,
@@ -29,6 +30,31 @@ local defaults = {
         update_available = false,
         update_channel = "stable",
         update_auto_check = true,
+    },
+    end_book = {
+        edit_mode = true,
+        rows = {
+            order = { "stats_triplet", "featured", "rating", "quotes", "strip" },
+            enabled = { stats_triplet = true, featured = true, rating = false, quotes = true, strip = true },
+        },
+        middle_stats_triplet = { "book_days", "book_duration", "book_daily_minutes" },
+        quotes = { show_author = false, show_title = true, automatic_font_size = true, max_font_size = 18 },
+        modules = {
+            stats_triplet = { automatic_font_size = true, max_font_size = 24, stat_style = "divider", show_icons = true,
+                show_label = false, label = "",
+                text_styles = { label = { font_face = "default", font_size = 14, bold = false } } },
+            featured = { show_status_bar = false, show_description = false, navigation_icon_size = 0,
+                show_navigation_labels = true,
+                navigation_icons = {},
+                navigation_actions = { "library", "series", "to_be_read", "home" } },
+            strip = { center_books = false, two_rows = false, controls = {
+                enabled = true,
+                order = { "page_left", "next_series", "author", "continue", "other_series", "page_right" },
+                show_buttons = { page_left = false, page_right = false,
+                    next_series = true, author = true, other_series = false, continue = true, to_be_read = false },
+                custom_buttons = {}, labels = {},
+            } },
+        },
     },
     rakuyomi = {
         exclude_from_home = false,
@@ -77,6 +103,7 @@ local defaults = {
         reader_top_status_bar = true,
         reader_status_bar_margins = true,
         reader_themes = false,
+        reader_flash_cbz = true,
         reader_bottom_menu = false,
         night_mode_schedule = false,
         warmth_schedule     = false,
@@ -181,6 +208,7 @@ local defaults = {
             opds = false,
             airplanemode = false,
             zen_settings = false,
+            library_home = false,
             launcher = false,
             tailscale = false,
             zenfm = false,
@@ -188,6 +216,8 @@ local defaults = {
         },
         background_hatching = false,
         show_labels = true,
+        hide_reader_actions_in_library = false,
+        reader_actions = {},
         show_frontlight = true,
         show_warmth = true,
         unified_light_slider = true,
@@ -236,6 +266,12 @@ local defaults = {
     additional_home_dirs = {},
     browser_list_item_layout = {
         hide_list_borders = false,
+        order = { "title", "authors", "series", "tags", "filename", "language", "file_size", "read_status", "pages", "filetype" },
+        show = {
+            title = true, authors = true, series = true, tags = true,
+            filename = false, language = false, file_size = false,
+            read_status = true, pages = true, filetype = false,
+        },
     },
     browser_cover_badges = {
         show_mosaic_progress = true,
@@ -263,6 +299,7 @@ local defaults = {
         display_mode = "mosaic", -- "mosaic" | "list" | "classic"
         default_url = "",
         downloaded = {},
+        large_covers = false,
     },
     mosaic_title_strip = {
         show_title  = false,
@@ -373,6 +410,7 @@ local defaults = {
     },
     group_view = {
         include_new_in_tbr = false,
+        file_updates_as_new = false,
         authors_collate = "authors",
         group_collate = {
             series = "title",

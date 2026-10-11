@@ -106,9 +106,9 @@ def _color_cover_epub(
         archive.writestr("OPS/cover.png", cover.getvalue())
 
 
-def test_catalog_is_the_canonical_27_image_inventory() -> None:
+def test_catalog_is_the_canonical_28_image_inventory() -> None:
     catalog = load_catalog()
-    assert len(catalog) == 27
+    assert len(catalog) == 28
     assert {scenario.id for scenario in catalog} == EXPECTED_IDS
     assert [scenario.id for scenario in catalog if scenario.id.startswith("page_browser")] == [
         "page_browser_grid", "page_browser_carousel"
@@ -121,6 +121,11 @@ def test_catalog_is_the_canonical_27_image_inventory() -> None:
     assert "navbar" not in {scenario.id for scenario in catalog}
     assert "lockdown_mode" not in {scenario.id for scenario in catalog}
     assert "reader_menu" not in {scenario.id for scenario in catalog}
+    end_book = next(scenario for scenario in catalog if scenario.id == "end_book")
+    assert end_book.session == "reader"
+    assert end_book.action == "end_book"
+    assert end_book.options["book_title"] == "Project Hail Mary: A Novel"
+    assert end_book.docs == ("docs/reader.md",)
     zen_home = next(scenario for scenario in catalog if scenario.id == "zen_home")
     assert zen_home.options["navbar"] == "zen_home_icons"
     library_covers = next(
@@ -231,6 +236,7 @@ def test_example_profile_fills_the_four_by_three_library_grid() -> None:
     authors = {book.expected_title: book.authors for book in books}
     assert authors["The Creative Habit"] == "Twyla Tharp"
     assert authors["Clean Coder"] == "Robert C Martin"
+    assert authors["The Martian: A Novel"] == "Andy Weir"
 
 
 def test_capture_overrides_use_custom_library_bar_and_zen_reader_preset() -> None:

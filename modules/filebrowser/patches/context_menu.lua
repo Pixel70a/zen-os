@@ -11,6 +11,7 @@ local function apply_context_menu()
     local FileManager  = require("apps/filemanager/filemanager")
     local PathChooser  = require("ui/widget/pathchooser")
     local UIManager    = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local _            = require("gettext")
     local C_           = _.pgettext
     local archive_actions = require("common/archive_actions")
@@ -148,7 +149,7 @@ local function apply_context_menu()
                 -- Wait for the opening repaint so only the cover flashes.
                 UIManager:tickAfterNext(function()
                     if UIManager:getTopmostVisibleWidget() == self then
-                        UIManager:setDirty(nil, "full", cover.dimen, true)
+                        UIManager:setDirty(nil, getFullRefreshMode(), cover.dimen, true)
                     end
                 end)
             end
@@ -616,7 +617,10 @@ local function apply_context_menu()
 
     FileManager.setupLayout = function(self)
         orig_setupLayout(self)
+        FileManager.setupZenContextMenu(self)
+    end
 
+    function FileManager:setupZenContextMenu()
         local file_chooser = self.file_chooser
         local file_manager = self
         local logger = require("common/zen_logger").new("context_menu")
@@ -1243,7 +1247,7 @@ local function apply_context_menu()
                 end
 
                 local archive_row = archive_context_row(
-                    FileManager.instance, item.path, item.is_file)
+                    file_manager, item.path, item.is_file)
                 if archive_row then table.insert(buttons, archive_row) end
 
                 if item._zen_extra_buttons then
@@ -1273,6 +1277,7 @@ local function apply_context_menu()
             local is_file            = item.is_file
             local is_kindle_book     = item._zen_kindle_book == true
             local is_kindle_processed = item._zen_kindle_processed == true
+            local is_rakuyomi_book = item._zen_rakuyomi_book == true
             local is_not_parent_folder = not item.is_go_up
             local is_home_dir = (not is_file) and paths.isHomeRoot(file)
             -- Only the primary library root uses global sort/display; additional
@@ -1579,6 +1584,7 @@ local function apply_context_menu()
                                     local index = tonumber(bookinfo.series_index)
                                     series_str_local = index and string.format("%s #%.4g", s, index) or s
                                 end
+                                series_str_local = bookinfo.chapter_label or series_str_local
                                 if bookinfo.keywords and bookinfo.keywords ~= "" then
                                     tags_str_local = bookinfo.keywords
                                         :gsub("%s*[\n;]%s*", ", ")
@@ -2021,7 +2027,7 @@ local function apply_context_menu()
                                     update_preview(selected_path)
                                     refresh_after_folder_cover_change(file)
                                 end,
-                            }, "full")
+                            }, getFullRefreshMode())
                         end,
                         on_clear = function(slot, update_preview)
                             local cleared, err = FolderCoverFiles.clear(
@@ -2089,6 +2095,99 @@ local function apply_context_menu()
                         },
                     },
                 }
+                if is_file and is_not_parent_folder and not item._zen_home_context then
+                    table.insert(edit_buttons, 1, {
+                        {
+                            text = "\u{F01BE}  " .. _("Move"),
+                            align = "left",
+                            callback = function()
+                                UIManager:close(edit_dialog)
+                                local ffiUtil = require("ffi/util")
+                                local DocSettings = require("docsettings")
+                                local ReadHistory = require("readhistory")
+                                local ReadCollection = require("readcollection")
+                                local lfs = require("libs/libkoreader-lfs")
+                                local src = ffiUtil.realpath(file)
+                                if not src then return end
+                                local move_home_dir = paths.getHomeDir()
+                                    or file_chooser.path
+                                if not move_home_dir then return end
+                                local src_dir = ffiUtil.realpath(ffiUtil.dirname(src))
+                                local _zen_cfg = require("config/manager").get()
+                                local _extra = type(_zen_cfg) == "table"
+                                    and type(_zen_cfg.additional_home_dirs) == "table"
+                                    and _zen_cfg.additional_home_dirs or nil
+                                local chooser = MoveChooser:new{
+                                    select_directory = true,
+                                    select_file = false,
+                                    show_files = true,
+                                    title = _("Move to…"),
+                                    path = move_home_dir,
+                                    home_root = move_home_dir,
+                                    src_dir = src_dir,
+                                    extra_roots = _extra,
+                                    onConfirm = function(dest_dir_real)
+                                        local name = ffiUtil.basename(src)
+                                        local dest_file = ffiUtil.joinPath(dest_dir_real, name)
+                                        if lfs.attributes(dest_file) then
+                                            local InfoMessage = require("ui/widget/infomessage")
+                                            UIManager:show(InfoMessage:new{
+                                                text = _("An item with that name already exists."),
+                                                icon = "notice-warning",
+                                            })
+                                            return
+                                        end
+                                        if file_manager:moveFile(src, dest_dir_real) then
+                                            if is_file then
+                                                DocSettings.updateLocation(src, dest_file)
+                                                ReadHistory:updateItem(src, dest_file)
+                                                ReadCollection:updateItem(src, dest_file)
+                                                local ok_bim2, bim2 = pcall(require, "bookinfomanager")
+                                                if ok_bim2 and bim2 then
+                                                    local new_dir = ffiUtil.realpath(dest_dir_real)
+                                                    if new_dir then
+                                                        pcall(bim2.setBookInfoProperties, bim2, src,
+                                                            { directory = new_dir .. "/" })
+                                                    end
+                                                end
+                                            else
+                                                ReadHistory:updateItemsByPath(src, dest_file)
+                                                ReadCollection:updateItemsByPath(src, dest_file)
+                                            end
+                                            local real_cur = ffiUtil.realpath(file_chooser.path)
+                                            local real_home = ffiUtil.realpath(home_dir)
+                                            local at_home = real_cur == real_home
+                                            local n = 0
+                                            if not at_home then
+                                                local ok3, iter3, dir3 = pcall(lfs.dir, file_chooser.path)
+                                                if ok3 then
+                                                    for f3 in iter3, dir3 do
+                                                        if f3 ~= "." and f3 ~= ".." then n = n + 1 end
+                                                    end
+                                                end
+                                            end
+                                            if not at_home and n == 0 then
+                                                UIManager:nextTick(function()
+                                                    file_chooser:changeToPath(home_dir)
+                                                end)
+                                            else
+                                                refresh()
+                                            end
+                                        else
+                                            local InfoMessage = require("ui/widget/infomessage")
+                                            UIManager:show(InfoMessage:new{
+                                                text = _("Move failed."),
+                                                icon = "notice-warning",
+                                            })
+                                        end
+                                    end,
+                                }
+                                UIManager:show(chooser)
+                            end,
+                        },
+                    })
+                end
+
                 if is_kindle_processed then edit_buttons = {} end
                 if not is_kindle_processed and not item._zen_collection_name
                         and not item._zen_disable_select then
@@ -2192,7 +2291,8 @@ local function apply_context_menu()
                 and type(zen_plugin.config.context_menu) == "table"
                 and zen_plugin.config.context_menu
             if context_menu_config and context_menu_config.show_plugin_actions == true
-                    and not is_virtual_folder and type(added_plugin_buttons) == "table" then
+                    and not is_virtual_folder and not is_rakuyomi_book
+                    and type(added_plugin_buttons) == "table" then
                 local rows = {}
                 local hidden_index = added_plugin_buttons.index
                     and added_plugin_buttons.index.coverbrowser_2
@@ -2209,12 +2309,30 @@ local function apply_context_menu()
                                 clean_button.align = "left"
                                 clean_button.icon = nil
                                 clean_button.icon_func = nil
+                                if type(clean_button.callback) == "function" and FileManager.instance ~= file_manager then
+                                    local callback = clean_button.callback
+                                    clean_button.callback = function(...)
+                                        local get_menu_instance = FileManager.getMenuInstance
+                                        FileManager.getMenuInstance = function() return self_fc end
+                                        local ok_callback, result = pcall(callback, ...)
+                                        FileManager.getMenuInstance = get_menu_instance
+                                        if not ok_callback then error(result, 0) end
+                                        return result
+                                    end
+                                end
                                 table.insert(rows, { clean_button })
                             end
                         end
                     end
                 end
                 if #rows > 0 then plugin_action_rows = rows end
+            end
+
+            local archive_row = not is_rakuyomi_book and archive_context_row(
+                file_manager, file, is_file)
+            if archive_row then
+                plugin_action_rows = plugin_action_rows or {}
+                table.insert(plugin_action_rows, archive_row)
             end
 
             local function showPluginActionsSubmenu()
@@ -2271,101 +2389,7 @@ local function apply_context_menu()
                 })
             end
 
-            if is_file and is_not_parent_folder and not item._zen_home_context then
-                table.insert(buttons, {
-                    {
-                        text = "\u{F01BE}  " .. _("Move"),
-                        align = "left",
-                        callback = function()
-                            close_dialog()
-                            local ffiUtil = require("ffi/util")
-                            local DocSettings = require("docsettings")
-                            local ReadHistory = require("readhistory")
-                            local ReadCollection = require("readcollection")
-                            local lfs = require("libs/libkoreader-lfs")
-                            local src = ffiUtil.realpath(file)
-                            if not src then return end
-                            local move_home_dir = paths.getHomeDir()
-                                or file_chooser.path
-                            if not move_home_dir then return end
-                            local src_dir = ffiUtil.realpath(ffiUtil.dirname(src))
-                            local _zen_cfg = require("config/manager").get()
-                            local _extra = type(_zen_cfg) == "table"
-                                and type(_zen_cfg.additional_home_dirs) == "table"
-                                and _zen_cfg.additional_home_dirs or nil
-                            local chooser = MoveChooser:new{
-                                select_directory = true,
-                                select_file = false,
-                                show_files = true,
-                                title = _("Move to…"),
-                                path = move_home_dir,
-                                home_root = move_home_dir,
-                                src_dir = src_dir,
-                                extra_roots = _extra,
-                                onConfirm = function(dest_dir_real)
-                                    local name = ffiUtil.basename(src)
-                                    local dest_file = ffiUtil.joinPath(dest_dir_real, name)
-                                    if lfs.attributes(dest_file) then
-                                        local InfoMessage = require("ui/widget/infomessage")
-                                        UIManager:show(InfoMessage:new{
-                                            text = _("An item with that name already exists."),
-                                            icon = "notice-warning",
-                                        })
-                                        return
-                                    end
-                                    if file_manager:moveFile(src, dest_dir_real) then
-                                        if is_file then
-                                            DocSettings.updateLocation(src, dest_file)
-                                            ReadHistory:updateItem(src, dest_file)
-                                            ReadCollection:updateItem(src, dest_file)
-                                            local ok_bim2, bim2 = pcall(require, "bookinfomanager")
-                                            if ok_bim2 and bim2 then
-                                                local new_dir = ffiUtil.realpath(dest_dir_real)
-                                                if new_dir then
-                                                    pcall(bim2.setBookInfoProperties, bim2, src,
-                                                        { directory = new_dir .. "/" })
-                                                end
-                                            end
-                                        else
-                                            ReadHistory:updateItemsByPath(src, dest_file)
-                                            ReadCollection:updateItemsByPath(src, dest_file)
-                                        end
-                                        local real_cur = ffiUtil.realpath(file_chooser.path)
-                                        local real_home = ffiUtil.realpath(home_dir)
-                                        local at_home = real_cur == real_home
-                                        local n = 0
-                                        if not at_home then
-                                            local ok3, iter3, dir3 = pcall(lfs.dir, file_chooser.path)
-                                            if ok3 then
-                                                for f3 in iter3, dir3 do
-                                                    if f3 ~= "." and f3 ~= ".." then n = n + 1 end
-                                                end
-                                            end
-                                        end
-                                        if not at_home and n == 0 then
-                                            UIManager:nextTick(function()
-                                                file_chooser:changeToPath(home_dir)
-                                            end)
-                                        else
-                                            refresh()
-                                        end
-                                    else
-                                        local InfoMessage = require("ui/widget/infomessage")
-                                        UIManager:show(InfoMessage:new{
-                                            text = _("Move failed."),
-                                            icon = "notice-warning",
-                                        })
-                                    end
-                                end,
-                            }
-                            UIManager:show(chooser)
-                        end,
-                    },
-                })
-            end
-
-
-            if is_file then
+            if is_file and not is_rakuyomi_book then
                 local ReadCollection = require("readcollection")
 
                 if item._zen_collection_name then
@@ -2409,7 +2433,7 @@ local function apply_context_menu()
                 end
             end
 
-            if is_file and is_not_parent_folder then
+            if is_file and is_not_parent_folder and not is_rakuyomi_book then
                 table.insert(buttons, {
                     {
                         text = icons.read_status .. "  " .. _("Read status") .. "  " .. submenu_arrow,
@@ -2421,8 +2445,13 @@ local function apply_context_menu()
                             local DocSettings = require("docsettings")
                             local doc_settings = DocSettings:open(file)
                             local summary = doc_settings:readSetting("summary") or {}
-                            local current_status = summary.status
-                            local is_unread = not current_status or current_status == ""
+                            local percent_finished = doc_settings:readSetting("percent_finished")
+                            local current_status = book_status.getComputedStatus(
+                                file, summary.status, percent_finished, doc_settings)
+                            local is_unread = current_status == "new"
+                            local unread_label = is_unread
+                                and not book_status.isNewStatus(summary.status, percent_finished)
+                                and _("New") or _("Unread")
                             local status_dialog
                             local is_explicit_tbr = false
                             pcall(function()
@@ -2506,7 +2535,7 @@ local function apply_context_menu()
                                 title = _("Read status"),
                                 title_align = "center",
                                 buttons = apply_button_group_font({
-                                    statusBtn(icons.status, _("Unread"), nil),
+                                    statusBtn(icons.status, unread_label, nil),
                                     statusBtn(icons.reading, _("Reading"), "reading"),
                                     statusBtn(icons.tbr, _("To Be Read"), "tbr"),
                                     statusBtn(icons.on_hold, _("On hold"), "abandoned"),
@@ -2514,23 +2543,6 @@ local function apply_context_menu()
                                 }),
                             }
                             UIManager:show(status_dialog)
-                        end,
-                    },
-                })
-            end
-
-            if is_file and is_not_parent_folder and item._zen_home_context then
-                table.insert(buttons, {
-                    {
-                        text = icons.refresh .. "  " .. _("Refresh"),
-                        align = "left",
-                        callback = function()
-                            close_dialog()
-                            if type(item._zen_refresh) == "function" then
-                                item._zen_refresh(file)
-                            else
-                                refresh_book_info()
-                            end
                         end,
                     },
                 })
@@ -2619,6 +2631,7 @@ local function apply_context_menu()
                     { key = "authors", text = "\u{F0013}  " .. _("Authors") },
                     { key = "series", text = "\u{F0436}  " .. _("Series") },
                     { key = "access", text = "\u{F02DA}  " .. _("Recently read") },
+                    { key = "date_added", text = "\u{F073}  " .. _("Date added") },
                 }
 
                 if is_primary_home then
@@ -2835,7 +2848,7 @@ local function apply_context_menu()
                 })
             end
 
-            if not is_virtual_folder and (not is_kindle_book or is_kindle_processed) then
+            if not item._zen_hide_edit and not is_virtual_folder and (not is_kindle_book or is_kindle_processed) then
                 table.insert(buttons, {
                     {
                         text = "\u{F090C}  " .. _("Edit") .. "  " .. submenu_arrow,
@@ -2844,10 +2857,6 @@ local function apply_context_menu()
                     },
                 })
             end
-
-            local archive_row = archive_context_row(
-                FileManager.instance, file, is_file)
-            if archive_row then table.insert(buttons, archive_row) end
 
             if plugin_action_rows then
                 table.insert(buttons, {
@@ -2888,6 +2897,9 @@ local function apply_context_menu()
                                             end
                                             home.rebuildActive()
                                         end)
+                                    end
+                                    if item._zen_after_history_change then
+                                        UIManager:nextTick(item._zen_after_history_change)
                                     end
                                 end,
                             })

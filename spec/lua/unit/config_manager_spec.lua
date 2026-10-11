@@ -92,6 +92,8 @@ describe("config manager folder-path migration", function()
         assert.are.equal(18, config.page_browser.toc_font_size)
         assert.are.equal(18, config.page_browser.bookmarks_font_size)
         assert.are.same({}, config.folder_cover_paths)
+        assert.is_false(config.browser_folder_cover.name_centered)
+        assert.is_false(config.browser_folder_cover.name_opaque)
         assert.is_false(config.search.substring)
         assert.is_true(config.metadata.hardcover_enabled)
         assert.is_true(config.metadata.google_books_enabled)
@@ -102,9 +104,11 @@ describe("config manager folder-path migration", function()
         assert.is_false(config._meta.quickstart_shown_for_version)
     end)
 
-    it("preserves disabled reader margin alignment", function()
-        settings_file.data = { features = { reader_status_bar_margins = false } }
-        assert.is_false(Manager.load().features.reader_status_bar_margins)
+    it("preserves saved reader margin alignment", function()
+        for _i, enabled in ipairs({ false, true }) do
+            settings_file.data = { features = { reader_status_bar_margins = enabled } }
+            assert.are.equal(enabled, Manager.load().features.reader_status_bar_margins)
+        end
     end)
 
     it("preserves existing default status layouts", function()
@@ -524,6 +528,46 @@ describe("config manager folder-path migration", function()
         Manager.save(config)
 
         assert.are.equal("default", Manager.load().library_font.font_face)
+    end)
+
+    it("removes the end-of-book default source while preserving tab order", function()
+        local order = { "to_be_read", "continue", "author" }
+        settings_file.data = { end_book = { strip_source = "author",
+            modules = { strip = { controls = { order = order } } } } }
+        local config = Manager.load()
+        assert.is_nil(config.end_book.strip_source)
+        assert.is_nil(settings_file.data.end_book.strip_source)
+        assert.same(order, config.end_book.modules.strip.controls.order)
+    end)
+
+    it("updates end-of-book appearance defaults once and preserves later choices", function()
+        settings_file.data = { end_book = { modules = {
+            featured = { show_description = true }, strip = { center_books = true },
+        } } }
+        local config = Manager.load()
+        assert.is_false(config.end_book.modules.featured.show_description)
+        assert.is_false(config.end_book.modules.strip.center_books)
+        config.end_book.modules.featured.show_description = true
+        config.end_book.modules.strip.center_books = true
+        Manager.save(config)
+        config = Manager.load()
+        assert.is_true(config.end_book.modules.featured.show_description)
+        assert.is_true(config.end_book.modules.strip.center_books)
+    end)
+
+    it("adds rating to saved end-of-book layouts and preserves its order and visibility", function()
+        settings_file.data = { end_book = { rows = {
+            order = { "strip", "featured", "stats_triplet" }, enabled = { featured = true },
+        } } }
+        local config = Manager.load()
+        assert.same({ "strip", "featured", "stats_triplet", "rating" }, config.end_book.rows.order)
+        assert.is_false(config.end_book.rows.enabled.rating)
+        config.end_book.rows.order = { "rating", "strip", "featured", "stats_triplet" }
+        config.end_book.rows.enabled.rating = true
+        Manager.save(config)
+        config = Manager.load()
+        assert.same({ "rating", "strip", "featured", "stats_triplet" }, config.end_book.rows.order)
+        assert.is_true(config.end_book.rows.enabled.rating)
     end)
 
     it("enables recognized lookup plugins once and preserves later choices", function()

@@ -1,5 +1,6 @@
 local Blitbuffer = require("ffi/blitbuffer")
 local Button = require("ui/widget/button")
+local ButtonFeedback = require("common/ui/button_feedback")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local Device = require("device")
 local FrameContainer = require("ui/widget/container/framecontainer")
@@ -53,12 +54,13 @@ local function title_back_range(title_bar)
     if not title_bar.back_visible then return end
     local dimen = title_bar.title_container.dimen
     if not dimen then return end
+    local back_dimen = title_bar.back_button.dimen
     return Geom:new{
         x = dimen.x,
-        y = dimen.y,
-        w = math.min(dimen.w, title_bar.title_widget:getSize().w),
-        h = dimen.h,
-    }:combine(title_bar.back_button.dimen)
+        y = back_dimen.y,
+        w = math.min(dimen.w, title_bar.title_widget:getSize().w + Screen:scaleBySize(8)),
+        h = back_dimen.h,
+    }:combine(back_dimen)
 end
 
 local function default_status_factory(plugin)
@@ -222,7 +224,6 @@ function ZenSettingsTitleBar:init()
                 text_font_size = self.action.text_font_size
                     or TitleStyle.ACTION_FONT_SIZE or 18,
                 text_font_bold = true,
-                allow_flash = false,
                 show_parent = self.show_parent,
                 callback = self.action.callback,
             }
@@ -254,8 +255,6 @@ function ZenSettingsTitleBar:init()
                     UIManager:setDirty(button.show_parent, "fast", button.dimen)
                     return true
                 end
-                self.action_button._doFeedbackHighlight = function() end
-                self.action_button._undoFeedbackHighlight = function() end
             end
         else
             self.action_button = ZenIconButton:new{
@@ -264,7 +263,7 @@ function ZenSettingsTitleBar:init()
                 width = icon_size,
                 height = icon_size,
                 padding = button_padding,
-                allow_flash = false,
+                allow_flash = true,
                 show_parent = self.show_parent,
                 callback = self.action.callback,
             }
@@ -333,18 +332,14 @@ function ZenSettingsTitleBar:init()
         width = icon_size,
         height = icon_size,
         padding = button_padding,
-        allow_flash = false,
+        allow_flash = true,
         show_parent = self.show_parent,
+        onTapIconButton = function() return self:onTapBackTitle() end,
         callback = function()
             if self.back_visible and self.back_callback then return self.back_callback() end
             return true
         end,
-        hold_callback = function()
-            if self.back_visible and self.back_hold_callback then
-                return self.back_hold_callback()
-            end
-            return true
-        end,
+        hold_callback = function() return self:onHoldBackTitle() end,
     }
     self.back_button.skip_paint = self.back_visible ~= true
     self.root_icon = ZenIconButton:new{
@@ -481,7 +476,7 @@ function ZenSettingsTitleBar:init()
             width = icon_size,
             height = icon_size,
             padding = button_padding,
-            allow_flash = false,
+            allow_flash = true,
             show_parent = self.show_parent,
             callback = function() return self:openSearch() end,
         }
@@ -499,7 +494,7 @@ function ZenSettingsTitleBar:init()
             -(close_hitbox_inset + close_hitbox_left_inset),
             -close_hitbox_inset,
         },
-        allow_flash = false,
+        allow_flash = true,
         show_parent = self.show_parent,
         callback = function()
             if self.search_expanded then
@@ -582,13 +577,17 @@ end
 
 function ZenSettingsTitleBar:onTapBackTitle()
     if not (self.back_visible and self.back_callback) then return false end
+    ButtonFeedback.flash(title_back_range(self))
     self.back_callback()
+    if not G_reader_settings:isFalse("flash_ui") then UIManager:forceRePaint() end
     return true
 end
 
 function ZenSettingsTitleBar:onHoldBackTitle()
     if not (self.back_visible and self.back_hold_callback) then return false end
+    ButtonFeedback.flash(title_back_range(self))
     self.back_hold_callback()
+    if not G_reader_settings:isFalse("flash_ui") then UIManager:forceRePaint() end
     return true
 end
 

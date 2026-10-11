@@ -21,6 +21,7 @@ local Size = require("ui/size")
 local TextBoxWidget = require("ui/widget/textboxwidget")
 local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
+local getFullRefreshMode = require("common/ui/refresh")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local CoverUtils = require("common/cover_utils")
@@ -257,8 +258,6 @@ local function zen_button(options, filled, radius)
         UIManager:setDirty(self.show_parent, "fast", self.dimen)
         return true
     end
-    button._doFeedbackHighlight = function() end
-    button._undoFeedbackHighlight = function() end
     return button
 end
 
@@ -1323,7 +1322,7 @@ local M = {}
 function M.show(options)
     options = options or {}
     local editor = MetadataEditor:new(options)
-    UIManager:show(editor, "full")
+    UIManager:show(editor, getFullRefreshMode())
     return editor
 end
 

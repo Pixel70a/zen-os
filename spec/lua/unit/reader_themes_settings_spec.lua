@@ -71,7 +71,72 @@ describe("reader themes settings", function()
         ReaderSettings = require("modules/settings/sections/reader_settings")
     end)
 
-    it("ends reader settings with a margin toggle that saves and refreshes both bars", function()
+    it("shows reader font choices as radios and preserves their actions", function()
+        local current_font = "Font A"
+        local font_items = {{ text = "Font settings", sub_item_table = {{
+            text = "Preview fonts", checked_func = function() return true end,
+        }} }}
+        for _i, name in ipairs({ "Font A", "Font B" }) do
+            font_items[#font_items + 1] = {
+                text = name,
+                checked_func = function() return current_font == name end,
+                callback = function() current_font = name end,
+            }
+        end
+        local entry = { sub_item_table_func = function() return font_items end }
+        ZenSpec.replace("apps/reader/readerui", { instance = {
+            view = { footer = {} },
+            font = { addToMainMenu = function(_self, menu) menu.change_font = entry end },
+        } })
+        local items = ReaderSettings.build({
+            config = { features = {}, reader_themes = {} },
+            plugin = {},
+            save_and_apply = function() end,
+        })
+        local font
+        for _i, item in ipairs(items) do
+            if item.text == "Font" then font = item end
+        end
+        assert.is_true(font.enabled_func())
+        for _i = 1, 2 do
+            local choices = font.sub_item_table_func()
+            assert.are.equal(font_items, choices)
+            assert.is_true(choices[2].radio)
+            assert.is_true(choices[3].radio)
+            assert.is_nil(choices[1].sub_item_table[1].radio)
+            assert.is_true(choices[2].checked_func())
+            choices[3].callback()
+            assert.is_false(choices[2].checked_func())
+            assert.is_true(choices[3].checked_func())
+            choices[2].callback()
+            entry = { sub_item_table = font_items }
+        end
+    end)
+
+    it("saves the CBZ page-turn flash toggle without requiring an open reader", function()
+        local saved = 0
+        local config = { features = {}, reader_themes = {} }
+        local items = ReaderSettings.build({
+            config = config,
+            plugin = { saveConfig = function() saved = saved + 1 end },
+            save_and_apply = function() error("no patch reapplication needed") end,
+        })
+        local toggle
+        for _i, item in ipairs(items) do
+            if item.text == "Flash on every CBZ page turn" then toggle = item end
+        end
+        assert.is_table(toggle)
+        assert.is_false(toggle.checked_func())
+        toggle.callback()
+        assert.is_true(config.features.reader_flash_cbz)
+        assert.is_true(toggle.checked_func())
+        toggle.callback()
+        assert.is_false(config.features.reader_flash_cbz)
+        assert.is_false(toggle.checked_func())
+        assert.are.equal(2, saved)
+    end)
+
+    it("places end-of-book settings last and keeps the margin toggle refreshing both bars", function()
         local saved, refreshed, dirty = 0, 0, 0
         local config = { features = { reader_status_bar_margins = true }, reader_themes = {} }
         local reader = { view = { footer = {
@@ -93,7 +158,8 @@ describe("reader themes settings", function()
             plugin = { saveConfig = function() saved = saved + 1 end },
             save_and_apply = function() end,
         })
-        local toggle = items[#items]
+        assert.are.equal("End of book", items[#items].text)
+        local toggle = items[#items - 1]
         assert.are.equal("Align status bars with book margins", toggle.text)
         assert.is_true(toggle.checked_func())
         toggle.callback()

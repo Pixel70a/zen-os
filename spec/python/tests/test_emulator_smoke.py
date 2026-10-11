@@ -103,7 +103,11 @@ def _open_buttons_arrange(driver: ZenDriver) -> None:
     raise AssertionError(f"Buttons arrange page did not open: {attempts}")
 
 
-def test_flip_lh_rh_swaps_both_menu_tab_pairs() -> None:
+@pytest.mark.parametrize("home_in_controls", [False, True])
+@pytest.mark.parametrize("launcher_in_controls", [False, True])
+def test_flip_lh_rh_swaps_both_menu_tab_pairs(
+    home_in_controls: bool, launcher_in_controls: bool
+) -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-flip-tabs-") as temporary:
         root = Path(temporary)
@@ -118,20 +122,35 @@ def test_flip_lh_rh_swaps_both_menu_tab_pairs() -> None:
             library,
             zen_config_source="""return {
   updater = { update_auto_check = false },
-  quick_settings = { flip_lh_rh_icon = true },
+  quick_settings = {
+    flip_lh_rh_icon = true,
+    button_order = { 'library_home' },
+    show_buttons = { library_home = HOME_IN_CONTROLS },
+  },
 }
-""",
+""".replace("HOME_IN_CONTROLS", str(home_in_controls).lower()),
         )
         try:
             wait_for_socket(socket_path)
             driver = ZenDriver(socket_path)
+            if launcher_in_controls:
+                assert driver.command("open_settings_page")["ok"] is True
+                for label in ("Interface", "Controls", "Show Launcher in Controls"):
+                    assert driver.command("settings_page_select", label=label)["ok"] is True
+                assert driver.command("close_settings_page")["ok"] is True
             layout = driver.command("menu_tab_layout")
             assert layout["ok"] is True
-            assert layout["tabs"][:2] == ["zen_library_home", "zen_ui"]
-            assert layout["tabs"][-2:] == ["app_launcher", "quicksettings"]
-            assert layout["group_positions"][-1] - layout["group_positions"][-2] == 2
+            left_tabs = ["zen_ui"] if home_in_controls else ["zen_library_home", "zen_ui"]
+            assert layout["tabs"][:len(left_tabs)] == left_tabs
+            assert ("zen_library_home" in layout["tabs"]) is (not home_in_controls)
+            right_tabs = ["quicksettings"] if launcher_in_controls else ["app_launcher", "quicksettings"]
+            assert layout["tabs"][-len(right_tabs):] == right_tabs
+            assert ("app_launcher" in layout["tabs"]) is (not launcher_in_controls)
+            if not launcher_in_controls:
+                assert layout["group_positions"][-1] - layout["group_positions"][-2] == 2
 
-            for tab_offset, expected_separator_offsets in ((-2, (-1, 1)), (-1, (-1,))):
+            tab_offsets = [(-1, (-1,))] if launcher_in_controls else [(-2, (-1, 1)), (-1, (-1,))]
+            for tab_offset, expected_separator_offsets in tab_offsets:
                 active_tab = layout["tabs"][tab_offset]
                 active = driver.command("menu_tab_layout", tab_id=active_tab)
                 icon_group_position = active["group_positions"][tab_offset]
@@ -140,6 +159,70 @@ def test_flip_lh_rh_swaps_both_menu_tab_pairs() -> None:
                     icon_group_position + offset for offset in expected_separator_offsets
                 ]
                 assert active["empty_segment"] == active["tab_segments"][tab_offset]
+            assert ("launcher" in active["button_ids"]) is launcher_in_controls
+            if launcher_in_controls:
+                assert driver.command("open_settings_page")["ok"] is True
+                assert driver.command("settings_page_select", label="Show Launcher in Controls")["ok"] is True
+                assert driver.command("close_settings_page")["ok"] is True
+                restored = driver.command("menu_tab_layout", tab_id="quicksettings")
+                assert "app_launcher" in restored["tabs"]
+                assert "launcher" not in restored["button_ids"]
+            if not home_in_controls:
+                tapped = driver.command("menu_tab_layout", tab_id="zen_library_home", tap=True)
+                assert tapped["ok"] is True
+                assert tapped["feedback_repaints"] > 0
+                assert driver.command("home_state")["home"]["on_top"] is True
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+            process.wait()
+
+
+def test_reader_controls_hide_on_first_library_menu_open() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-reader-controls-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        library.mkdir()
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime,
+            ko_home,
+            socket_path,
+            library,
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  quick_settings = {
+    layout_version = 2,
+    button_order = { 'rotate', 'night', 'cb_1' },
+    show_buttons = { rotate = true, night = true, cb_1 = true },
+    reader_actions = { rotate = true },
+    hide_reader_actions_in_library = true,
+    custom_buttons = {
+      { id = 'cb_1', type = 'action', label = 'Reader control',
+        action = { suspend = true }, reader_action = true },
+    },
+  },
+}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            layout = driver.command("menu_tab_layout")
+            assert layout["ok"] is True
+            assert layout["active_tab"] == "quicksettings"
+            assert layout["button_ids"] == ["night"]
+
+            assert driver.command("open_settings_page")["ok"] is True
+            for label in ("Interface", "Controls", "Hide reader actions in library"):
+                assert driver.command("settings_page_select", label=label)["ok"] is True
+            assert driver.command("close_settings_page")["ok"] is True
+            assert driver.command("menu_tab_layout")["button_ids"] == ["rotate", "night", "cb_1"]
         finally:
             process.send_signal(signal.SIGTERM)
             try:
@@ -607,7 +690,7 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert driver.command("settings_page_select", label="General")["ok"] is True
             general_labels = driver.command("settings_page_state")["settings"]["labels"]
             expected_general = [
-                "Wi-Fi", "Schedules", "Sleep", "Battery", "Language", "Time and date", "Advanced", "Updates",
+                "Wi-Fi", "Schedules", "Sleep", "Battery", "Advanced", "Updates",
             ]
             if "Bluetooth" in general_labels:
                 expected_general.insert(1, "Bluetooth")
@@ -615,6 +698,12 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert driver.command("settings_page_select", label="Advanced")["ok"] is True
             advanced_labels = driver.command("settings_page_state")["settings"]["labels"]
             assert "Double tap to open books" not in advanced_labels
+            assert driver.command("settings_page_back")["ok"] is True
+            assert driver.command("settings_page_back")["ok"] is True
+            assert driver.command("settings_page_select", label="About")["ok"] is True
+            assert driver.command("settings_page_select", label="Device")["ok"] is True
+            device_labels = driver.command("settings_page_state")["settings"]["labels"]
+            assert device_labels[-2:] == ["Language", "Time and date"]
             assert driver.command("settings_page_back")["ok"] is True
             assert driver.command("settings_page_back")["ok"] is True
             assert driver.command(
@@ -627,7 +716,7 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert settings.get("title") == "Library"
             assert settings.get("back_visible") is True
             assert not any(label.startswith("Font:") for label in settings["labels"])
-            assert settings["labels"][-1] == "Double tap to open books"
+            assert settings["labels"] == ["Appearance", "Folders", "Books", "Context menu"]
             assert driver.command("settings_page_select", label="Folders")["ok"] is True
             settings = driver.command("settings_page_state")["settings"]
             assert settings.get("title") == "Folders"
@@ -703,7 +792,7 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             )["ok"] is True
             settings = driver.command("settings_page_state")["settings"]
             assert settings.get("search_active") is True
-            assert "Items per page" in settings.get("labels", [])
+            assert any(label.startswith("Items per page") for label in settings.get("labels", []))
             search_row_style = settings.get("row_style")
             assert search_row_style == settings.get("standard_style")
             assert driver.command(

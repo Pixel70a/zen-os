@@ -56,7 +56,7 @@ EXPECTED_IDS = frozenset((
     "controls_buttons_settings", "navbar_buttons_settings",
     "reader", "reader_launcher_book_switcher",
     "reader_launcher_book_details", "reader_book_details", "page_browser_grid",
-    "page_browser_carousel", "reader_dict", "reader_highlight",
+    "page_browser_carousel", "reader_dict", "reader_highlight", "end_book",
 ))
 SHOWCASE_BOOK_COUNT = 12
 SHOWCASE_PLACEHOLDER_COUNT = SHOWCASE_BOOK_COUNT
@@ -683,6 +683,21 @@ def _zen_config(background_path: Path = SHOWCASE_BACKGROUND) -> dict[str, object
         "browser_page_count": {"show_page_count": True},
         "mosaic_title_strip": {"show_title": False, "show_author": False},
         "group_view": {"include_new_in_tbr": False},
+        "rakuyomi": {"exclude_from_home": True},
+        "end_book": {
+            "modules": {
+                "strip": {
+                    "count": 4,
+                    "controls": {
+                        "order": ["author", "series", "continue"],
+                        "show_buttons": {
+                            "author": True, "series": True, "continue": True,
+                            "next_series": False, "other_series": False,
+                        },
+                    },
+                },
+            },
+        },
         "library_background": {
             "enabled": True,
             "path": str(background_path.resolve()),
@@ -1566,10 +1581,12 @@ class CaptureWorkflow:
                 layout.get("active_tab") != "quicksettings"
                 or "app_launcher" in layout.get("tabs", [])
                 or layout.get("button_ids") != [
-                    "wifi", "night", "rotate", "zen", "zen_settings", "launcher",
+                    "wifi", "night", "screenshot", "zen_settings", "launcher", "library_home",
                 ]
                 or layout.get("unified_slider") is not True
-                or not {"Settings", "Launcher"}.issubset(layout.get("visible_texts", []))
+                or not {
+                    "Wi-Fi", "Night", "Screenshot", "Settings", "Launcher", "Home",
+                }.issubset(layout.get("visible_texts", []))
             ):
                 raise CaptureError(f"minimal Controls layout mismatch: {layout}")
             return
@@ -1711,6 +1728,45 @@ class CaptureWorkflow:
                 picker_title,
             )
             return
+        if action == "end_book":
+            title = str(options["book_title"])
+            book = next((book for book in books if book.title == title), None)
+            if book is None:
+                raise CaptureError(f"end-of-book showcase book was not staged: {title}")
+            _require_ok(driver.open_book(book.path), "open finished book")
+            _wait_for(
+                driver.reader_state,
+                lambda value: value.get("reader", {}).get("open") is True,
+                "finished book reader",
+            )
+            _require_ok(
+                driver.command(
+                    "end_book", show=True, finish=True, auto_mark=True,
+                    action="zen_end_book",
+                ),
+                "show end of book",
+            )
+            _require_ok(
+                driver.command("end_book", select_source="continue"),
+                "select Continue",
+            )
+            staged_paths = {str(item.path.resolve()) for item in books if item != book}
+            _wait_for(
+                lambda: driver.command("end_book"),
+                lambda value: value.get("active") is True
+                and value.get("file") == str(book.path.resolve())
+                and value.get("book_status") == "complete"
+                and value.get("source") == "continue"
+                and title in value.get("visible_texts", [])
+                and [label["label"] for label in value.get("strip_labels", [])]
+                == ["More by Andy Weir", "Series", "Continue"]
+                and len(value.get("strip_covers", [])) == 4
+                and all(cover.get("image_cache_key") for cover in value["strip_covers"])
+                and all(item.get("path") in staged_paths
+                        for item in value.get("strip_items", [])),
+                scenario.id,
+            )
+            return
         if action == "reader":
             book = self._role(books, str(options["book_role"]))
             self._reader_at_showcase_page(driver, book)
@@ -1825,6 +1881,12 @@ class CaptureWorkflow:
                 reader = driver.reader_state().get("reader", {})
                 result["reader_page"] = reader.get("page")
                 result["reader_preset"] = reader.get("active_preset")
+            if scenario.action == "end_book":
+                state = driver.command("end_book")
+                result["finished_book"] = scenario.options["book_title"]
+                result["strip_source"] = state["source"]
+                result["strip_labels"] = [label["label"] for label in state["strip_labels"]]
+                result["strip_cover_count"] = len(state["strip_covers"])
             bounds = self._semantic_bounds(driver, scenario)
             output = self.output_dir / scenario.filename
             if bounds is None:

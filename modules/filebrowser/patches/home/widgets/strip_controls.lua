@@ -134,8 +134,9 @@ function M.build(opts)
     local inner_height = math.max(1, height - border_size * 2)
     local divider_size = math.max(1, Device.screen:scaleBySize(1))
     local divider_width = math.max(0, #entries - 1) * divider_size
-    local compact_count = 0
+    local compact_count, source_count = 0, 0
     for _i, entry in ipairs(entries) do
+        if ButtonModel.isSource(entry) then source_count = source_count + 1 end
         if COMPACT_IDS[entry.id] then
             compact_count = compact_count + 1
         end
@@ -174,7 +175,7 @@ function M.build(opts)
         if not COMPACT_IDS[entry.id] then flexible_index = flexible_index + 1 end
         local cell_width = COMPACT_IDS[entry.id] and compact_width or flexible_cell_width
             + (flexible_index <= flexible_remainder and 1 or 0)
-        local active = entry.id == opts.active_id
+        local active = entry.id == opts.active_id and source_count > 1
         local content
         if icon_entry then
             local icon = entry.id == "page_left" and icons.arrow_left

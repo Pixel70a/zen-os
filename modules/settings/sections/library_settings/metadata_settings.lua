@@ -104,7 +104,7 @@ function M.build(ctx)
         title = _("Hardcover API token"),
         description = _("Use a token limited to read:catalog. It is stored locally as plain text and is never logged."),
         invalid = _("Enter a valid Hardcover token without spaces."),
-        label = _("Hardcover API token:"),
+        label = _("Hardcover API token") .. ":",
         clear = _("Clear Hardcover token"),
         confirm = _("Clear the saved Hardcover API token?"),
         clear_failed = _("The Hardcover token could not be cleared."),
@@ -130,7 +130,7 @@ function M.build(ctx)
         title = _("Google Books API key"),
         description = _("The key is stored locally as plain text and is never logged."),
         invalid = _("Enter a valid Google Books API key without spaces."),
-        label = _("Google Books API key:"),
+        label = _("Google Books API key") .. ":",
         clear = _("Clear Google Books API key"),
         confirm = _("Clear the saved Google Books API key?"),
         clear_failed = _("The Google Books API key could not be cleared."),
@@ -158,9 +158,14 @@ function M.build(ctx)
         text = _("Metadata"),
         _zen_metadata_settings = true,
         sub_item_table = {
-            provider_item(_("Hardcover"), "hardcover_enabled", hardcover_items),
-            provider_item(_("Google Books"), "google_books_enabled", google_items),
-            provider_item(_("Open Library"), "open_library_enabled"),
+            {
+                text = _("Sources"),
+                sub_item_table = {
+                    provider_item(_("Hardcover"), "hardcover_enabled", hardcover_items),
+                    provider_item(_("Google Books"), "google_books_enabled", google_items),
+                    provider_item(_("Open Library"), "open_library_enabled"),
+                },
+            },
             {
                 text = _("Match selection"),
                 sub_item_table = {

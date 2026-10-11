@@ -9,6 +9,7 @@ local paths = require("common/paths")
 local StandalonePage = require("modules/filebrowser/patches/standalone_page")
 local SharedState = require("common/shared_state")
 local title_sort = require("common/title_sort")
+local key_cache = require("common/sort_key_cache")
 local zen_utils = require("common/utils")
 
 local M = {}
@@ -451,6 +452,7 @@ local function build_group_item_table(groups, data_type)
             mandatory   = tostring(count) .. " \u{F016}",
             _zen_files  = files,
             _zen_type   = data_type,
+            _zen_author = group.author,
             _zen_group  = (data_type == "series") and group or nil,
         })
     end
@@ -458,13 +460,15 @@ local function build_group_item_table(groups, data_type)
     if #items > 1 then
         if data_type == "authors" then
             local collate = get_authors_collate()
+            local compare = author_sort.comparator(collate)
             table.sort(items, function(a, b)
-                return author_sort.less(a.text, b.text, collate)
+                return compare(a._zen_author, b._zen_author)
             end)
         elseif data_type == "series" or data_type == "languages" or data_type == "tags" then
             local natural = get_group_collate(data_type) == "title_natural"
+            local compare = title_sort.comparator(natural)
             table.sort(items, function(a, b)
-                return title_sort.less(a.text, b.text, natural)
+                return compare(a.text, b.text)
             end)
         end
     end
@@ -739,11 +743,13 @@ local function sortDetailFiles(files, collate, reverse)
             sort_key = fpath:match("([^/]+)$") or fpath
         end
 
-        table.insert(items, { path = fpath, key = sort_key })
+        table.insert(items, { path = fpath, key = sort_key,
+            doc_props = collate == "title_natural" and { display_title = sort_key } or nil })
     end
 
     -- Sort by key
     if collate ~= "title_natural" then
+        local title_key = key_cache(title_sort.sortKey)
         table.sort(items, function(a, b)
             if collate == "series_index" or collate == "access" then
                 -- Numeric comparison; for access higher = more recent so invert.
@@ -755,8 +761,8 @@ local function sortDetailFiles(files, collate, reverse)
                     if reverse then return a_n > b_n else return a_n < b_n end
                 end
             else
-                local a_key = collate == "title" and title_sort.key(a.key) or tostring(a.key)
-                local b_key = collate == "title" and title_sort.key(b.key) or tostring(b.key)
+                local a_key = collate == "title" and title_key(a.key) or tostring(a.key)
+                local b_key = collate == "title" and title_key(b.key) or tostring(b.key)
                 local a_lower = a_key:lower()
                 local b_lower = b_key:lower()
                 if reverse then return a_lower > b_lower else return a_lower < b_lower end
@@ -769,9 +775,7 @@ local function sortDetailFiles(files, collate, reverse)
         table.sort(items, function(a, b)
             local first, second = a, b
             if reverse then first, second = second, first end
-            return sort_func(
-                { doc_props = { display_title = first.key } },
-                { doc_props = { display_title = second.key } })
+            return sort_func(first, second)
         end)
     end
 
@@ -784,8 +788,8 @@ local function sortDetailFiles(files, collate, reverse)
     return sorted
 end
 
-local function group_tag_book_items(items, tab_id)
-    local cfg = tab_id == "tags" and load_zen_config()
+local function group_series_book_items(items, tab_id)
+    local cfg = (tab_id == "tags" or tab_id == "authors") and load_zen_config()
     if not (cfg and cfg.features and cfg.features.automatic_series_grouping ~= false) then
         return items
     end
@@ -888,7 +892,7 @@ local function showDetailSortDialog(group_name, tab_id, menu, files, reload_file
             })
         end
 
-        book_items = group_tag_book_items(book_items, tab_id)
+        book_items = group_series_book_items(book_items, tab_id)
         if should_show_up_folder() then
             table.insert(book_items, 1, { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
         end
@@ -1098,7 +1102,7 @@ showDetailView = function(group_item, injectNavbar, tab_id, navbar_tab_id)
             mandatory = attr and util_mod.getFriendlySize(attr.size or 0) or "",
         })
     end
-    book_items = group_tag_book_items(book_items, tab_id)
+    book_items = group_series_book_items(book_items, tab_id)
     if #book_items == 0 then
         table.insert(book_items, {
             text                   = group_empty_message(tab_id),
@@ -1128,6 +1132,7 @@ showDetailView = function(group_item, injectNavbar, tab_id, navbar_tab_id)
                 if series_menu then
                     series_menu._zen_restore_parent = {
                         group_name = group_name,
+                        tab_id = tab_id,
                         page = menu_self.page,
                     }
                 end
@@ -1857,7 +1862,7 @@ function M.getActiveDetail()
         if m._zen_restore_parent then
             return {
                 group_name = m._zen_restore_parent.group_name,
-                tab_id = "tags",
+                tab_id = m._zen_restore_parent.tab_id,
                 page = m._zen_restore_parent.page or 1,
             }
         end

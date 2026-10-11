@@ -72,7 +72,16 @@ class ZenDriver:
     def command(self, kind: str, **params: object) -> dict[str, object]:
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
             client.settimeout(10)
-            client.connect(str(self.socket_path))
+            deadline = time.monotonic() + 10
+            while True:
+                try:
+                    client.connect(str(self.socket_path))
+                    break
+                except (FileNotFoundError, ConnectionRefusedError):
+                    # Browser/reader transitions briefly recreate the socket.
+                    if time.monotonic() >= deadline:
+                        raise
+                    time.sleep(0.1)
             client.sendall((json.dumps({"type": kind, "params": params}) + "\n").encode())
             response = client.makefile("r", encoding="utf-8").readline()
         return json.loads(response)
@@ -174,14 +183,28 @@ def launch(
             encoding="utf-8",
         )
     env = os.environ.copy()
+    foreground = env.get("ZEN_UI_TEST_FOREGROUND") == "1"
     env.update({
         "KO_HOME": str(ko_home),
         "ZEN_UI_TEST_SOCKET": str(socket_path),
         "ZEN_UI_TESTING": "1",
+        "SDL_MAC_BACKGROUND_APP": "0" if foreground else "1",
+        "SDL_WINDOW_NO_ACTIVATION_WHEN_SHOWN": "0" if foreground else "1",  # SDL2
+        "SDL_WINDOW_ACTIVATE_WHEN_SHOWN": "1" if foreground else "0",  # SDL3
+        "SDL_WINDOW_ACTIVATE_WHEN_RAISED": "1" if foreground else "0",
     })
     if env_overrides:
         env.update(env_overrides)
     return subprocess.Popen([str(koreader_dir / "reader.lua")], cwd=koreader_dir, env=env, text=True)
+
+
+def stop(process: subprocess.Popen[str]) -> None:
+    process.terminate()
+    try:
+        process.wait(timeout=15)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
 
 
 def wait_for_socket(path: Path, timeout: float = 30) -> None:

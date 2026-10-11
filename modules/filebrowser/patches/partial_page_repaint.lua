@@ -14,6 +14,7 @@ local function apply_partial_page_repaint()
 
     local FileChooser = require("ui/widget/filechooser")
     local UIManager   = require("ui/uimanager")
+    local getFullRefreshMode = require("common/ui/refresh")
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
     local pending = false
@@ -43,7 +44,7 @@ local function apply_partial_page_repaint()
                 pending = false
                 if not is_enabled() or widget._zen_no_forced_repaint or (widget.page or 1) ~= page
                         or widget._zen_cover_hydration_generation ~= generation then return end
-                UIManager:setDirty(nil, "full")
+                UIManager:setDirty(nil, getFullRefreshMode())
                 UIManager:forceRePaint()
             end)
         end

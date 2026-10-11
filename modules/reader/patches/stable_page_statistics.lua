@@ -11,7 +11,7 @@ end
 
 local function stable_page_position(stats)
     local pagemap = stats.ui and stats.ui.pagemap
-    if not (pagemap and type(pagemap.wantsPageLabels) == "function"
+    if not (stats.ui and stats.ui.document and pagemap and type(pagemap.wantsPageLabels) == "function"
             and type(pagemap.getCurrentPageLabel) == "function") then
         return nil, nil
     end
@@ -50,6 +50,14 @@ return function()
             break
         end
     end
+    local plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+    if Statistics and plugin and not plugin.config._meta.statistics_freeze_finished_default_applied then
+        local settings = G_reader_settings:readSetting(Statistics.settings_key) or Statistics.default_settings
+        settings.freeze_finished_books = true
+        G_reader_settings:saveSetting(Statistics.settings_key, settings)
+        plugin.config._meta.statistics_freeze_finished_default_applied = true
+        plugin:saveConfig()
+    end
     if not Statistics or Statistics._zen_stable_page_stats
             or type(Statistics.insertDB) ~= "function" then return end
     Statistics._zen_stable_page_stats = true
@@ -58,6 +66,9 @@ return function()
     local original_insertDB = Statistics.insertDB
     Statistics.insertDB = function(self, updated_pagecount)
         local target_count = stable_page_count(self) or updated_pagecount
+        if not (self.ui and self.ui.document) then
+            target_count = target_count or statistics_page_count(self)
+        end
         local result = original_insertDB(self, target_count)
         if self.id_curr_book and self.is_doc_not_frozen then
             target_count = tonumber(target_count)

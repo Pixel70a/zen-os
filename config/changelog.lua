@@ -307,16 +307,16 @@ return {
         "Add Hungarian translation",
         "Bug fixes"
     },
-     ["3.2.1"] = {
+    ["3.2.1"] = {
         "Fix: deduplicate multiple similar languages i.e en and en-us",
         "Fix: Variable Book strip control width",
-     },
-     ["3.2.2"] = {
+    },
+    ["3.2.2"] = {
         "Fix: allow cancelling ZenPM download and time out after one minute",
         "Fix reader highlight crash",
         "Fix some icons not rendering"
-     },
-     ["3.3.0"] = {
+    },
+    ["3.3.0"] = {
         "Add native metadata editor and Hardcover/Google Books/Open Library autofill (Library > Metadata)",
         "Performance improvements and optimizations based on the benchmarks from Reddit",
         "Add support for multiple quote files",
@@ -344,10 +344,10 @@ return {
         "Fix final KOSync progress when finishing a book",
         "Fix dimmed book covers not showing everywhere"
      },
-     ["3.3.1"] = {
+    ["3.3.1"] = {
         "Fix TBR applying Library filter hiding all TBR books"
      },
-     ["4.0.0"] = {
+    ["4.0.0"] = {
         "Add KOReader menus and document layout controls inside Zen Settings",
         "Add Bluetooth device manager for Kindle, Kobo, and PocketBook (hold Bluetooth in Controls or open from Device settings)",
         "Add wifi switcher to settings",
@@ -380,8 +380,8 @@ return {
         "Open KOReader + menu outside home in context menu",
         "Fix even home widget spacing",
         "Bug fixes & performance improvements",
-     },
-      ["4.0.1"] = {
+    },
+    ["4.0.1"] = {
         "Add option to align Reader Status Bars with book margins",
         "Add Navbar active tab filled option",
         "Improve rendering, ghosting, and dark mode on color e-ink",
@@ -391,6 +391,23 @@ return {
         "Fix themed reader status bar backgrounds after waking on Colorsoft",
         "Fix Android reader bottom status bar painting over the page browser",
         "Fix History gestures not working",
+        "Fix end-of-document action resetting after restarting KOReader",
         "Fix rare bug in autoresume on kindle after deep sleep"
-      }
+    },
+    ["4.1.0"] = {
+        "Add end of book screen",
+        "Add Date added sorting to library and folder context menus",
+        "Add OPDS improvements",
+        "Add option to move Home button to Controls",
+        "Add setting to treat file updates as New status",
+        "Add hiding Reader Control buttons from Library",
+        "Improves organization in Settings",
+        "Group Authors view to also use series sub-groupings",
+        "Improve Rakuyomi integration from Zen home page",
+        "Update visual feedback on tap for UI elements",
+        "Use KOReader stats plugin offset if set",
+        "Fix reader settings not loading when starting with last file",
+        "Fix Airplane Mode control active state",
+        "Bug fixes"
+    }
 }

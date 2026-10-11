@@ -138,6 +138,27 @@ describe("ZenOS icon packs", function()
         assert.are.equal("inside", scan.packs[1].id)
     end)
 
+    it("returns absolute pack icon paths when KOReader uses a relative data directory", function()
+        local DataStorage = require("datastorage")
+        local data_dir = stub(DataStorage, "getDataDir", function() return "." end)
+        local full_data_dir = stub(DataStorage, "getFullDataDir", function() return icons_root end)
+        finally(function()
+            data_dir:revert()
+            full_data_dir:revert()
+        end)
+        make_dir(icons_root .. "/icons")
+        packs_root = icons_root .. "/icons/zen"
+        local selected = make_pack("selected", "home")
+        IconPacks._setIconsRootForTests(nil)
+
+        assert.are.equal(packs_root, IconPacks.getPacksRoot())
+        IconPacks.initialize({
+            features = { custom_icons_enabled = true },
+            custom_icons = { active_pack = "selected" },
+        })
+        assert.are.equal(selected .. "/home.svg", IconPacks.resolve("home", ZenSpec.root .. "/icons/"))
+    end)
+
     it("installs a valid ZIP and deletes it only after success", function()
         local zip_path = make_zip("sample.zip", "sample", { ["home.svg"] = "new" })
 
@@ -352,6 +373,26 @@ describe("ZenOS icon packs", function()
         assert.are.equal(plugin_icons .. "home.svg", IconPacks.resolve("home", plugin_icons))
         assert.is_nil(IconPacks._getResolvedPathForTests("bookmark"))
         assert.are.equal(plugin_icons .. "plus.svg", IconPacks.resolve("plus", plugin_icons))
+    end)
+
+    it("falls back to KOReader icons when neither the pack nor Zen supplies them", function()
+        local plugin_icons = ZenSpec.root .. "/icons/"
+        local stock_icons = lfs.currentdir() .. "/resources/icons/"
+        local utils = require("common/utils")
+        IconPacks.initialize({ features = { custom_icons_enabled = false } })
+
+        assert.are.equal(stock_icons .. "mdlight/star.empty.svg", utils.resolveIcon(plugin_icons, "star.empty"))
+        assert.are.equal(stock_icons .. "mdlight/star.full.svg", utils.resolveIcon(plugin_icons, "star.full"))
+        assert.are.equal(stock_icons .. "icon-not-found.svg", utils.resolveIcon(plugin_icons, "icon-not-found"))
+        assert.is_nil(utils.resolveIcon(plugin_icons, "zen_missing_test_icon"))
+
+        local selected = make_pack("selected", "star.full", "custom star")
+        IconPacks.initialize({
+            features = { custom_icons_enabled = true },
+            custom_icons = { active_pack = "selected" },
+        })
+        assert.are.equal(selected .. "/star.full.svg", utils.resolveIcon(plugin_icons, "star.full"))
+        assert.are.equal(stock_icons .. "mdlight/star.empty.svg", utils.resolveIcon(plugin_icons, "star.empty"))
     end)
 
     it("accepts preferred suggestions only by names in picker directories", function()
