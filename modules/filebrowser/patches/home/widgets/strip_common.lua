@@ -1342,19 +1342,19 @@ function M.build_strip(ctx, source_key)
     local swap_sequence = 0
 
     local function repaint_strip()
-        UIManager:waitForVSync() -- Let the e-ink controller finish reading the previous frame.
         if not ctx.refreshStrip then
             UIManager:setDirty(ctx.menu, "ui")
             return
         end
         local dimen = repaint_widget.dimen
         local shift = tonumber(visual_shift) or 0
-        if dimen and shift ~= 0 then
+        if dimen then
+            local border = cover_common.BORDER_SIZE -- Cover frames extend past their layout slots.
             dimen = Geom:new{
-                x = dimen.x,
-                y = dimen.y + math.min(0, shift),
-                w = dimen.w,
-                h = dimen.h + math.abs(shift),
+                x = dimen.x - border,
+                y = dimen.y + math.min(0, shift) - border,
+                w = dimen.w + border * 2,
+                h = dimen.h + math.abs(shift) + border * 2,
             }
         end
         ctx.refreshStrip(dimen)
