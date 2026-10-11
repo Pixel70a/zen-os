@@ -217,6 +217,7 @@ local defaults = {
             launcher = false,
             tailscale = false,
             zenfm = false,
+            zenpm = false,
             filebrowser = false,
         },
         background_hatching = false,

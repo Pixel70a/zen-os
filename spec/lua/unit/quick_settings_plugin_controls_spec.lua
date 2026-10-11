@@ -649,6 +649,39 @@ describe("quick settings plugin controls", function()
         assert.are.equal("/tmp/zen-ui/icons/grid.svg", launcher.icon)
     end)
 
+    it("lists ZenPM only when installed and opens it after closing the menu", function()
+        local controls = _G.__ZEN_UI_QUICK_SETTINGS
+        local config = _G.__ZEN_UI_PLUGIN.config
+        config._meta = { installed_plugins = {} }
+        assert.is_false(controls.has("zenpm"))
+        assert.is_false(controls.activate("zenpm"))
+
+        config._meta.installed_plugins.zenpm = true
+        local zenpm_item
+        for _i, item in ipairs(controls.getItems()) do
+            if item.id == "zenpm" then zenpm_item = item end
+        end
+        assert.is_table(zenpm_item)
+        assert.are.equal("ZenPM", zenpm_item.label)
+        assert.are.equal("/tmp/zen-ui/icons/zenpm.svg", zenpm_item.icon)
+        assert.is_false(config.quick_settings.show_buttons.zenpm)
+
+        local closes = 0
+        local opens = 0
+        require("ui/uimanager").broadcastEvent = function(_self, event)
+            assert.are.equal("OpenZenPM", event.name)
+            assert.are.equal(opens + 1, closes)
+            opens = opens + 1
+        end
+        for _i, module_name in ipairs({ "apps/filemanager/filemanager", "apps/reader/readerui" }) do
+            require(module_name).instance = {}
+            assert.is_true(controls.activate("zenpm", {
+                closeMenu = function() closes = closes + 1 end,
+            }))
+        end
+        assert.are.equal(2, opens)
+    end)
+
     it("lists and toggles ZenFM without closing the menu", function()
         local closes = 0
         local updates = 0

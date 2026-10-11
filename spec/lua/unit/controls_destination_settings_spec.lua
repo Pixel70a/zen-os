@@ -124,6 +124,38 @@ describe("Controls destination settings", function()
         ZenSpec.unload("modules/settings/sections/menu_settings")
     end)
 
+    it("offers ZenPM as a built-in control only when installed", function()
+        local original_picker = package.loaded["common/ui/zen_menu_picker"]
+        finally(function() package.loaded["common/ui/zen_menu_picker"] = original_picker end)
+        local picker
+        local saves = 0
+        ZenSpec.replace("common/ui/zen_menu_picker", function(options) picker = options end)
+        for _i, installed in ipairs({ false, true }) do
+            config._meta = { installed_plugins = { zenpm = installed } }
+            local section = require("modules/settings/sections/menu_settings").build({
+                config = config,
+                plugin = {},
+                save_and_apply = function() saves = saves + 1 end,
+            })
+            section.sub_item_table[1].callback()
+            arrange_options.add_item_table[1].callback()
+            local zenpm_item
+            for _j, item in ipairs(picker.items) do
+                if item.id == "zenpm" then zenpm_item = item end
+            end
+            if installed then
+                assert.is_table(zenpm_item)
+                assert.are.equal("ZenPM", zenpm_item.text)
+                picker.on_select(zenpm_item)
+            else
+                assert.is_nil(zenpm_item)
+            end
+        end
+        assert.are.same({ "zenpm" }, config.quick_settings.button_order)
+        assert.is_true(config.quick_settings.show_buttons.zenpm)
+        assert.are.equal(1, saves)
+    end)
+
     it("adds multiple folders and one-tag destination buttons", function()
         local section = require("modules/settings/sections/menu_settings").build({
             config = config,

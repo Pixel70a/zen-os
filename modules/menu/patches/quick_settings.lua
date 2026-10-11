@@ -127,6 +127,7 @@ local function apply_quick_settings()
             filebrowser = false,
             tailscale = false,
             zenfm = false,
+            zenpm = false,
             puzzle = false,
             crossword = false,
             connections = false,
@@ -963,6 +964,18 @@ local function apply_quick_settings()
             end,
             hold_callback = function(touch_menu)
                 return open_quick_setting_settings("zenfm", touch_menu)
+            end,
+        },
+        zenpm = {
+            icon = utils.resolveLocalIcon(_icons_dir, "zenpm"),
+            label = _("ZenPM"),
+            visible_func = function() return hasPlugin("zenpm") end,
+            callback = function(touch_menu)
+                touch_menu:closeMenu()
+                SettingsTransition.close()
+                UIManager:nextTick(function()
+                    UIManager:broadcastEvent(Event:new("OpenZenPM"))
+                end)
             end,
         },
         zen = {
