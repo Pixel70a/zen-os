@@ -1027,6 +1027,8 @@ function ZenUI:onCloseWidget()
     BatteryStats.stop()
     cancel_item_table_cache_persist()
     close_zen_standalone_views(self._zen_shared)
+    local cache = package.loaded["common/docprops_cache"]
+    if cache then cache.close() end
 end
 
 -- KOReader PluginLoader calls this only when the user explicitly chooses

@@ -119,6 +119,7 @@ describe("TBR path inventory", function()
         end
 
         ZenSpec.replace("datastorage", { getSettingsDir = function() return test_dir end })
+        ZenSpec.replace("device", { canUseWAL = function() return true end })
         ZenSpec.replace("config/manager", {
             get = function() return config end,
             save = function(value) config = value end,
@@ -130,9 +131,14 @@ describe("TBR path inventory", function()
         })
         ZenSpec.replace("libs/libkoreader-lfs", {
             attributes = function(path, key)
+                if path:sub(1, #test_dir) == test_dir then
+                    return host_lfs.attributes(path, key)
+                end
                 local attr = attrs[path]
                 return key and attr and attr[key] or attr
             end,
+            mkdir = host_lfs.mkdir,
+            rmdir = host_lfs.rmdir,
             dir = function(path)
                 local list = assert(entries[path], "missing directory " .. path)
                 local index = 0
@@ -247,17 +253,27 @@ describe("TBR path inventory", function()
             end,
         })
         ZenSpec.unload("common/tbr_index")
+        ZenSpec.unload("common/docprops_cache")
     end)
 
     after_each(function()
         local index = package.loaded["common/tbr_index"]
         if index and index.close then index.close() end
         ZenSpec.unload("common/tbr_index")
-        os.remove(test_dir .. "/docprops_cache.sqlite")
-        os.remove(test_dir .. "/docprops_cache.sqlite-journal")
-        os.remove(test_dir .. "/docprops_cache.sqlite-wal")
-        os.remove(test_dir .. "/docprops_cache.sqlite-shm")
-        require("lfs").rmdir(test_dir)
+        ZenSpec.unload("common/docprops_cache")
+        local host_lfs = require("lfs")
+        for name in host_lfs.dir(test_dir) do
+            local path = test_dir .. "/" .. name
+            if host_lfs.attributes(path, "mode") == "file" then
+                os.remove(path)
+            elseif name:find(".corrupt-", 1, true) then
+                for file in host_lfs.dir(path) do
+                    if file ~= "." and file ~= ".." then os.remove(path .. "/" .. file) end
+                end
+                host_lfs.rmdir(path)
+            end
+        end
+        host_lfs.rmdir(test_dir)
     end)
 
     it("publishes every sidecar-free book without BookInfo or DocSettings", function()
@@ -302,6 +318,130 @@ describe("TBR path inventory", function()
         assert.same({ "/books/d.epub" }, Index.getByStatuses({ reading = true }))
         assert.same({ "/books/e.epub" }, Index.getByStatuses({ new = true }))
         assert.are.equal(5, sidecar_lookups)
+    end)
+
+    it("preserves and rebuilds a corrupt status cache from Reading and Finished sidecars", function()
+        add_book("/books/a.epub", "reading", 1)
+        add_book("/books/b.epub", "complete", 1)
+        local Index = require("common/tbr_index")
+        Index.getByStatuses({ reading = true })
+        Index.close()
+        Index.invalidateStatusCache()
+
+        local database_path = test_dir .. "/docprops_cache.sqlite"
+        local connection = require("lua-ljsqlite3/init").open(database_path)
+        local page_size = tonumber(connection:exec("PRAGMA page_size")[1][1])
+        local root_page = tonumber(connection:exec([[
+            SELECT rootpage FROM sqlite_master WHERE name = 'zen_doc_status_cache'
+        ]])[1][1])
+        connection:close()
+        local database = assert(io.open(database_path, "r+b"))
+        assert(database:seek("set", (root_page - 1) * page_size))
+        assert(database:write(string.rep("\0", page_size)))
+        database:seek("set", 0)
+        local corrupted = database:read("*a")
+        database:close()
+        local reads_before = opens
+
+        assert.same({ "/books/a.epub" }, Index.getByStatuses({ reading = true }))
+        assert.same({ "/books/b.epub" }, Index.getByStatuses({ complete = true }))
+        assert.are.equal(reads_before + 2, opens)
+        Index.invalidateStatusCache()
+        assert.same({ "/books/a.epub" }, Index.getByStatuses({ reading = true }))
+        assert.are.equal(reads_before + 2, opens)
+
+        local backup
+        for name in require("lfs").dir(test_dir) do
+            if name:find(".corrupt-", 1, true) then backup = test_dir .. "/" .. name end
+        end
+        database = assert(io.open(backup .. "/docprops_cache.sqlite", "rb"))
+        assert.are.equal(corrupted, database:read("*a"))
+        database:close()
+        Index.close()
+        connection = require("lua-ljsqlite3/init").open(database_path)
+        assert.are.equal("ok", connection:exec("PRAGMA quick_check")[1][1])
+        assert.are.equal(2, tonumber(connection:exec("SELECT count(*) FROM zen_doc_status_cache")[1][1]))
+        connection:close()
+        Index.invalidateStatusCache()
+        assert.same({ "/books/b.epub" }, Index.getByStatuses({ complete = true }))
+        assert.are.equal(reads_before + 2, opens)
+    end)
+
+    it("rebuilds an invalid database and persists status changes", function()
+        add_book("/books/a.epub", "reading", 1)
+        local database_path = test_dir .. "/docprops_cache.sqlite"
+        local database = assert(io.open(database_path, "wb"))
+        database:write("not a SQLite database")
+        database:close()
+
+        local Index = require("common/tbr_index")
+        assert.same({ "/books/a.epub" }, Index.getByStatuses({ reading = true }))
+        docs["/books/a.epub"].summary.status = "complete"
+        assert.is_true(Index.refreshPath("/books/a.epub", docs["/books/a.epub"]))
+        assert.same({ "/books/a.epub" }, Index.getByStatuses({ complete = true }))
+        local connection = require("lua-ljsqlite3/init").open(database_path)
+        assert.are.equal("complete", connection:exec("SELECT status FROM zen_doc_status_cache")[1][1])
+        connection:close()
+        Index.removePath("/books/a.epub")
+
+        Index.close()
+        connection = require("lua-ljsqlite3/init").open(database_path)
+        assert.are.equal("ok", connection:exec("PRAGMA quick_check")[1][1])
+        assert.are.equal(0, tonumber(connection:exec("SELECT count(*) FROM zen_doc_status_cache")[1][1]))
+        connection:close()
+    end)
+
+    it("does not cache a status change whose database write fails", function()
+        add_book("/books/a.epub", "reading", 1)
+        local Index = require("common/tbr_index")
+        assert.same({ "/books/a.epub" }, Index.getByStatuses({ reading = true }))
+        docs["/books/a.epub"].summary.status = "complete"
+        local Cache = require("common/docprops_cache")
+        local with_db = Cache.withDB
+        Cache.withDB = function() error("ljsqlite3[full] database is full", 0) end
+        local ok, err = pcall(Index.refreshPath, "/books/a.epub", docs["/books/a.epub"])
+        Cache.withDB = with_db
+        assert.is_false(ok)
+        assert.matches("database is full", err)
+        Index.invalidateStatusCache()
+        assert.same({ "/books/a.epub" }, Index.getByStatuses({ reading = true }))
+        assert.is_true(Index.refreshPath("/books/a.epub", docs["/books/a.epub"]))
+        assert.same({ "/books/a.epub" }, Index.getByStatuses({ complete = true }))
+    end)
+
+    it("retries the whole status transaction when committing detects corruption", function()
+        add_book("/books/a.epub", "reading", 1)
+        add_book("/books/b.epub", "complete", 1)
+        local sqlite3 = require("lua-ljsqlite3/init")
+        local open = sqlite3.open
+        local failed_commit
+        sqlite3.open = function(path)
+            local db = open(path)
+            if failed_commit then return db end
+            return {
+                exec = function(_self, sql)
+                    if sql == "COMMIT" then
+                        failed_commit = true
+                        error("ljsqlite3[corrupt] database disk image is malformed", 0)
+                    end
+                    return db:exec(sql)
+                end,
+                prepare = function(_self, sql) return db:prepare(sql) end,
+                close = function() db:close() end,
+            }
+        end
+        local Index = require("common/tbr_index")
+        local ok, result = pcall(Index.getByStatuses, { reading = true })
+        sqlite3.open = open
+        assert.is_true(ok, result)
+        assert.same({ "/books/a.epub" }, result)
+        assert.same({ "/books/b.epub" }, Index.getByStatuses({ complete = true }))
+        assert.are.equal(4, opens)
+        Index.close()
+        local db = open(test_dir .. "/docprops_cache.sqlite")
+        assert.are.equal(2, tonumber(db:exec("SELECT count(*) FROM zen_doc_status_cache")[1][1]))
+        assert.are.equal("ok", db:exec("PRAGMA quick_check")[1][1])
+        db:close()
     end)
 
     it("uses the ordinary collection for explicit TBR membership", function()
@@ -729,5 +869,262 @@ describe("TBR path inventory", function()
         }))
 
         assert.are.equal(after_count, attribute_calls)
+    end)
+end)
+
+describe("shared document cache", function()
+    local Cache, directory, database_path, host_lfs, warnings, infos, use_wal
+    local originals = {}
+    local modules = { "datastorage", "device", "libs/libkoreader-lfs", "common/zen_logger" }
+
+    local function read_file(path)
+        local file = assert(io.open(path, "rb"))
+        local contents = file:read("*a")
+        file:close()
+        return contents
+    end
+
+    local function write_file(path, contents)
+        local file = assert(io.open(path, "wb"))
+        file:write(contents)
+        file:close()
+    end
+
+    local function backups()
+        local result = {}
+        for name in host_lfs.dir(directory) do
+            if name:find(".corrupt-", 1, true) then result[#result + 1] = directory .. "/" .. name end
+        end
+        return result
+    end
+
+    before_each(function()
+        for _i, name in ipairs(modules) do originals[name] = package.loaded[name] end
+        host_lfs = require("lfs")
+        directory = os.tmpname()
+        os.remove(directory)
+        assert(host_lfs.mkdir(directory))
+        database_path = directory .. "/docprops_cache.sqlite"
+        warnings = {}
+        infos = {}
+        use_wal = true
+        ZenSpec.replace("datastorage", { getSettingsDir = function() return directory end })
+        ZenSpec.replace("device", { canUseWAL = function() return use_wal end })
+        ZenSpec.replace("libs/libkoreader-lfs", host_lfs)
+        ZenSpec.replace("common/zen_logger", {
+            new = function()
+                return {
+                    warn = function(message) warnings[#warnings + 1] = message end,
+                    info = function(message) infos[#infos + 1] = message end,
+                }
+            end,
+        })
+        ZenSpec.unload("common/docprops_cache")
+        Cache = require("common/docprops_cache")
+    end)
+
+    after_each(function()
+        Cache.close()
+        ZenSpec.unload("common/docprops_cache")
+        for _i, backup in ipairs(backups()) do
+            for name in host_lfs.dir(backup) do
+                if name ~= "." and name ~= ".." then os.remove(backup .. "/" .. name) end
+            end
+            host_lfs.rmdir(backup)
+        end
+        for name in host_lfs.dir(directory) do
+            if name ~= "." and name ~= ".." then os.remove(directory .. "/" .. name) end
+        end
+        host_lfs.rmdir(directory)
+        for _i, name in ipairs(modules) do package.loaded[name] = originals[name] end
+    end)
+
+    it("shares one journaled connection and rolls back both cache tables", function()
+        local first = Cache.withDB(function(db) return db end)
+        local second = Cache.withDB(function(db) return db end)
+        assert.are.equal(first, second)
+        assert.are.equal("wal", first:exec("PRAGMA journal_mode")[1][1])
+        assert.are.equal(1, tonumber(first:exec("PRAGMA synchronous")[1][1]))
+        first:exec([[
+            BEGIN;
+            INSERT INTO doc_props_cache VALUES ('book', '{}', 1);
+            INSERT INTO zen_doc_status_cache (path, signature) VALUES ('book', '1');
+            ROLLBACK;
+        ]])
+        assert.are.equal(0, tonumber(first:exec("SELECT count(*) FROM doc_props_cache")[1][1]))
+        assert.are.equal(0, tonumber(first:exec("SELECT count(*) FROM zen_doc_status_cache")[1][1]))
+        assert.same({}, warnings)
+    end)
+
+    it("uses full syncing when WAL is unavailable", function()
+        use_wal = false
+        Cache.withDB(function(db)
+            assert.are.equal("truncate", db:exec("PRAGMA journal_mode")[1][1])
+            assert.are.equal(2, tonumber(db:exec("PRAGMA synchronous")[1][1]))
+        end)
+    end)
+
+    it("enables journaling on a healthy legacy cache without losing its metadata", function()
+        local legacy = require("lua-ljsqlite3/init").open(database_path)
+        legacy:exec([[
+            PRAGMA journal_mode = OFF;
+            PRAGMA synchronous = OFF;
+            CREATE TABLE doc_props_cache (cache_key TEXT PRIMARY KEY, props TEXT, created_at INTEGER);
+            INSERT INTO doc_props_cache VALUES ('book', '{}', 1);
+        ]])
+        legacy:close()
+        Cache.withDB(function(db)
+            assert.are.equal("wal", db:exec("PRAGMA journal_mode")[1][1])
+            assert.are.equal(1, tonumber(db:exec("PRAGMA synchronous")[1][1]))
+            assert.are.equal("{}", db:exec("SELECT props FROM doc_props_cache")[1][1])
+        end)
+        assert.same({}, backups())
+    end)
+
+    it("preserves a broken database and persists fresh metadata after reopening", function()
+        write_file(database_path, "not a SQLite database")
+        Cache.withDB(function(db)
+            db:exec("INSERT INTO doc_props_cache VALUES ('book', '{\"title\":\"Book\"}', 1)")
+        end)
+        assert.are.equal(1, #backups())
+        assert.are.equal("not a SQLite database", read_file(backups()[1] .. "/docprops_cache.sqlite"))
+        assert.are.equal("Cache corruption detected:", warnings[1])
+        assert.same({ "Cache rebuilt:" }, infos)
+        Cache.close()
+        Cache.withDB(function(db)
+            assert.are.equal("ok", db:exec("PRAGMA quick_check")[1][1])
+            assert.are.equal('{"title":"Book"}', db:exec("SELECT props FROM doc_props_cache")[1][1])
+        end)
+        assert.are.equal(1, #backups())
+    end)
+
+    it("closes the old shared handle before retrying after corruption", function()
+        local old = Cache.withDB(function(db) return db end)
+        local calls = 0
+        Cache.withDB(function(db)
+            calls = calls + 1
+            if calls == 1 then error("ljsqlite3[corrupt] database disk image is malformed") end
+            assert.is_true(old._closed)
+            assert.are_not.equal(old, db)
+            db:exec("INSERT INTO doc_props_cache VALUES ('book', '{}', 1)")
+        end)
+        assert.are.equal(2, calls)
+        assert.are.equal(1, #backups())
+    end)
+
+    it("keeps remaining journal files with the preserved database", function()
+        write_file(database_path, "not a SQLite database")
+        write_file(database_path .. "-journal", "journal evidence")
+        write_file(database_path .. "-wal", "wal evidence")
+        write_file(database_path .. "-shm", "shm evidence")
+        local sqlite3 = require("lua-ljsqlite3/init")
+        local open = sqlite3.open
+        local closed
+        sqlite3.open = function(path)
+            if path == database_path and not closed then
+                return {
+                    exec = function() error("ljsqlite3[corrupt] malformed") end,
+                    close = function() closed = true end,
+                }
+            end
+            return open(path)
+        end
+        local ok, err = pcall(Cache.withDB, function(db)
+            assert.are.equal("ok", db:exec("PRAGMA quick_check")[1][1])
+        end)
+        sqlite3.open = open
+        assert.is_true(ok, err)
+        assert.are.equal("journal evidence", read_file(backups()[1] .. "/docprops_cache.sqlite-journal"))
+        assert.are.equal("wal evidence", read_file(backups()[1] .. "/docprops_cache.sqlite-wal"))
+        assert.are.equal("shm evidence", read_file(backups()[1] .. "/docprops_cache.sqlite-shm"))
+        assert.is_nil(host_lfs.attributes(database_path .. "-journal"))
+    end)
+
+    it("does not replace a database on a locking error", function()
+        Cache.withDB(function(db) db:exec("INSERT INTO doc_props_cache VALUES ('book', '{}', 1)") end)
+        Cache.close()
+        local original = read_file(database_path)
+        assert.has_error(function()
+            Cache.withDB(function() error("ljsqlite3[busy] database is locked", 0) end)
+        end, "ljsqlite3[busy] database is locked")
+        assert.are.equal("Cache operation failed:", warnings[#warnings])
+        assert.same({}, backups())
+        assert.are.equal(original, read_file(database_path))
+        Cache.close()
+        assert.are.equal("{}", Cache.withDB(function(db)
+            return db:exec("SELECT props FROM doc_props_cache")[1][1]
+        end))
+    end)
+
+    it("leaves the corrupt database intact if preserving it fails", function()
+        write_file(database_path, "not a SQLite database")
+        local mkdir = host_lfs.mkdir
+        host_lfs.mkdir = function() return nil, "Permission denied" end
+        local ok, err = pcall(Cache.withDB, function() return true end)
+        host_lfs.mkdir = mkdir
+        assert.is_false(ok)
+        assert.matches("Permission denied", err)
+        assert.same({}, backups())
+        assert.are.equal("not a SQLite database", read_file(database_path))
+        assert.are.equal("Cache recovery failed:", warnings[#warnings])
+        assert.same({}, infos)
+    end)
+
+    it("leaves the corrupt database intact if renaming it fails", function()
+        write_file(database_path, "not a SQLite database")
+        local rename = os.rename
+        os.rename = function() return nil, "Permission denied" end
+        local ok, err = pcall(Cache.withDB, function() return true end)
+        os.rename = rename
+        assert.is_false(ok)
+        assert.matches("Permission denied", err)
+        assert.same({}, backups())
+        assert.are.equal("not a SQLite database", read_file(database_path))
+    end)
+
+    it("logs and propagates failure if corruption remains after rebuilding once", function()
+        local calls = 0
+        assert.has_error(function()
+            Cache.withDB(function()
+                calls = calls + 1
+                error("ljsqlite3[corrupt] persistent corruption", 0)
+            end)
+        end, "ljsqlite3[corrupt] persistent corruption")
+        assert.are.equal(2, calls)
+        assert.are.equal(1, #backups())
+        assert.are.equal("Cache recovery failed:", warnings[#warnings])
+        assert.is_true(Cache.withDB(function() return true end))
+    end)
+
+    it("keeps previous backups when corruption recurs", function()
+        local date = os.date
+        os.date = function() return "20261011-200000" end
+        for i = 1, 2 do
+            write_file(database_path, "broken cache " .. i)
+            Cache.withDB(function(db) return db end)
+            Cache.close()
+        end
+        os.date = date
+        assert.are.equal(2, #backups())
+        local base = database_path .. ".corrupt-20261011-200000"
+        assert.are.equal("broken cache 1", read_file(base .. "/docprops_cache.sqlite"))
+        assert.are.equal("broken cache 2", read_file(base .. "-1/docprops_cache.sqlite"))
+    end)
+
+    it("propagates application errors without treating them as corruption", function()
+        assert.has_error(function()
+            Cache.withDB(function() error("metadata failure", 0) end)
+        end, "metadata failure")
+        assert.same({}, backups())
+        assert.same({}, warnings)
+    end)
+
+    it("propagates application errors after a successful rebuild", function()
+        write_file(database_path, "not a SQLite database")
+        assert.has_error(function()
+            Cache.withDB(function() error("metadata failure", 0) end)
+        end, "metadata failure")
+        assert.are.equal(1, #backups())
+        assert.are_not.equal("Cache unavailable:", warnings[#warnings])
     end)
 end)

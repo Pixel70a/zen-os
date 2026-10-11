@@ -1,6 +1,6 @@
 local BookStatus = require("common/book_status")
 local ConfigManager = require("config/manager")
-local DataStorage = require("datastorage")
+local Cache = require("common/docprops_cache")
 local DocSettings = require("docsettings")
 local DocumentRegistry = require("document/documentregistry")
 local FileChooser = require("ui/widget/filechooser")
@@ -8,7 +8,6 @@ local ReadCollection = require("readcollection")
 local UIManager = require("ui/uimanager")
 local lfs = require("libs/libkoreader-lfs")
 local paths = require("common/paths")
-local sqlite3 = require("lua-ljsqlite3/init")
 local title_sort = require("common/title_sort")
 local key_cache = require("common/sort_key_cache")
 local util = require("util")
@@ -22,10 +21,8 @@ local DEFAULT_COLLECTION_NAME = "To Be Read"
 local COLLECTION_MARKER = "zenos_tbr"
 local CUSTOM_ORDER_SETTING = "zenos_tbr_order"
 local MANUAL_COLLATE = "manual"
-local DB_PATH = DataStorage:getSettingsDir() .. "/docprops_cache.sqlite"
 local STATUS_TABLE = "zen_doc_status_cache"
 
-local db
 local status_rows
 local inventory
 local result_cache = {}
@@ -43,48 +40,29 @@ local count_result_key
 local count_result
 local count_result_revision
 
-local function open_db()
-    if db then return db end
-    db = sqlite3.open(DB_PATH)
-    db:exec([[
-        CREATE TABLE IF NOT EXISTS zen_doc_status_cache (
-            path TEXT PRIMARY KEY,
-            signature TEXT NOT NULL,
-            home_root TEXT NOT NULL DEFAULT '',
-            status TEXT NOT NULL DEFAULT '',
-            percent_finished REAL NOT NULL DEFAULT -1,
-            effective_status TEXT NOT NULL DEFAULT 'new',
-            sort_title TEXT NOT NULL DEFAULT '',
-            series_index REAL NOT NULL DEFAULT -1,
-            access_time INTEGER NOT NULL DEFAULT 0,
-            updated_at INTEGER NOT NULL DEFAULT 0
-        );
-        CREATE INDEX IF NOT EXISTS zen_doc_status_home_tbr
-            ON zen_doc_status_cache(home_root, status, effective_status);
-    ]])
-    return db
-end
-
 local function load_status_rows()
     if status_rows then return status_rows end
-    status_rows = {}
-    local stmt = open_db():prepare(([[
-        SELECT path, signature, status, percent_finished, effective_status
-        FROM %s
-    ]]):format(STATUS_TABLE))
-    if not stmt then return status_rows end
-    while true do
-        local row = stmt:step()
-        if not row then break end
-        status_rows[row[1]] = {
-            signature = row[2],
-            status = row[3] ~= "" and row[3] or nil,
-            percent_finished = tonumber(row[4]) and tonumber(row[4]) >= 0
-                and tonumber(row[4]) or nil,
-            effective_status = row[5],
-        }
-    end
-    stmt:clearbind():reset()
+    status_rows = Cache.withDB(function(connection)
+        local rows = {}
+        local stmt = connection:prepare(([[
+            SELECT path, signature, status, percent_finished, effective_status
+            FROM %s
+        ]]):format(STATUS_TABLE))
+        if not stmt then return rows end
+        while true do
+            local row = stmt:step()
+            if not row then break end
+            rows[row[1]] = {
+                signature = row[2],
+                status = row[3] ~= "" and row[3] or nil,
+                percent_finished = tonumber(row[4]) and tonumber(row[4]) >= 0
+                    and tonumber(row[4]) or nil,
+                effective_status = row[5],
+            }
+        end
+        stmt:close()
+        return rows
+    end)
     return status_rows
 end
 
@@ -93,23 +71,27 @@ local function get_status_row(path)
 end
 
 local function write_status_row(path, signature, status, percent_finished, effective_status)
-    local stmt = open_db():prepare(([[
-        INSERT OR REPLACE INTO %s
-            (path, signature, home_root, status, percent_finished,
-             effective_status, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ]]):format(STATUS_TABLE))
-    if not stmt then return false end
-    stmt:bind(
-        path,
-        signature,
-        paths.getHomeDir() or "",
-        status or "",
-        tonumber(percent_finished) or -1,
-        effective_status or "unknown",
-        os.time()
-    ):step()
-    stmt:clearbind():reset()
+    local written = Cache.withDB(function(connection)
+        local stmt = connection:prepare(([[
+            INSERT OR REPLACE INTO %s
+                (path, signature, home_root, status, percent_finished,
+                 effective_status, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ]]):format(STATUS_TABLE))
+        if not stmt then return false end
+        stmt:bind(
+            path,
+            signature,
+            paths.getHomeDir() or "",
+            status or "",
+            tonumber(percent_finished) or -1,
+            effective_status or "unknown",
+            os.time()
+        ):step()
+        stmt:close()
+        return true
+    end)
+    if not written then return false end
     if status_rows then
         status_rows[path] = {
             signature = signature,
@@ -122,25 +104,35 @@ local function write_status_row(path, signature, status, percent_finished, effec
 end
 
 local function delete_status_row(path)
-    local stmt = open_db():prepare("DELETE FROM " .. STATUS_TABLE .. " WHERE path = ?")
-    if not stmt then return end
-    stmt:bind(path):step()
-    stmt:clearbind():reset()
-    if status_rows then status_rows[path] = nil end
+    local deleted = Cache.withDB(function(connection)
+        local stmt = connection:prepare("DELETE FROM " .. STATUS_TABLE .. " WHERE path = ?")
+        if not stmt then return false end
+        stmt:bind(path):step()
+        stmt:close()
+        return true
+    end)
+    if deleted and status_rows then status_rows[path] = nil end
 end
 
 local function status_transaction(callback)
-    local connection = open_db()
-    local started = pcall(connection.exec, connection, "BEGIN")
-    local ok_callback, result = pcall(callback)
-    if started then
-        pcall(connection.exec, connection, ok_callback and "COMMIT" or "ROLLBACK")
-    end
-    if not ok_callback then
-        status_rows = nil
-        error(result)
-    end
-    return result
+    return Cache.withDB(function(connection)
+        connection:exec("BEGIN")
+        local ok_callback, result = pcall(callback)
+        if not ok_callback then
+            status_rows = nil
+            local rolled_back, rollback_err = pcall(connection.exec, connection, "ROLLBACK")
+            if not rolled_back then
+                logger.warn("Status cache rollback failed:", rollback_err)
+            end
+            error(result, 0)
+        end
+        local committed, commit_err = pcall(connection.exec, connection, "COMMIT")
+        if not committed then
+            status_rows = nil
+            error(commit_err, 0)
+        end
+        return result
+    end)
 end
 
 local function clear_results(bump_revision)
@@ -727,8 +719,8 @@ end
 
 local function get_status_buckets(books, mode)
     if status_buckets and status_bucket_mode == mode then return status_buckets end
-    local buckets = {}
-    status_transaction(function()
+    local buckets = status_transaction(function()
+        local buckets = {}
         for _i, book in ipairs(books) do
             local status = status_for(book.path, book.attr)
             local display = BookStatus.getDisplayStatus(
@@ -736,6 +728,7 @@ local function get_status_buckets(books, mode)
             buckets[display] = buckets[display] or {}
             buckets[display][#buckets[display] + 1] = book.path
         end
+        return buckets
     end)
     status_buckets = buckets
     status_bucket_mode = mode
@@ -793,17 +786,19 @@ local function build_result(options)
         end
     end
     if options.include_new == true then
-        status_transaction(function()
+        local new_files = status_transaction(function()
+            local new_files = {}
             for _i, book in ipairs(books) do
                 if not included[book.path] and book.path ~= options.exclude_path then
                     local status = status_for(book.path, book.attr)
                     if status.effective_status == "new" then
-                        included[book.path] = true
-                        files[#files + 1] = book.path
+                        new_files[#new_files + 1] = book.path
                     end
                 end
             end
+            return new_files
         end)
+        for _i, path in ipairs(new_files) do files[#files + 1] = path end
     end
     files = sort_paths(files, options.collate, options.reverse == true)
     result_cache[key] = files
@@ -1152,10 +1147,7 @@ end
 
 function M.close()
     M.cancelAudit()
-    if db then
-        db:close()
-        db = nil
-    end
+    Cache.close()
     status_rows = nil
 end
 
