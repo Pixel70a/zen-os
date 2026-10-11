@@ -404,6 +404,36 @@ describe("home strip widget", function()
         assert.is_true(badge_rects > 0)
     end)
 
+    it("leaves the rounded cover border to the shared painter after a new banner", function()
+        rawset(_G, "__ZEN_UI_PLUGIN", {
+            config = {
+                features = { browser_cover_rounded_corners = true },
+                browser_cover_badges = { show_new_banner = true },
+            },
+        })
+        cover_frame_border = 2
+        local banners = 0
+        ZenSpec.replace("common/ui/corner_banner", {
+            paint = function() banners = banners + 1 end,
+        })
+        require("modules/filebrowser/patches/home/widgets/strip").build{
+            width = 600, height = 300, component_id = "strip",
+            module_cfg = { count = 3, interactive = false, show_badges = true },
+            data = { getBooksForStrip = function()
+                return {{ path = "/book.epub", status = "new" }}
+            end },
+        }
+        local rectangles = 0
+        for _i, widget in ipairs(created) do
+            if widget.kind == "cover" then
+                widget:paintTo({ paintRect = function() rectangles = rectangles + 1 end }, 10, 20)
+            end
+        end
+
+        assert.are.equal(1, banners)
+        assert.are.equal(0, rectangles)
+    end)
+
     it("resizes cached badge fonts when the badge size changes", function()
         local config = {
             browser_cover_badges = { show_mosaic_progress = true },

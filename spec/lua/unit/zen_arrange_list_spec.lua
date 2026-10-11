@@ -235,6 +235,72 @@ describe("Zen arrange list settings resume", function()
         assert.are.equal(picker._zen_menu_proxy, callback_host)
     end)
 
+    it("rebuilds direct and nested profile lists after confirmed deletion", function()
+        for _i, nested in ipairs({ true, false }) do
+            local profiles = { Reading = { settings = { name = "Reading" } } }
+            local confirm_delete
+            local build_items
+            build_items = function()
+                local items = {{ text = "New" }}
+                for name in pairs(profiles) do
+                    items[#items + 1] = {
+                        text_func = function() return profiles[name].settings.name end,
+                        sub_item_table = {{
+                            text = "Delete", keep_menu_open = true,
+                            callback = function(menu)
+                                confirm_delete = function()
+                                    profiles[name] = nil
+                                    menu.item_table = build_items()
+                                    menu:updateItems()
+                                    table.remove(menu.item_table_stack)
+                                end
+                            end,
+                        }},
+                    }
+                end
+                return items
+            end
+            local function open_item(picker, index)
+                picker.getFocusItem = function()
+                    return { item = picker.item_table[index] }
+                end
+                picker:onZenArrangeOpenSubmenu()
+                return shown_widgets[#shown_widgets]
+            end
+            local picker = ArrangeList.show{
+                allow_arrange = false, menu_mode = true,
+                item_table = nested and {{
+                    text = "Profiles", sub_item_table_func = build_items,
+                }} or build_items(),
+                refresh_func = not nested and build_items or nil,
+            }
+            if nested then picker = open_item(picker, 1) end
+            local profile_menu = open_item(picker, 2)
+            profile_menu.item_table[1]:callback()
+
+            assert.is_function(confirm_delete)
+            confirm_delete()
+
+            assert.is_nil(profiles.Reading)
+            assert.are.equal(1, #picker.item_table)
+            assert.are.equal("New", picker.item_table[1].text)
+            assert.are.equal(picker.item_table, picker._zen_menu_proxy.item_table)
+            profile_menu:onClose()
+            picker._zen_menu_proxy:updateItems()
+            assert.are.equal(1, #picker.item_table)
+
+            profiles.Bedtime = { settings = { name = "Bedtime" } }
+            picker._zen_menu_proxy:updateItems()
+            assert.are.equal("Bedtime", picker.item_table[2].text:sub(1, 7))
+            profile_menu = open_item(picker, 2)
+            profile_menu.item_table[1]:callback()
+            confirm_delete()
+            assert.is_nil(profiles.Bedtime)
+            assert.are.equal(1, #picker.item_table)
+            profile_menu:onClose()
+        end
+    end)
+
     it("shows help on root and nested widget setting holds without toggling", function()
         ZenSpec.unload("common/arrange_state")
         ZenSpec.unload("common/ui/zen_arrange_list")

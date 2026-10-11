@@ -192,6 +192,8 @@ local function apply_zen_renderer()
         return height
     end
 
+    local paint_new_banner
+
     function ZenMosaicItem:init()
         self.filepath = self.entry.file or self.entry.path
         self.ges_events = {
@@ -504,6 +506,14 @@ local function apply_zen_renderer()
         local frame = CoverWidget.make_cover_widget(book, target_w, target_h, {
             border = border,
             uniform = uniform,
+            -- Paint the banner before the shared border and corner masks.
+            decorate = function(cover_frame)
+                local orig_paintTo = cover_frame.paintTo
+                cover_frame.paintTo = function(frame_self, bb, x, y)
+                    orig_paintTo(frame_self, bb, x, y)
+                    paint_new_banner(self, bb, plugin_config(), frame_self)
+                end
+            end,
         })
         if build_measure then
             local cover_widget_ms = (now() - cover_widget_started_at) * 1000
@@ -804,10 +814,9 @@ local function apply_zen_renderer()
             math.floor(math.min(painted_width, fill_height) / 2))
     end
 
-    local function paint_new_banner(item, bb, config)
+    paint_new_banner = function(item, bb, config, frame)
         local badge = config.browser_cover_badges or {}
         if badge.show_new_banner ~= true or item._zen_effective_status ~= "new" then return end
-        local frame = item._zen_cover_frame
         if not frame or not frame.dimen then return end
         local CornerBanner = require("common/ui/corner_banner")
         local _ = require("gettext")
@@ -858,7 +867,6 @@ local function apply_zen_renderer()
             paint_progress_badge(self, bb, config)
             if self._zen_page_label then paint_page_badge(self, bb, self._zen_page_label, config) end
             if self._zen_series_label then paint_series_badge(self, bb, self._zen_series_label, config) end
-            paint_new_banner(self, bb, config)
         end
         if self.entry and is_file_manager_select_mode(self.entry.path) then
             local border = math.max(3, Screen:scaleBySize(3))

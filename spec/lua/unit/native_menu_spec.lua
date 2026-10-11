@@ -113,6 +113,10 @@ describe("native KOReader menu shortcuts", function()
         assert.is_true(launch())
         assert.are.equal("Network", shown.title)
         assert.are.equal("Wi-Fi", shown.item_table[1].text)
+        filemanager_menu.tab_item_table[1][1].sub_item_table_func = function()
+            return {{ text = "Updated Wi-Fi" }}
+        end
+        assert.are.equal("Updated Wi-Fi", shown.refresh_func()[1].text)
     end)
 
     it("adapts shared IDs and rejects targets missing from the requested context", function()

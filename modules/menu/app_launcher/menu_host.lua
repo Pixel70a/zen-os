@@ -7,6 +7,7 @@ function M.show(opts)
     return ZenArrangeList.show{
         title = opts.title or "",
         item_table = opts.item_table or {},
+        refresh_func = opts.refresh_func,
         allow_arrange = false,
         hide_footer_cancel = true,
         menu_mode = true,

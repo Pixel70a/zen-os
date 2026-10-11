@@ -933,6 +933,9 @@ local function open_submenu_for_item(sort_widget, item, resume_path, resume_in_b
     end, {
         close_arrange = sort_widget._zen_arrange_close_all,
         menu_mode = sort_widget._zen_menu_mode,
+        refresh_func = type(item.sub_item_table_func) == "function" and function()
+            return item.sub_item_table_func(sort_widget._zen_menu_proxy)
+        end or nil,
         plugin = sort_widget._zen_plugin,
         settings_resume = extend_settings_resume(sort_widget._zen_settings_resume, item),
         resume_path = resume_path,
@@ -1445,6 +1448,12 @@ show_submenu = function(title, items, refresh, opts)
     refresh_lists = function()
         if menu_proxy and type(menu_proxy.item_table) == "table" and menu_proxy.item_table ~= items then
             items = menu_proxy.item_table
+        elseif type(opts.refresh_func) == "function" then
+            local refreshed = opts.refresh_func()
+            if type(refreshed) == "table" then
+                items = refreshed
+                menu_proxy.item_table = items
+            end
         end
         if opts.menu_mode then update_menu_enabled_state(items) end
         ensure_submenu_callbacks(items)
@@ -1481,9 +1490,6 @@ show_submenu = function(title, items, refresh, opts)
             return true
         end,
         updateItems = function(self)
-            if type(self.item_table) == "table" then
-                items = self.item_table
-            end
             refresh_lists()
         end,
         closeMenu = function()
@@ -1513,6 +1519,7 @@ show_submenu = function(title, items, refresh, opts)
     sort_widget._zen_menu_mode = opts.menu_mode == true
     sort_widget._zen_plugin = opts.plugin
     sort_widget._zen_menu_proxy = menu_proxy
+    sort_widget._zen_arrange_refresh = refresh_lists
     sort_widget._zen_settings_resume = opts.settings_resume
 
     local orig_on_close = sort_widget.onClose
@@ -1782,6 +1789,7 @@ function M.show(opts)
         end
         if menu_mode then update_menu_enabled_state(item_table) end
         if menu_proxy then
+            menu_proxy.item_table = item_table
             refresh_after_callbacks(item_table, function()
                 sort_widget:_zen_arrange_refresh()
             end, menu_proxy, menu_callback_complete)

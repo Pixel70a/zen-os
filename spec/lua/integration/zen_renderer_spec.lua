@@ -13,6 +13,7 @@ describe("Zen renderer", function()
     local native_progress
     local banner_labels
     local banner_sizes
+    local cover_paint_order
     local background_menus
     local calc_dimensions
     local folder_name_labels
@@ -53,6 +54,7 @@ describe("Zen renderer", function()
         native_progress = nil
         banner_labels = {}
         banner_sizes = {}
+        cover_paint_order = {}
         background_menus = {}
         folder_name_labels = {}
         textbox_line_height = 8
@@ -91,7 +93,12 @@ describe("Zen renderer", function()
         ZenSpec.replace("ui/geometry", { new = function(_self, values) return values end })
         ZenSpec.replace("ui/gesturerange", { new = function(_self, values) return values end })
         ZenSpec.replace("ui/widget/imagewidget", class())
-        ZenSpec.replace("ui/widget/container/inputcontainer", class())
+        local InputContainer = class()
+        function InputContainer:paintTo(bb, x, y)
+            local frame = self._zen_cover_frame
+            if frame and frame.paintTo then frame:paintTo(bb, x, y) end
+        end
+        ZenSpec.replace("ui/widget/container/inputcontainer", InputContainer)
         local function widget_class(kind)
             local Widget = class()
             function Widget:new(values)
@@ -204,6 +211,7 @@ describe("Zen renderer", function()
             paint = function(_bb, _left, _right, _top, _height, span, thick, label)
                 banner_labels[#banner_labels + 1] = label
                 banner_sizes[#banner_sizes + 1] = { span = span, thick = thick }
+                cover_paint_order[#cover_paint_order + 1] = label
             end,
         })
         ZenSpec.replace("gettext", function(text) return text end)
@@ -234,7 +242,21 @@ describe("Zen renderer", function()
                     height = height,
                     options = options,
                 }
-                return { dimen = { w = 66, h = 99 } }
+                local frame = {
+                    dimen = { w = 66, h = 99 },
+                    bordersize = options.border,
+                    paintTo = function(self, _bb, x, y)
+                        self.dimen.x, self.dimen.y = x, y
+                        cover_paint_order[#cover_paint_order + 1] = "cover"
+                    end,
+                }
+                if options.decorate then options.decorate(frame) end
+                local paint = frame.paintTo
+                frame.paintTo = function(self, ...)
+                    paint(self, ...)
+                    cover_paint_order[#cover_paint_order + 1] = "border"
+                end
+                return frame
             end,
             set_dimmed_border = function(frame, dimmed)
                 frame._zen_cover_border_color = dimmed and 6 or nil
@@ -346,7 +368,9 @@ describe("Zen renderer", function()
         assert.is_true(folder_requests[1].options.cover_specs.uniform)
         assert.are.same({ width = 96, height = 144, options = {
             border = 2, uniform = true,
+            decorate = cover_requests[1].options.decorate,
         } }, cover_requests[1])
+        assert.is_function(cover_requests[1].options.decorate)
         local found_stock_item = false
         for index = 1, 128 do
             local name = debug.getupvalue(MosaicMenu._updateItemsBuildUI, index)
@@ -1220,14 +1244,16 @@ describe("Zen renderer", function()
             dim_finished_books = true,
             show_mosaic_progress = true,
         }
-        local item_class = MosaicMenu._zen_mosaic_item_class
-        local item = setmetatable({
-            _zen_cover_frame = { dimen = { x = 0, y = 0, w = 100, h = 150 }, bordersize = 1 },
-            _zen_effective_status = "complete",
-            _zen_is_book = true,
-            width = 320,
-            height = 400,
-        }, { __index = item_class })
+        resolved_status = "complete"
+        local menu = {
+            item_table = { { title = "Book", is_file = true, path = "/book.epub" } },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 320,
+            item_height = 400, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 330 }, _do_cover_images = true,
+        }
+        MosaicMenu._updateItemsBuildUI(menu)
+        local item = menu.layout[1][1]
         local dimmed = 0
         local badge_rects = 0
         local bb = {
@@ -1247,6 +1273,7 @@ describe("Zen renderer", function()
         assert.is_nil(item._zen_cover_frame._zen_cover_border_color)
         assert.are.same({ "New" }, banner_labels)
         assert.are.same({ { span = 100, thick = 35 } }, banner_sizes)
+        assert.are.same({ "cover", "border", "cover", "New", "border" }, cover_paint_order)
     end)
 
     it("shows keyboard focus while idle underlines are hidden", function()

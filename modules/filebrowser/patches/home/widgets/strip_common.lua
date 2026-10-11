@@ -531,11 +531,6 @@ local function apply_strip_cover_decorations(frame, book, config, show_badges)
                 bb, x, x + d.w, y, d.h,
                 span, band_thick, _("New"), font_size, badge_col, badge_fg
             )
-            if border > 0 then
-                local border_color = self.bordercolor or Blitbuffer.COLOR_BLACK
-                bb:paintRect(x, y, d.w, border, border_color)
-                bb:paintRect(x + d.w - border, y, border, d.h, border_color)
-            end
         end
     end
 end

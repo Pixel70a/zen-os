@@ -97,6 +97,32 @@ describe("app launcher plugin scan", function()
         assert.is_true(opened)
     end)
 
+    it("loads current plugin items on launch and supplies their refresh function", function()
+        local items = {{ text = "Reading" }}
+        local shown
+        local saved_host = package.loaded["modules/menu/app_launcher/menu_host"]
+        finally(function()
+            package.loaded["modules/menu/app_launcher/menu_host"] = saved_host
+        end)
+        ZenSpec.replace("modules/menu/app_launcher/menu_host", {
+            show = function(opts) shown = opts; return true end,
+        })
+        package.loaded.pluginloader.loaded_plugins.marked.addToMainMenu = function(_self, menu)
+            menu.marked = {
+                text = "Profiles", sub_item_table_func = function() return items end,
+            }
+        end
+        local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+        local launch = PluginScan.resolve("marked", PluginScan.SUBMENU)
+        items = {{ text = "Bedtime" }}
+        assert.is_true(launch())
+        assert.are.equal(items, shown.item_table)
+        items = {{ text = "New" }}
+        assert.are.equal(items, shown.refresh_func())
+        assert.is_true(launch())
+        assert.are.equal(items, shown.item_table)
+    end)
+
     it("caches plugin directory names without reading metadata", function()
         local scans = 0
         ZenSpec.replace("common/plugin_root", "/plugins/zenos.koplugin")
