@@ -74,6 +74,7 @@ describe("config manager folder-path migration", function()
         assert.are.equal(100, config.accent_opacity)
         assert.is_true(config.features.navbar)
         assert.is_true(config.navbar.active_tab_underline)
+        assert.is_true(config.navbar.active_tab_use_accent)
         assert.are.same({ 0, 0, 0 }, config.navbar.active_tab_color)
         assert.is_false(config.navbar.active_tab_filled)
         assert.is_false(config.navbar.active_tab_outlined)
@@ -113,12 +114,25 @@ describe("config manager folder-path migration", function()
         for _i, colored in ipairs({ false, true }) do
             settings_file.data = { navbar = { colored = colored, active_tab_color = { 12, 34, 56 } } }
             local config = Manager.load()
+            assert.is_true(config.navbar.active_tab_use_accent)
             assert.are.same({ 12, 34, 56 }, config.navbar.active_tab_color)
             assert.are.equal(colored, config.navbar.colored)
             Manager.save(config)
             assert.are.same({ 12, 34, 56 }, settings_file.data.navbar.active_tab_color)
             assert.are.equal(colored, settings_file.data.navbar.colored)
         end
+    end)
+
+    it("preserves a disabled navbar accent through save and reload", function()
+        settings_file.data = {
+            navbar = { active_tab_use_accent = false, active_tab_color = { 12, 34, 56 } },
+        }
+        local config = Manager.load()
+        assert.is_false(config.navbar.active_tab_use_accent)
+        Manager.save(config)
+        config = Manager.load()
+        assert.is_false(config.navbar.active_tab_use_accent)
+        assert.are.same({ 12, 34, 56 }, config.navbar.active_tab_color)
     end)
 
     it("preserves saved reader margin alignment", function()

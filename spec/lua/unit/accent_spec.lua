@@ -123,7 +123,7 @@ describe("interface accent", function()
         end
     end)
 
-    it("inherits the navbar accent per color while preserving custom colors", function()
+    it("uses the navbar accent by default and restores saved colors when disabled", function()
         local config = _G.__ZEN_UI_PLUGIN.config
         config.navbar = {}
         local defaults = {
@@ -136,22 +136,34 @@ describe("interface accent", function()
             config.navbar[key] = default
             assert.are.same({ 32, 64, 128 }, Accent.navbarColor(config, key, default))
             config.navbar[key] = { 12, 34, 56 }
+            config.navbar[key .. "_custom"] = true
+            assert.are.same({ 32, 64, 128 }, Accent.navbarColor(config, key, default))
+            config.navbar.active_tab_use_accent = false
             assert.are.same({ 12, 34, 56 }, Accent.navbarColor(config, key, default))
             config.navbar[key] = default
-            config.navbar[key .. "_custom"] = true
             assert.are.same(default, Accent.navbarColor(config, key, default))
-            config.navbar[key .. "_custom"] = nil
+            config.navbar.active_tab_use_accent = true
+            assert.are.same({ 32, 64, 128 }, Accent.navbarColor(config, key, default))
         end
         local white = { 255, 255, 255 }
         assert.are.same(white, Accent.navbarColor(config, "filled_outline_color", white))
         config.accent_color = "#336699"
         assert.are.same({ 51, 102, 153 }, Accent.navbarColor(config, "active_tab_color", defaults.active_tab_color))
+        config.accent_color = "#000000"
+        assert.are.same({ 0, 0, 0 }, Accent.navbarColor(config, "outlined_color", defaults.outlined_color))
+        screen.night_mode = true
+        assert.are.same({ 0, 0, 0 }, Accent.navbarColor(config, "outlined_color", defaults.outlined_color))
+        screen.night_mode = false
+        config.accent_color = "#336699"
         config.accent_enabled = false
         assert.are.same(defaults.active_tab_color, Accent.navbarColor(config, "active_tab_color", defaults.active_tab_color))
         config.accent_enabled = true
         screen.isColorScreen = function() return false end
         assert.are.same(defaults.active_tab_color, Accent.navbarColor(config, "active_tab_color", defaults.active_tab_color))
-        assert.are.same(defaults, config.navbar)
+        for key, default in pairs(defaults) do
+            assert.are.same(default, config.navbar[key])
+            assert.is_true(config.navbar[key .. "_custom"])
+        end
     end)
 
     it("uses accent opacity and cancels its night compensation before navbar painting", function()

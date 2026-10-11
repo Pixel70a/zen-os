@@ -68,12 +68,10 @@ end
 function M.navbarColor(config, key, default)
     local navbar = config.navbar or {}
     local c = type(navbar[key]) == "table" and navbar[key] or default
-    -- Older configs saved defaults without marking whether a color was customized.
-    local is_default = c[1] == default[1] and c[2] == default[2] and c[3] == default[3]
-    if key ~= "filled_outline_color" and not navbar[key .. "_custom"]
-            and is_default and M.isEnabled(config) then
+    if key ~= "filled_outline_color" and navbar.active_tab_use_accent ~= false
+            and config.accent_enabled ~= false and M.isSupported() then
         local color = M.color(config)
-        if require("device").screen.night_mode then color = color:invert() end
+        if require("device").screen.night_mode and M.isEnabled(config) then color = color:invert() end
         return { color:getR(), color:getG(), color:getB() }
     end
     return c

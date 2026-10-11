@@ -177,6 +177,7 @@ local defaults = {
         news_action = "quickrss",
         news_folder = "",
         active_tab_color = { 0, 0, 0 },
+        active_tab_use_accent = true,
         active_tab_underline = true,
         active_tab_filled = false,
         active_tab_outlined = false,

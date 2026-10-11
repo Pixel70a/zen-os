@@ -890,9 +890,10 @@ def test_navbar_tabs_navigate_to_real_library_views() -> None:
             process.wait(timeout=15)
 
 
-def test_navbar_outlined_radio_refreshes_home() -> None:
+@pytest.mark.parametrize("show_labels", [True, False], ids=["labels", "icons"])
+def test_navbar_outlined_radio_refreshes_home(show_labels: bool) -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
-    artifacts = Path(__file__).resolve().parents[2] / ".artifacts" / "navbar-style"
+    artifacts = Path(__file__).resolve().parents[2] / ".artifacts" / "navbar-style" / ("labels" if show_labels else "icons")
     artifacts.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="zen-ui-navbar-style-") as temporary:
         root = Path(temporary)
@@ -904,14 +905,15 @@ def test_navbar_outlined_radio_refreshes_home() -> None:
         socket_path = root / "driver.sock"
         process = launch(
             runtime, ko_home, socket_path, root / "library",
-            zen_config_source="""return {
-  updater = { update_auto_check = false },
-  navbar = {
+            zen_config_source=f"""return {{
+  updater = {{ update_auto_check = false }},
+  navbar = {{
     default_tab = "home", active_tab_filled = true,
+    show_labels = {str(show_labels).lower()},
     active_tab_underline = false, filled_background_opacity = 100,
-    filled_background_color = { 0, 0, 0 }, outlined_color = { 0, 0, 0 },
-  },
-}
+    filled_background_color = {{ 0, 0, 0 }}, outlined_color = {{ 0, 0, 0 }},
+  }},
+}}
 """,
         )
         try:
@@ -925,7 +927,7 @@ def test_navbar_outlined_radio_refreshes_home() -> None:
             for label in ("Interface", "Navbar", "Styling", "Active tab"):
                 assert driver.command("settings_page_select", label=label)["ok"] is True
             settings = driver.command("settings_page_state")["settings"]
-            assert settings["labels"] == ["Underline", "Filled", "Outlined"]
+            assert settings["labels"] == ["Underline", "Filled", "Outlined", "Use accent color"]
             assert driver.command("settings_page_select", label="Outlined", control=True)["ok"] is True
             items = driver.command("settings_page_state")["settings"]["items"]
             assert next(item for item in items if item["label"] == "Outlined")["checked"] is True

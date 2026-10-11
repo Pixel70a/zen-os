@@ -8,7 +8,6 @@ local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
 local getFullRefreshMode = require("common/ui/refresh")
 local utils = require("modules/settings/zen_settings_utils")
-local Accent = require("common/ui/accent")
 local icon_utils = require("common/utils")
 local plugin_root = require("common/plugin_root")
 local paths = require("common/paths")
@@ -110,7 +109,7 @@ function M.build(ctx)
 
     local function navbar_color_item(label, key, default, enabled_func, opacity_key)
         local function color_hex()
-            local c = Accent.navbarColor(config, key, default)
+            local c = type(config.navbar[key]) == "table" and config.navbar[key] or default
             return string.format("#%02X%02X%02X",
                 math.max(0, math.min(255, tonumber(c[1]) or default[1])),
                 math.max(0, math.min(255, tonumber(c[2]) or default[2])),
@@ -132,7 +131,6 @@ function M.build(ctx)
                             tonumber(hex:sub(4, 5), 16),
                             tonumber(hex:sub(6, 7), 16),
                         }
-                        config.navbar[key .. "_custom"] = true
                         if opacity_key then config.navbar[opacity_key] = opacity end
                         save_and_defer_navbar_refresh()
                         if touchmenu_instance then touchmenu_instance:updateItems() end
@@ -1675,6 +1673,15 @@ function M.build(ctx)
                                 sub_item_table = {
                                     navbar_color_item(_("Outline color"), "outlined_color", {0x4F, 0x6F, 0x8F}),
                                 },
+                            },
+                            {
+                                text = _("Use accent color"),
+                                separator = true,
+                                checked_func = function() return config.navbar.active_tab_use_accent ~= false end,
+                                callback = function()
+                                    config.navbar.active_tab_use_accent = config.navbar.active_tab_use_accent == false
+                                    save_and_apply_navbar()
+                                end,
                             },
                         },
                     },

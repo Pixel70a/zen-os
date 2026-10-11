@@ -20,7 +20,6 @@ describe("navbar settings", function()
     local choose_tag
     local kindle_available
     local original_device
-    local original_accent
     local screen_is_color
 
     local function find_arrange_item(id)
@@ -32,10 +31,8 @@ describe("navbar settings", function()
     before_each(function()
         original_quick_settings = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
         original_device = package.loaded["device"]
-        original_accent = package.loaded["common/ui/accent"]
         screen_is_color = false
         ZenSpec.replace("device", { screen = { isColorScreen = function() return screen_is_color end } })
-        ZenSpec.unload("common/ui/accent")
         arrange_options = nil
         navbar_refreshes = 0
         saved = 0
@@ -191,7 +188,6 @@ describe("navbar settings", function()
     after_each(function()
         _G.__ZEN_UI_QUICK_SETTINGS = original_quick_settings
         package.loaded["device"] = original_device
-        package.loaded["common/ui/accent"] = original_accent
     end)
 
     local function build_navbar()
@@ -211,7 +207,7 @@ describe("navbar settings", function()
     it("selects exclusive active-tab styles with their own submenus", function()
         local items = build_navbar().sub_item_table[2].sub_item_table[3].sub_item_table
         local underline, filled, outlined = items[1], items[2], items[3]
-        assert.are.equal(3, #items)
+        assert.are.equal(4, #items)
         assert.are.same({ "Underline", "Filled", "Outlined" }, { underline.text, filled.text, outlined.text })
         assert.is_true(underline.radio)
         assert.is_true(filled.radio)
@@ -299,7 +295,36 @@ describe("navbar settings", function()
         assert.are.equal("#123456", shown[2].hex)
     end)
 
-    it("shows inherited accent colors and preserves explicit default-color selections", function()
+    it("saves the default-on accent toggle without changing custom colors or opacity", function()
+        config.navbar.active_tab_color = { 10, 20, 30 }
+        config.navbar.outlined_color = { 40, 50, 60 }
+        config.navbar.filled_background_color = { 70, 80, 90 }
+        config.navbar.filled_outline_color = { 255, 255, 255 }
+        config.navbar.filled_background_opacity = 40
+        local colors = {
+            config.navbar.active_tab_color, config.navbar.outlined_color,
+            config.navbar.filled_background_color, config.navbar.filled_outline_color,
+        }
+        local toggle = build_navbar().sub_item_table[2].sub_item_table[3].sub_item_table[4]
+        assert.are.equal("Use accent color", toggle.text)
+        assert.is_true(toggle.checked_func())
+        toggle.callback()
+        assert.is_false(config.navbar.active_tab_use_accent)
+        assert.is_false(toggle.checked_func())
+        assert.is_false(build_navbar().sub_item_table[2].sub_item_table[3].sub_item_table[4].checked_func())
+        toggle.callback()
+        assert.is_true(config.navbar.active_tab_use_accent)
+        assert.is_true(toggle.checked_func())
+        assert.are.same(colors, {
+            config.navbar.active_tab_color, config.navbar.outlined_color,
+            config.navbar.filled_background_color, config.navbar.filled_outline_color,
+        })
+        assert.are.equal(40, config.navbar.filled_background_opacity)
+        assert.are.equal(2, saved)
+        assert.are.equal(2, navbar_refreshes)
+    end)
+
+    it("edits custom colors independently of the active accent", function()
         screen_is_color = true
         config.accent_color = "#204080"
         local items = build_navbar().sub_item_table[2].sub_item_table[3].sub_item_table
@@ -309,13 +334,13 @@ describe("navbar settings", function()
             { items[3].sub_item_table[1], "outlined_color", "#4F6F8F" },
         }) do
             local item, key, default_hex = entry[1], entry[2], entry[3]
-            assert.is_truthy(item.text_func():find("#204080", 1, true))
-            item.callback(touch_menu)
-            assert.are.equal("#204080", shown[#shown].hex)
-            shown[#shown].callback(default_hex, 60)
-            assert.is_true(config.navbar[key .. "_custom"])
-            config.accent_color = "#FF0000"
             assert.is_truthy(item.text_func():find(default_hex, 1, true))
+            item.callback(touch_menu)
+            assert.are.equal(default_hex, shown[#shown].hex)
+            shown[#shown].callback("#123456", 60)
+            assert.are.same({ 0x12, 0x34, 0x56 }, config.navbar[key])
+            config.accent_color = "#FF0000"
+            assert.is_truthy(item.text_func():find("#123456", 1, true))
             config.accent_color = "#204080"
         end
         assert.are.equal("Outline color: #FFFFFF", items[2].sub_item_table[1].text_func())

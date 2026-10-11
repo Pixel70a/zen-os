@@ -7109,3 +7109,9 @@ msgstr "Còn lại"
 #: about_settings.lua:29
 msgid "Used"
 msgstr "Đã dùng"
+
+#. Type: setting
+#. Context: Navbar active-tab styling toggle. When enabled, uses the interface accent instead of the saved custom highlight colors.
+#: navbar_settings.lua:1678
+msgid "Use accent color"
+msgstr "Sử dụng màu nhấn"
