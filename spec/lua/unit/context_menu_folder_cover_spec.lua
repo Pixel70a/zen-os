@@ -869,6 +869,7 @@ describe("folder cover context-menu integration", function()
         local editor_file
         local plugin_args
         local plugin_action_called = false
+        local plugin_action_error
         local refresh_action_built = false
         local refreshed = {}
         local deleted_bookinfo
@@ -896,7 +897,13 @@ describe("folder cover context-menu integration", function()
                         {
                             text = "\u{F05F9}  Incognito",
                             icon = "plugin.svg",
-                            callback = function() plugin_action_called = true end,
+                            callback = function()
+                                assert.are.equal(file_chooser,
+                                    require("apps/filemanager/filemanager").getMenuInstance())
+                                if plugin_action_error then error(plugin_action_error) end
+                                plugin_action_called = true
+                                return "plugin action"
+                            end,
                         },
                         {
                             text_func = function() return "\u{F140B}  Dynamic action" end,
@@ -908,6 +915,7 @@ describe("folder cover context-menu integration", function()
                 index = { coverbrowser_2 = 1 },
             },
         }
+        function FileManager.getMenuInstance() return FileManager.instance.file_chooser end
         local bookinfo = {
             showFromBookDetails = function(_self, file, _props, options)
                 editor_file = file
@@ -1048,6 +1056,23 @@ describe("folder cover context-menu integration", function()
         assert(find_button(shown[#shown], "More")).callback()
         assert.are.equal(3, #shown[#shown].buttons)
         assert.is_nil(find_button(shown[#shown], "Archive"))
+
+        FileManager.instance = nil
+        local get_menu_instance = FileManager.getMenuInstance
+        file_chooser:showFileDialog({ path = "/library/book.epub", is_file = true, _zen_home_context = true })
+        assert(find_button(shown[#shown], "More")).callback()
+        local plugin_callback = assert(find_button(shown[#shown], "Incognito")).callback
+        assert.are.equal("plugin action", plugin_callback())
+        assert.is_nil(FileManager.instance)
+        assert.are.equal(get_menu_instance, FileManager.getMenuInstance)
+        plugin_action_error = "plugin callback failed"
+        local ok, err = pcall(plugin_callback)
+        assert.is_false(ok)
+        assert.matches(plugin_action_error, err, 1, true)
+        assert.is_nil(FileManager.instance)
+        assert.are.equal(get_menu_instance, FileManager.getMenuInstance)
+        plugin_action_error = nil
+        FileManager.instance = file_manager
 
         FileManager.file_dialog_added_buttons = nil
         context_menu_config.show_archive = true

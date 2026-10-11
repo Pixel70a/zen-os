@@ -1243,21 +1243,24 @@ describe("home data and book caches", function()
         assert.are.equal(0, rebuilds)
     end)
 
-    it("extracts pending end-of-book covers and settles books without covers", function()
+    it("extracts unindexed end-of-book covers and settles books without covers", function()
         local scheduled, notified, extracted = {}, {}, 0
         local fetched = false
+        local indexed = false
         local UIManager = require("ui/uimanager")
         UIManager.scheduleIn = function(_self, delay, callback)
             scheduled[#scheduled + 1] = { delay = delay, callback = callback }
         end
         local BookInfoManager = require("bookinfomanager")
         BookInfoManager.getBookInfo = function()
+            if not indexed then return end
             return { title = "Alpha", cover_fetched = fetched, has_cover = false }
         end
         BookInfoManager.isExtractingInBackground = function() return false end
         BookInfoManager.extractInBackground = function(_self, files)
             assert.equals("/library/alpha.epub", files[1].filepath)
             extracted = extracted + 1
+            indexed = true
             fetched = true
             return true
         end

@@ -1078,6 +1078,43 @@ describe("end of book", function()
         assert.is_true(freed)
     end)
 
+    it("excludes the current book and its symlinks from Continue while preserving other books", function()
+        local current, alias = "/library/current.epub", "/alias/current.epub"
+        ZenSpec.replace("ffi/util", { realpath = function(path)
+            if path == current or path == alias then return current end
+        end })
+        ZenSpec.replace("modules/filebrowser/patches/home_page", {})
+        ZenSpec.replace("common/db_bookinfo", { getGroupedByAuthor = function() return {} end,
+            getGroupedBySeries = function() return {} end })
+        ZenSpec.replace("common/book_status", { getEffectiveStatusFromFile = function() end })
+        plugin.config.end_book = { modules = { strip = { controls = { show_buttons = { continue = true } } } } }
+        local paths = { "/library/first.epub", current, alias, "/library/second.epub" }
+        local provider = {
+            getContinuePaths = function() return paths end,
+            getBook = function(_self, path) return { path = path, status = "complete", cover_bb = {} } end,
+        }
+        local get_continue_paths = provider.getContinuePaths
+        ZenSpec.replace("common/shared_state", { get = function() return {
+            invalidateBookCache = function() end, newDataProvider = function() return provider end,
+        } end })
+        local Data = require("modules/reader/end_book_data")
+        for _i, file in ipairs({ current, alias }) do
+            provider.getContinuePaths = get_continue_paths
+            G_reader_settings:saveSetting("lastfile", file)
+            local data = Data.new(nil, plugin, {}, function() end, function() end)
+            local expected = { "/library/first.epub", "/library/second.epub" }
+            assert.same(expected, data:getContinuePaths())
+            assert.same(expected, data:getRecommendations().continue)
+            assert.same({ "/library/first.epub", current, alias, "/library/second.epub" }, paths)
+            local saved_paths = paths
+            paths = { current, alias }
+            data:invalidateRecommendations()
+            assert.same({}, data:getContinuePaths())
+            assert.same({}, data:getRecommendations().continue)
+            paths = saved_paths
+        end
+    end)
+
     it("excludes the current book opened through a symlink from recommendations", function()
         ZenSpec.replace("ffi/util", { realpath = function(path)
             return path == "alias" and "current" or path

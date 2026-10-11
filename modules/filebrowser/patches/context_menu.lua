@@ -2309,6 +2309,17 @@ local function apply_context_menu()
                                 clean_button.align = "left"
                                 clean_button.icon = nil
                                 clean_button.icon_func = nil
+                                if type(clean_button.callback) == "function" and FileManager.instance ~= file_manager then
+                                    local callback = clean_button.callback
+                                    clean_button.callback = function(...)
+                                        local get_menu_instance = FileManager.getMenuInstance
+                                        FileManager.getMenuInstance = function() return self_fc end
+                                        local ok_callback, result = pcall(callback, ...)
+                                        FileManager.getMenuInstance = get_menu_instance
+                                        if not ok_callback then error(result, 0) end
+                                        return result
+                                    end
+                                end
                                 table.insert(rows, { clean_button })
                             end
                         end

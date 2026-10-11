@@ -251,10 +251,10 @@ local function show_minimal_controls()
         if controls_showcase_restore == restore then controls_showcase_restore = nil end
     end
     controls_showcase_restore = restore
-    config.button_order = { "wifi", "night", "rotate", "zen", "zen_settings", "launcher" }
+    config.button_order = { "wifi", "night", "screenshot", "zen_settings", "launcher", "library_home" }
     config.show_buttons = {
-        wifi = true, night = true, rotate = true, zen = true,
-        zen_settings = true, launcher = true,
+        wifi = true, night = true, screenshot = true,
+        zen_settings = true, launcher = true, library_home = true,
     }
     features.app_launcher = false
     config.show_labels = true
@@ -2251,7 +2251,10 @@ function Driver:handleCommand(command)
                 state.strip_covers = {}
                 local function collect_covers(widget)
                     if type(widget.onTapCover) == "function" then
-                        state.strip_covers[#state.strip_covers + 1] = dimen_bounds(widget.dimen)
+                        local bounds = dimen_bounds(widget.dimen)
+                        local image = find_descendant(widget, function(child) return child.image ~= nil end)
+                        bounds.image_cache_key = image and find_upvalue(image.free, "cache_key")
+                        state.strip_covers[#state.strip_covers + 1] = bounds
                     end
                     for _i, child in ipairs(widget) do collect_covers(child) end
                 end
@@ -2262,19 +2265,19 @@ function Driver:handleCommand(command)
                 }
                 state.strip_labels = {}
                 state.strip_min_text_size = require("device").screen:scaleBySize(7)
-                for _i, source in ipairs(require("modules/settings/sections/end_book_settings").sources) do
+                for _i, id in ipairs(strip_config.controls.order) do
                     local ButtonModel = require("common/nav_button_model")
-                    local label_text = ButtonModel.label(strip_config.controls,
-                        ButtonModel.find(strip_config.controls, source[1]))
+                    local source_label = ButtonModel.label(strip_config.controls,
+                        ButtonModel.find(strip_config.controls, id))
                     local control = find_descendant(page, function(widget)
                         return type(widget.onTapStripControl) == "function" and find_descendant(widget, function(label)
-                            return label.text == label_text
+                            return label.text == source_label
                         end) ~= nil
                     end)
                     if control then
-                        local label = find_descendant(control, function(widget) return widget.text == label_text end)
+                        local label = find_descendant(control, function(widget) return widget.text == source_label end)
                         state.strip_labels[#state.strip_labels + 1] = {
-                            label = label_text, font_size = label.face.orig_size,
+                            label = source_label, font_size = label.face.orig_size,
                         }
                     end
                 end

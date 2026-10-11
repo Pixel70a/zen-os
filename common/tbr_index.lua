@@ -829,7 +829,9 @@ function M.setExplicit(path, enabled)
     local coll_name = collection_name()
     local present = ReadCollection:isFileInCollection(path, coll_name) == true
     if enabled == true and not present then
-        ReadCollection:addItem(path, coll_name)
+        local attr = lfs.attributes(path)
+        if not attr or attr.mode ~= "file" then return false end
+        ReadCollection:addItem(path, coll_name, attr)
     elseif enabled ~= true and present then
         ReadCollection:removeItem(path, coll_name)
     else

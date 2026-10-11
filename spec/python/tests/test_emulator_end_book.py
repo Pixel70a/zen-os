@@ -101,6 +101,51 @@ def test_end_book_rating_is_optional_saved_and_read_only_in_preview(width, heigh
                     process.wait()
 
 
+def test_end_book_preview_shows_cbz_strip_cover_from_reader_and_library():
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-end-book-cbz-") as temporary:
+        root = Path(temporary)
+        home, library, socket = root / "home", root / "books", root / "driver.sock"
+        home.mkdir()
+        library.mkdir()
+        books = build_library(library)
+        book, comic = books["epub"], books["cbz"]
+        sidecar = comic.with_suffix(".sdr")
+        sidecar.mkdir()
+        sidecar.joinpath("metadata.cbz.lua").write_text(
+            'return { summary = { status = "reading" }, percent_finished = 0.2 }', encoding="utf-8",
+        )
+        _seed_history_books(home, [comic])
+        process = launch(runtime, home, socket, library)
+        try:
+            wait_for_socket(socket)
+            driver = ZenDriver(socket)
+            _wait_command(driver, "open_book", lambda result: result.get("ok"), path=str(book))
+            for from_reader in (True, False):
+                if not from_reader:
+                    assert driver.command("reader_menu_home")["ok"]
+                    _wait_command(driver, "reader_state", lambda result: not result["reader"].get("open"))
+                preview = driver.command("end_book", preview=True)
+                assert preview["active"] and preview["preview"]
+                assert Path(preview["file"]).resolve() == book.resolve()
+                preview = driver.command("end_book", source="continue")
+                assert [item["path"] for item in preview["strip_items"]] == [str(comic.resolve())]
+                _wait_command(driver, "end_book", lambda result: any(
+                    cover.get("image_cache_key") == str(comic.resolve())
+                    for cover in result.get("strip_covers", [])
+                ))
+                assert driver.command("end_book", tap_strip_cover=True)["cover_viewer"]
+                assert driver.command("end_book", dismiss_cover=True)["active"]
+                driver.command("end_book", close=True)
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+
+
 def _assert_fits(layout):
     assert not layout["has_scroll"], layout
     assert layout["featured_finished_icon"], layout["visible_texts"]
@@ -323,9 +368,10 @@ def test_end_book_renders_and_preserves_changed_default_after_restart(width, hei
                 assert state["edit_mode"] is True
                 held = driver.command("end_book", hold_strip_cover=True)
                 assert held["hold_handled"], held
-                for label in ("Details", "Add to collection", "Read status", "Refresh", "Widget settings"):
-                    assert any(label in button for button in held["book_menu_buttons"]), held
+                for label in ("Details", "Add to collection", "Read status", "Widget settings"):
+                    assert any(label in button for button in held["book_menu_buttons"]), (label, held["book_menu_buttons"])
                 assert not any("Edit" in button for button in held["book_menu_buttons"]), held
+                assert not any("Refresh" in button for button in held["book_menu_buttons"]), held
                 assert driver.command("reader_state")["reader"]["open"]
                 driver.command("end_book", book_menu_action="Widget settings")
                 strip_settings = _wait_command(driver, "arrange_page_state", lambda result:
@@ -434,14 +480,15 @@ def test_end_book_renders_and_preserves_changed_default_after_restart(width, hei
                 assert driver.command("settings_page_select", label="Edit mode")["ok"]
                 assert driver.command("settings_page_select", label="Widgets")["ok"]
                 assert driver.command("zen_settings_stack_state")["settings_open"] is True
-                assert driver.command("arrange_page_select", index=2)["ok"]
+                widget_labels = driver.command("arrange_page_state")["arrange"]["labels"]
+                assert driver.command("arrange_page_select", index=widget_labels.index("Featured book") + 1)["ok"]
                 featured_settings = driver.command("arrange_page_state")["arrange"]
                 assert {"Text styles", "Progress"} <= set(featured_settings["labels"])
                 assert "Top status bar" not in featured_settings["labels"]
                 assert "Use Home settings" not in featured_settings["labels"]
                 assert any(label.startswith("Icon size:") for label in featured_settings["labels"])
                 assert driver.command("arrange_page_back")["ok"]
-                assert driver.command("arrange_page_select", index=4)["ok"]
+                assert driver.command("arrange_page_select", index=widget_labels.index("Book strip") + 1)["ok"]
                 strip_settings = driver.command("arrange_page_state")["arrange"]
                 assert {"Controls", "Two rows"} <= set(strip_settings["labels"])
                 assert "Default source" not in strip_settings["labels"]
@@ -451,7 +498,7 @@ def test_end_book_renders_and_preserves_changed_default_after_restart(width, hei
                 assert any(label.startswith("Font:") for label in controls["labels"])
                 assert driver.command("arrange_page_back")["ok"]
                 assert driver.command("arrange_page_back")["ok"]
-                assert driver.command("arrange_page_select", index=3, toggle=True)["ok"]
+                assert driver.command("arrange_page_select", index=widget_labels.index("Highlights and notes") + 1, toggle=True)["ok"]
                 assert driver.command("arrange_page_back")["ok"]
                 assert driver.command("settings_page_state")["settings"]["title"] == "End of book"
                 assert driver.command("settings_page_back")["ok"]

@@ -299,6 +299,18 @@ function M.new(ui, plugin, config, refresh, close, preview)
         ui.bookmark:gotoBookmark(quote.page, quote.pos0)
         return true
     end
+    local get_continue_paths = data.getContinuePaths
+    local realpath = require("ffi/util").realpath
+    local current_file = file and (realpath(file) or file)
+    function data:getContinuePaths()
+        local paths = {}
+        for _i, path in ipairs(get_continue_paths(self)) do
+            if path ~= file and (not current_file or (realpath(path) or path) ~= current_file) then
+                paths[#paths + 1] = path
+            end
+        end
+        return paths
+    end
     local recommendations
     function data:invalidateRecommendations()
         recommendations = nil

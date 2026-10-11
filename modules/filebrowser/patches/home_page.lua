@@ -1268,8 +1268,8 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
             end
             has_real_cover = not not (bi and bi.cover_fetched and bi.has_cover
                 and not bi.ignore_cover)
-            cover_pending = has_real_cover
-                or not not (bi and not bi.cover_fetched and not bi.ignore_cover)
+            cover_pending = not bi or has_real_cover
+                or not not (not bi.cover_fetched and not bi.ignore_cover)
             cover_loaded = not metadata_only
             if metadata_only and bi and bi.cover_bb then
                 bi.cover_bb:free()
@@ -2313,9 +2313,8 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         local metadata = type(DecodeCache.getFreshMetadata) == "function"
             and DecodeCache:getFreshMetadata(path, now(), 30) or nil
         metadata = metadata or BookInfoManager:getBookInfo(path, false)
-        if not metadata then return "failed" end
         local specs = { max_cover_w = width, max_cover_h = height }
-        if not metadata.cover_fetched then
+        if not metadata or not metadata.cover_fetched then
             queue_cover_upgrade(path, "strip", specs)
             return "pending"
         end

@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shutil
 import signal
 import sqlite3
 import tempfile
@@ -473,6 +474,58 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
             else:
                 assert "Alpha Home" not in home["visible_texts"]
                 assert "Start reading a book to fill this space." in home["visible_texts"]
+        finally:
+            process.send_signal(signal.SIGTERM)
+            process.wait(timeout=15)
+
+
+@pytest.mark.parametrize("scheduled_dark_mode", [False, True])
+@pytest.mark.skipif(shutil.which("zstd") is None, reason="zstd is needed to seed color covers")
+def test_scheduled_dark_mode_preserves_home_cover_colors(scheduled_dark_mode: bool) -> None:
+    from website_screenshots import StagedBook, _seed_bookinfo as seed_color_bookinfo
+
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-night-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        book = build_library(library)["epub"]
+        _seed_home_settings(ko_home)
+        _seed_history(ko_home, book)
+        seed_color_bookinfo(ko_home, [
+            StagedBook(None, "Alpha", "Zen Author", "Series A", book, book, "featured", "EPUB"),
+        ])
+        now = time.localtime()
+        config = (
+            "return { updater = { update_auto_check = false }, "
+            "features = { night_mode_schedule = " + str(scheduled_dark_mode).lower() + " }, "
+            "night_mode_schedule = { night_on_h = " + str((now.tm_hour - 6) % 24)
+            + ", night_on_m = " + str(now.tm_min)
+            + ", night_off_h = " + str((now.tm_hour + 6) % 24)
+            + ", night_off_m = " + str(now.tm_min) + " } }\n"
+        )
+        socket_path = root / "driver.sock"
+        process = launch(runtime, ko_home, socket_path, library, zen_config_source=config)
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            assert driver.command("activate_navbar_tab", id="home")["ok"]
+            _wait_for_home(driver, required_texts={"Alpha"})
+            screenshot = Path(__file__).resolve().parents[2] / ".artifacts" / (
+                "home-scheduled-dark.png" if scheduled_dark_mode else "home-light.png"
+            )
+            deadline = time.monotonic() + 10
+            while True:
+                driver.screenshot(screenshot)
+                with Image.open(screenshot) as image:
+                    image = image.convert("RGB")
+                colors = {color: count for count, color in image.getcolors(image.width * image.height)}
+                if colors.get((32, 96, 192), 0) > 100 or time.monotonic() >= deadline:
+                    break
+                time.sleep(0.2)
+            background = (0, 0, 0) if scheduled_dark_mode else (255, 255, 255)
+            assert image.getpixel((0, image.height // 2)) == background
+            assert colors.get((32, 96, 192), 0) > 100
         finally:
             process.send_signal(signal.SIGTERM)
             process.wait(timeout=15)

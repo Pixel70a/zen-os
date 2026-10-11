@@ -321,6 +321,7 @@ describe("TBR path inventory", function()
 
     it("keeps explicit Kindle books outside the configured library", function()
         local kindle_path = "/kindle-cache/book.epub"
+        attrs[kindle_path] = { mode = "file" }
         ZenSpec.replace("modules/filebrowser/patches/kindle_virtual_library", {
             isBookPath = function(path) return path == kindle_path end,
         })
@@ -328,6 +329,21 @@ describe("TBR path inventory", function()
 
         assert.is_true(Index.setExplicit(kindle_path, true))
         assert.same({ kindle_path }, Index.getAll({ include_new = false }))
+    end)
+
+    it("rejects missing TBR files and still removes stale membership", function()
+        local path = "/books/manga.cbz"
+        add_book(path, "reading", 1)
+        local Index = require("common/tbr_index")
+        assert.is_true(Index.setExplicit(path, true))
+        attrs[path] = nil
+        assert.is_true(Index.setExplicit(path, false))
+        local writes = collection_writes
+        ReadCollection.addItem = function() error("attempted to add a missing file") end
+        assert.is_false(Index.setExplicit(path, true))
+        assert.is_false(Index.setExplicit("/books", true))
+        assert.are.equal(writes, collection_writes)
+        assert.is_false(Index.isExplicit(path))
     end)
 
     it("saves a shared manual order and refreshes its views", function()
