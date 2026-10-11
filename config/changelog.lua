@@ -412,6 +412,8 @@ return {
     },
     ["4.2.0"] = {
         "Add accent color",
+        "Scale opening banner and badge font",
+        "Bug fixes"
     },
 
 }
