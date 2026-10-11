@@ -306,6 +306,12 @@ msgstr "Un scurt rezumat al problemei"
 msgid "About"
 msgstr "Despre"
 
+#. Type: setting
+#. Context: Interface accent color settings.
+#: interface_settings.lua
+msgid "Accent color"
+msgstr "Culoare de accent"
+
 #. Type: action
 #. Context: Denumirea unei acțiuni în interfața ZenOS.
 #: mosaic_layout_dialog.lua:54
@@ -407,6 +413,12 @@ msgstr "Adaugă în colecție"
 #: dict_quick_lookup.lua:80
 msgid "Add to vocabulary builder"
 msgstr "Adaugă în generatorul de vocabular"
+
+#. Type: setting
+#. Context: Interface accent color settings.
+#: interface_settings.lua
+msgid "Reset accent color"
+msgstr "Resetează culoarea de accent"
 
 #. Type: label
 #. Context: Etichetă în meniul contextual pentru cărți și dosare.

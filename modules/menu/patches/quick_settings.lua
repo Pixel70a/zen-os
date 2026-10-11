@@ -30,6 +30,7 @@ local function apply_quick_settings()
     local LibraryNavigation = require("common/library_navigation")
     local ButtonLabelWidth = require("common/ui/button_label_width")
     local ButtonFeedback = require("common/ui/button_feedback")
+    local Accent = require("common/ui/accent")
     local Bluetooth = require("modules/menu/bluetooth/bluetooth")
     local build_brightness_slider = require("modules/menu/patches/brightness_slider")
     local build_warmth_slider = require("modules/menu/patches/warmth_slider")
@@ -1473,23 +1474,11 @@ local function apply_quick_settings()
                 icon   = icon_path and nil or icon_name,
                 width  = rendered_icon_size,
                 height = rendered_icon_size,
-                -- alpha=false → BlitBuffer8 (opaque grayscale); invertRect flips
-                -- pixel values so the icon renders white-on-black for active state.
-                alpha  = not active,
+                alpha  = true,
             }
-            if active then
-                -- Force the cached buffer to be populated, then copy it before
-                -- inverting so the shared cache entry is never mutated (otherwise
-                -- invertRect would flip back on every second open).
-                icon:_render()
-                if icon._bb then
-                    local bb_copy = icon._bb:copy()
-                    bb_copy:invertRect(0, 0, bb_copy:getWidth(), bb_copy:getHeight())
-                    icon._bb = bb_copy
-                end
-            end
-            local border = active and 0 or normal_border
-            local bg = active and Blitbuffer.COLOR_BLACK
+            Accent.styleIcon(icon, active)
+            local border = normal_border
+            local bg = active and Accent.color()
                 or disabled and Blitbuffer.COLOR_LIGHT_GRAY
                 or dimmed and Blitbuffer.COLOR_GRAY
                 or Blitbuffer.COLOR_WHITE

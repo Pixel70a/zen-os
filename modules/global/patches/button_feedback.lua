@@ -3,6 +3,7 @@ return function()
     local IconButton = require("ui/widget/iconbutton")
     local BD = require("ui/bidi")
     local Feedback = require("common/ui/button_feedback")
+    local Accent = require("common/ui/accent")
     local Geom = require("ui/geometry")
     local UIManager = require("ui/uimanager")
     if Button._zen_feedback_patched then return end
@@ -17,18 +18,21 @@ return function()
             x = dimen.x, y = dimen.y, w = dimen.w, h = dimen.h,
         }
             or Feedback.paddedRegion(dimen)
-        Feedback.invert(self._zen_feedback_region)
-        UIManager:setDirty(nil, "fast", self._zen_feedback_region)
+        self._zen_feedback_pixels = Feedback.highlight(self._zen_feedback_region)
+        UIManager:setDirty(nil, Accent.isEnabled() and "ui" or "fast", self._zen_feedback_region)
     end
 
     function Button:_undoFeedbackHighlight(is_translucent)
         local region = self._zen_feedback_region
         if not region then return end
         self._zen_feedback_region = nil
+        local saved = self._zen_feedback_pixels
+        self._zen_feedback_pixels = nil
         if self.vsync then
+            if saved then saved.bb:free() end
             UIManager:widgetRepaint(self, self.dimen.x, self.dimen.y)
         else
-            Feedback.invert(region)
+            Feedback.restore(region, saved)
         end
         UIManager:setDirty(is_translucent and self.show_parent or nil,
             "ui", region)
@@ -38,7 +42,8 @@ return function()
     function Button:paintTo(...)
         orig_paint_to(self, ...)
         if self.vsync and self._zen_feedback_region then
-            Feedback.invert(self._zen_feedback_region)
+            if self._zen_feedback_pixels then self._zen_feedback_pixels.bb:free() end
+            self._zen_feedback_pixels = Feedback.highlight(self._zen_feedback_region)
         end
     end
 

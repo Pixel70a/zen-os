@@ -312,6 +312,12 @@ msgstr "Breve resumen del error"
 msgid "About"
 msgstr "Acerca de"
 
+#. Type: setting
+#. Context: Interface accent color settings.
+#: interface_settings.lua
+msgid "Accent color"
+msgstr "Color de acento"
+
 #. Type: action
 #. Context: Nombre de una acción en la interfaz de ZenOS.
 #: mosaic_layout_dialog.lua:54
@@ -413,6 +419,12 @@ msgstr "Añadir a la colección"
 #: dict_quick_lookup.lua:80
 msgid "Add to vocabulary builder"
 msgstr "Añadir al vocabulario"
+
+#. Type: setting
+#. Context: Interface accent color settings.
+#: interface_settings.lua
+msgid "Reset accent color"
+msgstr "Restablecer el color de acento"
 
 #. Type: label
 #. Context: Etiqueta en el menú contextual de libros y carpetas.

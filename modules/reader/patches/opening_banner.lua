@@ -73,6 +73,7 @@ local function apply_opening_banner()
 
     local Blitbuffer = require("ffi/blitbuffer")
     local Font    = require("ui/font")
+    local utils   = require("common/utils")
     local Geom    = require("ui/geometry")
     local TextWidget = require("ui/widget/textwidget")
     local Widget  = require("ui/widget/widget")
@@ -469,7 +470,7 @@ local function apply_opening_banner()
 
         local tw = TextWidget:new{
             text      = self.label or _("Opening"),
-            face      = Font:getFace("cfont", Screen:scaleBySize(7)),
+            face      = Font:getFace("cfont", self.font_size),
             fgcolor   = fg,
             bold      = true,
         }
@@ -482,7 +483,9 @@ local function apply_opening_banner()
     end
 
     local function build_banner(cover)
-        local banner_h = Screen:scaleBySize(28)
+        local plug = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+        local badge_scale = utils.getBadgeScale(plug and plug.config)
+        local banner_h = math.floor(Screen:scaleBySize(28) * badge_scale)
         local bx, by, bw
         if cover then
             local border = cover.is_list and 0 or cover.border or 0
@@ -502,7 +505,6 @@ local function apply_opening_banner()
             banner_h = banner_h + bottom_margin
         end
 
-        local plug = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
         local round_bottom = cover and not cover.is_list
             and plug
             and type(plug.config) == "table"
@@ -515,6 +517,7 @@ local function apply_opening_banner()
         local dimen = Geom:new{ x = bx, y = by, w = bw, h = banner_h }
         return OpeningBanner:new{
             dimen                = dimen,
+            font_size            = math.ceil(Screen:scaleBySize(7) * badge_scale),
             dark_banner          = dark_banner,
             round_bottom_corners = round_bottom and true or false,
             cover_border         = cover and cover.border or 0,

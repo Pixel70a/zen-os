@@ -1,5 +1,6 @@
         local function apply_app_launcher(plugin_ref)
     local Blitbuffer = require("ffi/blitbuffer")
+    local Accent = require("common/ui/accent")
     local CenterContainer = require("ui/widget/container/centercontainer")
     local Device = require("device")
     local Font = require("ui/font")
@@ -151,24 +152,17 @@
             icon = icon_path and nil or icon_name,
             width = rendered_icon_size,
             height = rendered_icon_size,
-            alpha = not active,
+            alpha = true,
         }
-        if active then
-            icon:_render()
-            if icon._bb then
-                local bb_copy = icon._bb:copy()
-                bb_copy:invertRect(0, 0, bb_copy:getWidth(), bb_copy:getHeight())
-                icon._bb = bb_copy
-            end
-        end
-        local border = active and 0 or circle_border
+        Accent.styleIcon(icon, active)
+        local border = circle_border
         local icon_circle = FrameContainer:new{
             width = circle_size,
             height = circle_size,
             padding = 0,
             bordersize = border,
             radius = math.floor(circle_size / 2),
-            background = active and Blitbuffer.COLOR_BLACK
+            background = active and Accent.color()
                 or opts.dimmed and Blitbuffer.COLOR_GRAY or Blitbuffer.COLOR_WHITE,
             CenterContainer:new{
                 dimen = Geom:new{

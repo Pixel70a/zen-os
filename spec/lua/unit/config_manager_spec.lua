@@ -70,6 +70,7 @@ describe("config manager folder-path migration", function()
     it("loads complete defaults for a fresh install", function()
         local config = Manager.load()
 
+        assert.are.equal(100, config.accent_opacity)
         assert.is_true(config.features.navbar)
         assert.is_true(config.navbar.active_tab_underline)
         assert.is_false(config.navbar.active_tab_filled)

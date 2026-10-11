@@ -1,3 +1,4 @@
+local Accent = require("common/ui/accent")
 local M = {}
 
 local OPTICAL_ICON_SCALES = {
@@ -463,6 +464,10 @@ function M.getBadgeScale(config)
     return 1.0
 end
 
+function M.getBadgeFontSize(config, size, ratio, minimum)
+    return math.max(math.ceil(minimum * M.getBadgeScale(config)), math.floor(size * ratio))
+end
+
 local function get_badge_rgb(config)
     local c = type(config) == "table"
         and type(config.browser_cover_badges) == "table"
@@ -475,10 +480,11 @@ local function get_badge_rgb(config)
     end
 end
 
---- Returns the configured badge background color, or COLOR_LIGHT_GRAY if not set.
+--- Returns the active accent or configured badge fill, defaulting to black.
 --- @param config table|nil  the plugin config table (p.config)
 --- @return userdata  Blitbuffer color
 function M.getBadgeColor(config)
+    if Accent.isEnabled(config) then return Accent.color(config) end
     local Blitbuffer = require("ffi/blitbuffer")
     local r, g, b = get_badge_rgb(config)
     if r then
@@ -488,14 +494,15 @@ function M.getBadgeColor(config)
 end
 
 --- True when badge fill should use white contrast text/outline.
---- Mirrors the file-browser badge patches: default/black is dark; custom colors use black.
 function M.isBadgeDark(config)
+    if Accent.isEnabled(config) then
+        return Accent.foreground(config) == require("ffi/blitbuffer").COLOR_WHITE
+    end
     local r, g, b = get_badge_rgb(config)
     return r == nil or (r == 0 and g == 0 and b == 0)
 end
 
 --- Returns the foreground color for text/icons drawn inside a badge.
---- White when the badge fill is black (0,0,0), black otherwise.
 function M.getBadgeTextColor(config)
     local Blitbuffer = require("ffi/blitbuffer")
     if M.isBadgeDark(config) then

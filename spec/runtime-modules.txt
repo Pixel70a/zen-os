@@ -59,6 +59,7 @@ common/sort_key.lua|unit
 common/sort_key_cache.lua|unit
 common/title_sort.lua|unit
 common/tbr_index.lua|unit
+common/ui/accent.lua|unit
 common/ui/background.lua|unit
 common/ui/book_progress.lua|unit
 common/ui/button_label_width.lua|unit

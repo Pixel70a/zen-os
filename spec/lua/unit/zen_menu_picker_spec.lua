@@ -127,6 +127,7 @@ describe("Zen menu picker", function()
         })
         ZenSpec.replace("ui/geometry", { new = function(_, values) return values end })
         ZenSpec.replace("ffi/blitbuffer", {
+            isColor8 = function() return true end,
             COLOR_BLACK = "black",
             COLOR_DARK_GRAY = "dark_gray",
             COLOR_LIGHT_GRAY = "light_gray",

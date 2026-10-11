@@ -115,6 +115,7 @@ return {
     settings_subfolders = "\u{F0645}",
     settings_underline = "\u{F0287}",
     settings_background = "\u{F0E09}",
+    settings_accent   = "\u{F1FC}",  -- nf-fa-paint-brush
     settings_menu_blur = "\u{F00B5}",
     settings_home_folder = "\u{F10B6}",
     settings_navbar   = "\u{F10A9}",

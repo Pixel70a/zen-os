@@ -97,7 +97,7 @@ describe("home strip widget", function()
             isTouchDevice = function() return touch_device end,
         })
         ZenSpec.replace("ui/font", { getFace = function(_, name, size) return { name = name, size = size } end })
-        ZenSpec.replace("common/utils", {
+        ZenSpec.replace("common/utils", setmetatable({
             deepcopy = function(value)
                 if type(value) ~= "table" then return value end
                 local out = {}
@@ -107,10 +107,9 @@ describe("home strip widget", function()
             getBadgeColor = function() return "badge" end,
             getBadgeTextColor = function() return "text" end,
             isBadgeDark = function() return false end,
-            getBadgeScale = function() return 1 end,
             getBadgeInset = function() return 1 end,
             formatPageCount = function(pages) return tostring(pages) end,
-        })
+        }, { __index = dofile(ZenSpec.root .. "/common/utils.lua") }))
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
             getFace = function(size)
                 library_font_sizes[#library_font_sizes + 1] = size
@@ -403,6 +402,44 @@ describe("home strip widget", function()
             end
         end
         assert.is_true(badge_rects > 0)
+    end)
+
+    it("resizes cached badge fonts when the badge size changes", function()
+        local config = {
+            browser_cover_badges = { show_mosaic_progress = true },
+            browser_page_count = { show_page_count = true },
+            browser_series_badge = { show_series_badge = true },
+        }
+        rawset(_G, "__ZEN_UI_PLUGIN", { config = config })
+        require("modules/filebrowser/patches/home/widgets/strip").build{
+            width = 600, height = 300, component_id = "strip",
+            module_cfg = { count = 3, interactive = false, show_badges = true },
+            data = { getBooksForStrip = function()
+                return {{ path = "/book.epub", status = "reading", percent = 0.45,
+                    pages = 120, series_index = 2 }}
+            end },
+        }
+        local cover
+        for _i, widget in ipairs(created) do
+            if widget.kind == "cover" then cover = widget; break end
+        end
+        assert.is_table(cover)
+        local bb = { paintRect = function() end, paintRectRGB32 = function() end }
+        for _i, preset in ipairs({
+            { "compact", 7 }, { "normal", 8 }, { "large", 9 }, { "extra_large", 11 },
+        }) do
+            config.browser_cover_badges.badge_size = preset[1]
+            cover:paintTo(bb, 0, 0)
+            local fonts = {}
+            for _j, widget in ipairs(created) do
+                if widget.kind == "ui/widget/textwidget" and not widget.free_calls then
+                    fonts[widget.text] = widget.face.size
+                end
+            end
+            assert.are.equal(preset[2], fonts["45%"])
+            assert.are.equal(preset[2], fonts["120"])
+            assert.are.equal(preset[2], fonts["#2"])
+        end
     end)
 
     it("reduces the page size when the strip is too narrow for readable covers", function()

@@ -1,7 +1,7 @@
 require("ffi/loadlib")
 
 describe("rounded button feedback", function()
-    local originals, settings, Feedback, screen, UIManager, Button, IconButton, mirrored, logs
+    local originals, settings, plugin, Feedback, screen, UIManager, Button, IconButton, mirrored, logs
     local Blitbuffer = require("ffi/blitbuffer")
     local Geom = require("ui/geometry")
     local modules = {
@@ -11,6 +11,8 @@ describe("rounded button feedback", function()
 
     before_each(function()
         originals, settings, logs = {}, _G.G_reader_settings, {}
+        plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+        _G.__ZEN_UI_PLUGIN = nil
         for _i, name in ipairs(modules) do originals[name] = package.loaded[name] or false end
         _G.G_reader_settings = { isFalse = function() return false end }
         screen = {
@@ -44,6 +46,7 @@ describe("rounded button feedback", function()
     after_each(function()
         if screen.bb then screen.bb:free() end
         _G.G_reader_settings = settings
+        _G.__ZEN_UI_PLUGIN = plugin
         for _i, name in ipairs(modules) do package.loaded[name] = originals[name] or nil end
     end)
 
@@ -74,6 +77,47 @@ describe("rounded button feedback", function()
             screen.bb:free()
             screen.bb = nil
         end
+    end)
+
+    it("flashes the accent with contrasting glyphs and restores every original pixel", function()
+        _G.__ZEN_UI_PLUGIN = { config = { accent_color = "#204080" } }
+        screen.isColorScreen = function() return true end
+        screen.bb = Blitbuffer.new(64, 64, Blitbuffer.TYPE_BBRGB32)
+        screen.bb:fill(Blitbuffer.COLOR_WHITE)
+        screen.bb:paintRect(30, 30, 4, 4, Blitbuffer.COLOR_BLACK)
+        local before = screen.bb:copy()
+        local modes = {}
+        UIManager.setDirty = function(_self, _owner, mode) modes[#modes + 1] = mode end
+        UIManager.yieldToEPDC = function()
+            assert.are.equal(tostring(Blitbuffer.ColorRGB32(32, 64, 128, 255)),
+                tostring(screen.bb:getPixel(36, 36)))
+            assert.are.equal(255, screen.bb:getPixel(31, 31):getColor8().a)
+            assert.are.equal(255, screen.bb:getPixel(20, 20):getColor8().a)
+        end
+        Feedback.flash({ x = 20, y = 20, w = 32, h = 32 }, 16)
+        assert.are.same({ "ui", "ui" }, modes)
+        for y = 0, 63 do
+            for x = 0, 63 do
+                assert.are.equal(tostring(before:getPixel(x, y)), tostring(screen.bb:getPixel(x, y)))
+            end
+        end
+        before:free()
+    end)
+
+    it("clips colored feedback snapshots at screen edges and restores rotated buffers", function()
+        _G.__ZEN_UI_PLUGIN = { config = { accent_color = "#FFFF80" } }
+        screen.isColorScreen = function() return true end
+        screen.bb = Blitbuffer.new(48, 64, Blitbuffer.TYPE_BBRGB32)
+        screen.bb:setRotation(1)
+        screen.bb:fill(Blitbuffer.COLOR_WHITE)
+        local region = { x = -8, y = -8, w = 32, h = 32 }
+        local saved = Feedback.highlight(region)
+        assert.are.equal(0, saved.x)
+        assert.are.equal(24, saved.bb:getWidth())
+        assert.are.equal(tostring(Blitbuffer.ColorRGB32(255, 255, 128, 255)),
+            tostring(screen.bb:getPixel(10, 10)))
+        Feedback.restore(region, saved)
+        assert.are.equal(255, screen.bb:getPixel(10, 10):getColor8().a)
     end)
 
     it("restores icon pixels before callbacks, including close buttons, RTL, and focused icons", function()
@@ -521,6 +565,31 @@ describe("rounded button feedback", function()
             }, { __index = Button })
             button:_doFeedbackHighlight()
             button:_undoFeedbackHighlight(true)
+            assert.is_nil(button._zen_feedback_region)
+        end
+    end)
+
+    it("restores colored text-button feedback after vsync repaint and translucent taps", function()
+        _G.__ZEN_UI_PLUGIN = { config = { accent_color = "#204080" } }
+        screen.isColorScreen = function() return true end
+        screen.bb = Blitbuffer.new(80, 60, Blitbuffer.TYPE_BBRGB32)
+        screen.bb:fill(Blitbuffer.COLOR_WHITE)
+        Button.paintTo = function(self)
+            local d = self.dimen
+            screen.bb:paintRect(d.x, d.y, d.w, d.h, Blitbuffer.COLOR_WHITE)
+        end
+        require("modules/global/patches/button_feedback")()
+        for _i, vsync in ipairs({ false, true }) do
+            local button = setmetatable({ dimen = { x = 20, y = 20, w = 32, h = 24 },
+                bordersize = 1, vsync = vsync, show_parent = {},
+            }, { __index = Button })
+            button:_doFeedbackHighlight()
+            assert.are.equal(tostring(Blitbuffer.ColorRGB32(32, 64, 128, 255)),
+                tostring(screen.bb:getPixel(28, 28)))
+            if vsync then button:paintTo() end
+            button:_undoFeedbackHighlight(true)
+            assert.are.equal(255, screen.bb:getPixel(28, 28):getColor8().a)
+            assert.is_nil(button._zen_feedback_pixels)
             assert.is_nil(button._zen_feedback_region)
         end
     end)

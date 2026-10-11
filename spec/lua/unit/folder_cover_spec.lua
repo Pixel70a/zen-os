@@ -1067,6 +1067,40 @@ describe("shared folder cover provider", function()
         assert.is_true(painted.options.rounded)
     end)
 
+    it("resizes cached folder count fonts with the badge size", function()
+        ZenSpec.replace("device", { screen = { scaleBySize = function(_self, value) return value end } })
+        ZenSpec.replace("ffi/blitbuffer", { COLOR_BLACK = "black", COLOR_WHITE = "white" })
+        ZenSpec.replace("ui/font", { getFace = function(_self, _name, size) return { size = size } end })
+        ZenSpec.replace("ui/widget/textwidget", { new = function(_self, values)
+            values.getSize = function() return { w = 10, h = 10 } end
+            values.paintTo = function() end
+            values.free = function(self) self.freed = true end
+            return values
+        end })
+        ZenSpec.replace("common/utils", setmetatable({
+            getBadgeColor = function() return "accent" end,
+            getBadgeTextColor = function() return "black" end,
+        }, { __index = require("common/utils") }))
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local item = {
+            _zen_cover_frame = { dimen = { x = 0, y = 0, w = 100, h = 150 } },
+            _zen_folder_count = 2,
+        }
+        local config = { browser_cover_badges = {} }
+        local previous
+        for _i, preset in ipairs({
+            { "compact", 7 }, { "normal", 8 }, { "large", 9 }, { "extra_large", 11 },
+        }) do
+            config.browser_cover_badges.badge_size = preset[1]
+            FolderCover.paintDecorations(item, { paintRectRGB32 = function() end }, config, 0, 0)
+            local widget = item._zen_folder_count_badge.widget
+            assert.are.equal(preset[2], widget.face.size)
+            assert.are.equal("black", widget.fgcolor)
+            if previous then assert.is_true(previous.freed) end
+            previous = widget
+        end
+    end)
+
     it("uses synthetic group and collection members without scanning paths", function()
         local FolderCover = require("modules/filebrowser/folder_cover")
         local menu = {

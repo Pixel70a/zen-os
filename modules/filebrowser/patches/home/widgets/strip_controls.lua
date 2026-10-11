@@ -1,4 +1,5 @@
 local Background = require("common/ui/background")
+local Accent = require("common/ui/accent")
 local Blitbuffer = require("ffi/blitbuffer")
 local ButtonModel = require("common/nav_button_model")
 local CenterContainer = require("ui/widget/container/centercontainer")
@@ -202,7 +203,7 @@ function M.build(opts)
                 height = inner_height,
                 padding = 0,
                 bordersize = 0,
-                background = active and Blitbuffer.COLOR_BLACK
+                background = active and Accent.color()
                     or Background.tile_bg(Blitbuffer.COLOR_WHITE),
                 CenterContainer:new{
                     dimen = Geom:new{ w = cell_width, h = inner_height },
@@ -213,7 +214,7 @@ function M.build(opts)
                         padding = 0,
                         max_width = math.max(1, cell_width - side_padding * 2),
                         truncate_with_ellipsis = true,
-                        fgcolor = active and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK,
+                        fgcolor = active and Accent.foreground() or Blitbuffer.COLOR_BLACK,
                     },
                 },
             }
@@ -241,7 +242,7 @@ function M.build(opts)
                 col = index,
                 width = cell_width,
                 height = inner_height,
-                focus_color = active and Blitbuffer.COLOR_WHITE
+                focus_color = active and Accent.foreground()
                     or Blitbuffer.COLOR_BLACK,
                 activate = activate,
                 context = context,

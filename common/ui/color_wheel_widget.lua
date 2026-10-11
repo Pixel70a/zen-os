@@ -441,7 +441,21 @@ function ColorWheelWidget:update()
             slider:setValue(new_value)
             on_change(slider:getValue())
             label:setText(title .. ": " .. slider:getValue() .. "%")
-            UIManager:setDirty(self, "ui")
+            if slider._dragging then
+                -- Keep wheel regeneration out of the drag path; refresh it on release.
+                slider.hide_knob = false
+                slider:paintTo(Screen.bb, slider.dimen.x, slider.dimen.y)
+                local size = label:getSize()
+                local label_y = slider.dimen.y - small_gap - size.h
+                Screen.bb:paintRect(0, label_y, self.screen_width, size.h, Blitbuffer.COLOR_WHITE)
+                label:paintTo(Screen.bb, math.floor((self.screen_width - size.w) / 2), label_y)
+                UIManager:setDirty(nil, "fast", Geom:new {
+                    x = 0, y = label_y, w = self.screen_width,
+                    h = slider.dimen.y + slider.dimen.h - label_y,
+                })
+            else
+                UIManager:setDirty(self, "ui")
+            end
         end
         slider.on_change = set_value
         local buttons = {}

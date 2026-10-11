@@ -14,6 +14,7 @@ local function apply_page_browser()
     local PresetStore   = require("config/preset_store")
     local utils        = require("common/utils")
     local WidgetResources = require("common/widget_resources")
+    local Accent       = require("common/ui/accent")
     local lfs          = require("libs/libkoreader-lfs")
     local _stock_icons_dir = lfs.currentdir() .. "/resources/icons/mdlight/"
 
@@ -1676,16 +1677,9 @@ local function apply_page_browser()
                     file   = file_path,
                     width  = icon_size,
                     height = icon_size,
-                    alpha  = not active,
+                    alpha  = true,
                 }
-                if active then
-                    icon:_render()
-                    if icon._bb then
-                        local bb_copy = icon._bb:copy()
-                        bb_copy:invertRect(0, 0, bb_copy:getWidth(), bb_copy:getHeight())
-                        icon._bb = bb_copy
-                    end
-                end
+                Accent.styleIcon(icon, active)
                 return FrameContainer:new{
                     padding_top    = icon_pad_v,
                     padding_bottom = icon_pad_v,
@@ -1695,8 +1689,8 @@ local function apply_page_browser()
                     focusable      = self._zen_focus_enabled,
                     focus_inner_border = true,
                     focus_border_size = Screen:scaleBySize(3),
-                    focus_border_color = active and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK,
-                    background     = active and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE,
+                    focus_border_color = active and Accent.foreground() or Blitbuffer.COLOR_BLACK,
+                    background     = active and Accent.color() or Blitbuffer.COLOR_WHITE,
                     CenterContainer:new{
                         dimen = Geom:new{ w = icon_size, h = icon_size },
                         icon,

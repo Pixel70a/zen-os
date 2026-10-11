@@ -686,6 +686,7 @@ def _zen_config(background_path: Path = SHOWCASE_BACKGROUND) -> dict[str, object
         "rakuyomi": {"exclude_from_home": True},
         "end_book": {
             "modules": {
+                "stats_triplet": {"show_label": False},
                 "strip": {
                     "count": 4,
                     "controls": {
@@ -1757,6 +1758,7 @@ class CaptureWorkflow:
                 and value.get("file") == str(book.path.resolve())
                 and value.get("book_status") == "complete"
                 and value.get("source") == "continue"
+                and "statistics_label" not in value
                 and title in value.get("visible_texts", [])
                 and [label["label"] for label in value.get("strip_labels", [])]
                 == ["More by Andy Weir", "Series", "Continue"]

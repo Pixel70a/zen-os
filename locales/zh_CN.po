@@ -306,6 +306,12 @@ msgstr "简要描述出错的原因"
 msgid "About"
 msgstr "关于"
 
+#. Type: setting
+#. Context: Interface accent color settings.
+#: interface_settings.lua
+msgid "Accent color"
+msgstr "强调色"
+
 #. Type: action
 #. Context: 用于ZenOS 界面，表示可执行的操作名称。
 #: mosaic_layout_dialog.lua:54
@@ -407,6 +413,12 @@ msgstr "添加到合集"
 #: dict_quick_lookup.lua:80
 msgid "Add to vocabulary builder"
 msgstr "添加到生词本"
+
+#. Type: setting
+#. Context: Interface accent color settings.
+#: interface_settings.lua
+msgid "Reset accent color"
+msgstr "重置强调色"
 
 #. Type: label
 #. Context: 书籍和文件夹的操作菜单中用于标识项目或信息的文字。

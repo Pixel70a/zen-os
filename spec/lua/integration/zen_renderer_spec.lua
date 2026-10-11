@@ -1063,6 +1063,10 @@ describe("Zen renderer", function()
         assert.are.equal(1, native_progress_paints)
         assert.are.equal(4, native_progress.radius)
         assert.are.same({ width = 39, height = 4, radius = 2 }, rounded_progress)
+        assert.are.equal(7, item._zen_progress_badge.size)
+        assert.are.equal(7, item._zen_pages_badge.size)
+        assert.are.equal(7, item._zen_series_badge.size)
+        assert.are.equal(8, item._zen_favorite_badge.size)
 
         _G.__ZEN_UI_PLUGIN.config.browser_cover_badges.show_native_progress_bar = false
         item:paintTo(bb, 0, 0)
@@ -1082,6 +1086,23 @@ describe("Zen renderer", function()
             return width
         end
         assert.is_true(widest(large) > widest(compact))
+        assert.are.equal(11, item._zen_progress_badge.size)
+        assert.are.equal(11, item._zen_pages_badge.size)
+        assert.are.equal(11, item._zen_series_badge.size)
+        assert.is_true(item._zen_favorite_badge.size > 8)
+
+        local utils = require("common/utils")
+        utils.getBadgeColor = function() return "accent" end
+        utils.getBadgeTextColor = function() return 0 end
+        local accent_fill = false
+        bb.paintRectRGB32 = function(_self, _x, _y, _width, _height, color)
+            if color == "accent" then accent_fill = true end
+        end
+        item:paintTo(bb, 0, 0)
+        assert.is_true(accent_fill)
+        for _i, key in ipairs({ "_zen_progress_badge", "_zen_pages_badge", "_zen_series_badge", "_zen_favorite_badge" }) do
+            assert.are.equal(0, item[key].color)
+        end
     end)
 
     it("resolves metadata during update and performs no metadata reads during paint", function()

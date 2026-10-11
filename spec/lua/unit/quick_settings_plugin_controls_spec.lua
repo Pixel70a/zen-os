@@ -610,11 +610,13 @@ describe("quick settings plugin controls", function()
         FileManagerMenu.setUpdateItemTable(menu)
         menu.tab_item_table[1].panel(touch_menu)
         assert.are.equal("gray", touch_menu._zen_panel_refs.buttons[1].widget.background)
+        assert.are.equal(2, touch_menu._zen_panel_refs.buttons[1].widget.bordersize)
 
         NetworkMgr.isWifiChanging = function() return false end
         NetworkMgr.lease_ssid = "Home"
         menu.tab_item_table[1].panel(touch_menu)
         assert.are.equal("black", touch_menu._zen_panel_refs.buttons[1].widget.background)
+        assert.are.equal(2, touch_menu._zen_panel_refs.buttons[1].widget.bordersize)
 
         NetworkMgr.connected = false
         menu.tab_item_table[1].panel(touch_menu)

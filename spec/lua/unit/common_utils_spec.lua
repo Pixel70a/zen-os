@@ -39,6 +39,26 @@ describe("common utils icon sizing", function()
     end)
 end)
 
+describe("common utils badge font sizing", function()
+    local utils = require("common/utils")
+
+    it("scales the minimum font size with every badge size", function()
+        for _i, preset in ipairs({
+            { "compact", 7 }, { "normal", 8 }, { "large", 9 }, { "extra_large", 11 },
+        }) do
+            local config = { browser_cover_badges = { badge_size = preset[1] } }
+            local size = math.floor(20 * utils.getBadgeScale(config))
+            assert.are.equal(preset[2], utils.getBadgeFontSize(config, size, 0.24, 7))
+        end
+    end)
+
+    it("preserves compact fonts and fonts above the minimum", function()
+        assert.are.equal(7, utils.getBadgeFontSize(nil, 20, 0.24, 7))
+        assert.are.equal(19, utils.getBadgeFontSize(nil, 80, 0.24, 7))
+        assert.are.equal(8, utils.getBadgeFontSize(nil, 18, 0.45, 6))
+    end)
+end)
+
 describe("Controls menu tab placement", function()
     local utils = require("common/utils")
 

@@ -3,13 +3,15 @@
 -- Each function paints to an existing blitbuffer and returns a hit-rect table.
 
 local Blitbuffer = require("ffi/blitbuffer")
+local Accent     = require("common/ui/accent")
 local Device     = require("device")
 local Font       = require("ui/font")
 local TextWidget = require("ui/widget/textwidget")
 local Screen     = Device.screen
 
 local function paintRoundedRect(bb, rx, ry, rw, rh, color, radius, bg_color)
-    bb:paintRect(rx, ry, rw, rh, color)
+    local paint = Blitbuffer.isColor8(color) and bb.paintRect or bb.paintRectRGB32
+    paint(bb, rx, ry, rw, rh, color)
     local r = radius
     for dy = 0, r - 1 do
         local t   = r - dy
@@ -67,17 +69,17 @@ end
 
 local M = {}
 
---- Paint a filled black rounded-rect button with centered white bold label.
+--- Paint a filled rounded-rect button with a centered bold label.
 --- Returns { x, y, w, h } for hit-testing.
 function M.paintFilled(bb, bx, by, bw, bh, label, font_size, corner_r, max_text_width)
     corner_r  = corner_r  or Screen:scaleBySize(10)
     font_size = font_size or 22
-    paintRoundedRect(bb, bx, by, bw, bh, Blitbuffer.COLOR_BLACK, corner_r, Blitbuffer.COLOR_WHITE)
+    paintRoundedRect(bb, bx, by, bw, bh, Accent.color(), corner_r, Blitbuffer.COLOR_WHITE)
     local tw = TextWidget:new{
         text    = label,
         face    = Font:getFace("cfont", font_size),
         bold    = true,
-        fgcolor = Blitbuffer.COLOR_WHITE,
+        fgcolor = Accent.foreground(),
         max_width = max_text_width,
         padding = 0,
     }

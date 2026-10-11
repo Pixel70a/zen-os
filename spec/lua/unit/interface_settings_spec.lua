@@ -3,6 +3,8 @@ describe("Interface settings", function()
     local saved_reinject_navbars
 
     local dependencies = {
+        "device",
+        "common/ui/color_wheel_widget",
         "gettext",
         "ui/uimanager",
         "datastorage",
@@ -38,6 +40,7 @@ describe("Interface settings", function()
             saved_modules[name] = package.loaded[name] or false
         end
         ZenSpec.replace("gettext", function(text) return text end)
+        ZenSpec.replace("device", { screen = { isColorScreen = function() return false end } })
         ZenSpec.replace("ui/uimanager", {})
         ZenSpec.replace("datastorage", {
             getFullDataDir = function() return "/koreader" end,
@@ -88,10 +91,72 @@ describe("Interface settings", function()
         }, extras)
         local labels = {}
         for _i, item in ipairs(section.sub_item_table) do labels[#labels + 1] = item.text end
-        assert.are.same({ "Controls", "Launcher", "Navbar", "Status bar", "Font", "Zen Keyboard",
+        assert.are.same({ "Controls", "Launcher", "Navbar", "Status bar", "Accent color", "Font", "Zen Keyboard",
             "Wallpaper", "Custom icons", "Blur menu background", "Zen Search" }, labels)
         assert.are.same({ { text = "Stats" } }, extras)
         assert.are.equal(1, #section.sub_item_table[1].sub_item_table)
+    end)
+
+    it("saves and resets the accent through the color wheel and defers surface refresh", function()
+        package.loaded["device"].screen.isColorScreen = function() return true end
+        local picker, deferred, saves, updates
+        saves, updates = 0, 0
+        package.loaded["ui/uimanager"].show = function(_self, widget) picker = widget end
+        package.loaded["modules/settings/zen_settings_apply"].defer_until_settings_close =
+            function(key, callback) deferred = { key = key, callback = callback } end
+        ZenSpec.replace("common/ui/color_wheel_widget", { new = function(_self, options) return options end })
+        local config = { features = {}, accent_color = "#204080" }
+        local section = require("modules/settings/sections/interface_settings").build({
+            config = config,
+            plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        }, {})
+        local accent = section.sub_item_table[5]
+        local menu = { updateItems = function() updates = updates + 1 end }
+        assert.is_true(accent.enabled_func())
+        assert.are.equal("Accent color: #204080", accent.sub_item_table[1].text_func())
+        accent.sub_item_table[1].callback(menu)
+        assert.are.equal("#204080", picker.hex)
+        assert.are.equal(100, picker.opacity)
+        picker.callback("#336699", 37)
+        assert.are.equal("#336699", config.accent_color)
+        assert.are.equal(37, config.accent_opacity)
+        assert.are.equal("background_surfaces", deferred.key)
+        assert.are.equal(1, saves)
+        assert.are.equal(1, updates)
+        accent.sub_item_table[1].callback(menu)
+        assert.are.equal(37, picker.opacity)
+        accent.sub_item_table[2].callback(menu)
+        assert.are.equal("#000000", config.accent_color)
+        assert.are.equal(100, config.accent_opacity)
+        assert.are.equal(2, saves)
+        accent.sub_item_table[1].callback(menu)
+        assert.are.equal("#3399FF", picker.hex)
+        assert.are.equal(100, picker.opacity)
+        assert.are.equal("#000000", config.accent_color)
+        assert.are.equal(2, saves)
+        picker.callback("#204080", 0)
+        accent.sub_item_table[1].callback(menu)
+        assert.are.equal(0, config.accent_opacity)
+        assert.are.equal(0, picker.opacity)
+        assert.are.equal(3, saves)
+    end)
+
+    it("disables accent editing on monochrome screens", function()
+        local config = { features = {}, accent_color = "#336699" }
+        package.loaded["ui/uimanager"].show = function() error("monochrome must not open the color wheel") end
+        local section = require("modules/settings/sections/interface_settings").build({
+            config = config,
+            plugin = { saveConfig = function() error("monochrome must not change the accent") end },
+            save_and_apply = function() end,
+        }, {})
+        local accent = section.sub_item_table[5]
+        assert.is_false(accent.enabled_func())
+        for _i, item in ipairs(accent.sub_item_table) do
+            assert.is_false(item.enabled_func())
+            item.callback()
+        end
+        assert.are.equal("#336699", config.accent_color)
     end)
 
     it("resets the Library font to bundled Hyperreadable", function()

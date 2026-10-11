@@ -17,6 +17,7 @@ describe("frontlight slider", function()
         "ui/widget/verticalgroup",
         "ui/widget/verticalspan",
         "common/ui/zen_slider",
+        "common/ui/accent",
         "common/utils",
         "common/widget_resources",
         "modules/filebrowser/patches/library_font",
@@ -253,6 +254,31 @@ describe("frontlight slider", function()
         button(warmth_group, "−").callback()
         assert.are.equal(41, powerd.intensity)
         assert.are.equal(8, powerd.warmth)
+    end)
+
+    it("moves the accent background and icon styling between unified slider tabs", function()
+        ZenSpec.replace("common/ui/accent", {
+            isEnabled = function() return true end,
+            color = function() return "accent" end,
+            styleIcon = function(icon, active) icon.active = active end,
+        })
+        ZenSpec.replace("ui/widget/iconwidget", widget_class({ free = function() end }))
+        local opts = slider_opts(power_device())
+        opts.show_frontlight, opts.show_warmth = true, true
+        require("modules/menu/patches/brightness_slider")(touch_menu(), opts)
+        local brightness, warmth = opts.refs.toggles[1].toggle, opts.refs.toggles[2].toggle
+        assert.are.equal("accent", brightness.background)
+        assert.is_true(brightness[1].active)
+        assert.is_false(brightness.invert)
+        opts.refs.toggles[2].callback()
+        assert.are.equal(0, brightness.background)
+        assert.is_false(brightness[1].active)
+        assert.are.equal("accent", warmth.background)
+        assert.is_true(warmth[1].active)
+        assert.is_false(warmth.invert)
+        opts.refs.toggles[1].callback()
+        assert.are.equal("accent", brightness.background)
+        assert.is_false(warmth[1].active)
     end)
 
     it("switches one slider between brightness and warmth without changing hardware", function()

@@ -4,6 +4,8 @@ local library_font_default = FontLanguage.supportsBundledFonts()
     and LibraryFontPath.BUNDLED_DEFAULT or "default"
 
 local defaults = {
+    accent_color = "#000000",
+    accent_opacity = 100,
     _meta = {
         schema_version = 1,
         files_per_page_defaulted = false,
