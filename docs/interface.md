@@ -57,7 +57,7 @@ Paths below start at **Zen Settings > Interface**.
 | Launcher | Configures shortcut pages, buttons, and folders. See [Launcher](/zen-os/docs/launcher). |
 | Navbar | Configures tabs and their appearance. See [Navbar](/zen-os/docs/navbar). |
 | Accent color | Opens accent settings on color screens; disabled on monochrome screens. |
-| Accent color > Accent color | Picks a color with the color wheel or hex input and adjusts its opacity. Applies to cover badges, sliders, enabled Controls and Launcher button fills, active book-strip and page-switcher tabs, enabled switches, filled buttons, and button feedback. Toggle and Controls button outlines stay black. |
+| Accent color > Accent color | Picks a color with the color wheel or hex input and adjusts its opacity. Applies to cover badges without a custom color, sliders, enabled Controls and Launcher button fills, active book-strip and page-switcher tabs, enabled switches, filled buttons, and button feedback. Toggle and Controls button outlines stay black. |
 | Accent color > Reset accent color | Restores the default black accent at full opacity. |
 | Status bar | Shows or hides the Library status bar using the row's switch; opens its settings. |
 | Status bar > Custom text | Sets custom status text. Empty text falls back to the device model. |

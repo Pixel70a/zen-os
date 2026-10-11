@@ -108,11 +108,11 @@ describe("interface accent", function()
         end
     end)
 
-    it("uses the accent and its opacity for badge fills and contrast, with legacy colors as fallback", function()
+    it("uses the accent and its opacity for badges without a custom color", function()
         local utils = require("common/utils")
         local config = {
             accent_color = "#204080", accent_opacity = 100,
-            browser_cover_badges = { badge_color = { 255, 255, 0 } },
+            browser_cover_badges = {},
         }
         assert.are.equal(tostring(Blitbuffer.ColorRGB32(32, 64, 128, 255)), tostring(utils.getBadgeColor(config)))
         assert.are.equal(Blitbuffer.COLOR_WHITE, utils.getBadgeTextColor(config))
@@ -122,15 +122,38 @@ describe("interface accent", function()
         assert.are.equal(Blitbuffer.COLOR_BLACK, utils.getBadgeTextColor(config))
         assert.is_false(utils.isBadgeDark(config))
         config.accent_color, config.accent_opacity = "#000000", 100
-        assert.are.equal(tostring(Blitbuffer.ColorRGB32(255, 255, 0, 255)), tostring(utils.getBadgeColor(config)))
-        assert.are.equal(Blitbuffer.COLOR_BLACK, utils.getBadgeTextColor(config))
-        config.accent_color = "#204080"
-        screen.isColorScreen = function() return false end
-        assert.are.equal(tostring(Blitbuffer.ColorRGB32(255, 255, 0, 255)), tostring(utils.getBadgeColor(config)))
-        assert.are.equal(Blitbuffer.COLOR_BLACK, utils.getBadgeTextColor(config))
-        config.browser_cover_badges.badge_color = nil
         assert.are.equal(Blitbuffer.COLOR_BLACK, utils.getBadgeColor(config))
         assert.are.equal(Blitbuffer.COLOR_WHITE, utils.getBadgeTextColor(config))
+        config.accent_color = "#204080"
+        screen.isColorScreen = function() return false end
+        assert.are.equal(Blitbuffer.COLOR_BLACK, utils.getBadgeColor(config))
+        assert.are.equal(Blitbuffer.COLOR_WHITE, utils.getBadgeTextColor(config))
+    end)
+
+    it("preserves custom badge colors and contrast when the accent changes", function()
+        local utils = require("common/utils")
+        local config = {
+            accent_color = "#204080", accent_opacity = 50,
+            browser_cover_badges = { badge_color = { 255, 255, 0 } },
+        }
+        local yellow = tostring(Blitbuffer.ColorRGB32(255, 255, 0, 255))
+        assert.are.equal(yellow, tostring(utils.getBadgeColor(config)))
+        assert.are.equal(Blitbuffer.COLOR_BLACK, utils.getBadgeTextColor(config))
+        assert.is_false(utils.isBadgeDark(config))
+        config.accent_color, config.accent_opacity = "#FF0000", 100
+        assert.are.equal(yellow, tostring(utils.getBadgeColor(config)))
+        assert.are.same({ 255, 255, 0 }, config.browser_cover_badges.badge_color)
+
+        config.browser_cover_badges.badge_color = { 0, 0, 0 }
+        assert.are.equal(tostring(Blitbuffer.ColorRGB32(0, 0, 0, 255)), tostring(utils.getBadgeColor(config)))
+        assert.are.equal(Blitbuffer.COLOR_WHITE, utils.getBadgeTextColor(config))
+        assert.is_true(utils.isBadgeDark(config))
+        screen.isColorScreen = function() return false end
+        assert.are.equal(Blitbuffer.COLOR_WHITE, utils.getBadgeTextColor(config))
+
+        config.browser_cover_badges.badge_color = nil
+        screen.isColorScreen = function() return true end
+        assert.are.equal(tostring(Accent.color(config)), tostring(utils.getBadgeColor(config)))
     end)
 
     it("keeps slider rails and toggle outlines black while coloring their fill", function()

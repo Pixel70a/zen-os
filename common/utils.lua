@@ -480,26 +480,27 @@ local function get_badge_rgb(config)
     end
 end
 
---- Returns the active accent or configured badge fill, defaulting to black.
+--- Returns the custom badge fill or accent, defaulting to black.
 --- @param config table|nil  the plugin config table (p.config)
 --- @return userdata  Blitbuffer color
 function M.getBadgeColor(config)
-    if Accent.isEnabled(config) then return Accent.color(config) end
     local Blitbuffer = require("ffi/blitbuffer")
     local r, g, b = get_badge_rgb(config)
     if r then
         return Blitbuffer.ColorRGB32(r, g, b, 255)
     end
+    if Accent.isEnabled(config) then return Accent.color(config) end
     return Blitbuffer.COLOR_BLACK
 end
 
 --- True when badge fill should use white contrast text/outline.
 function M.isBadgeDark(config)
+    local r, g, b = get_badge_rgb(config)
+    if r then return r == 0 and g == 0 and b == 0 end
     if Accent.isEnabled(config) then
         return Accent.foreground(config) == require("ffi/blitbuffer").COLOR_WHITE
     end
-    local r, g, b = get_badge_rgb(config)
-    return r == nil or (r == 0 and g == 0 and b == 0)
+    return true
 end
 
 --- Returns the foreground color for text/icons drawn inside a badge.

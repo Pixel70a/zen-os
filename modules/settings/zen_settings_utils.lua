@@ -579,7 +579,7 @@ end
 ---   reset        function or nil  if provided, prepends a "Default" preset
 ---   default_text string         shown after label when get() is nil (default: "Default")
 ---   reset_text   string         text of the "Default" sub-item (defaults to default_text)
----   dialog_title string         InputDialog title
+---   dialog_title string         color picker title
 ---   presets      table          list of {text, r, g, b}
 ---   enabled_func function or nil
 function M.buildColorSubMenu(opts)
@@ -589,7 +589,7 @@ function M.buildColorSubMenu(opts)
     local label        = opts.label
     local default_text = opts.default_text or _("Default")
     local reset_text   = opts.reset_text   or default_text
-    local dialog_title = opts.dialog_title or _("Custom RGB")
+    local dialog_title = opts.dialog_title or _("Color")
     local presets      = opts.presets or {}
 
     local function fmt(c)
@@ -621,45 +621,21 @@ function M.buildColorSubMenu(opts)
     table.insert(sub_items, {
         text_func = function()
             local c = get()
-            if c then return _("Custom RGB") .. " (" .. fmt(c) .. ")" end
-            return _("Custom RGB")
+            if c then return _("Custom") .. " (" .. fmt(c) .. ")" end
+            return _("Custom")
         end,
         keep_menu_open = true,
         callback = function(touchmenu_instance)
-            local InputDialog = require("ui/widget/inputdialog")
+            local ColorWheelWidget = require("common/ui/color_wheel_widget")
             local c = get() or { 0, 0, 0 }
-            local dlg
-            dlg = InputDialog:new{
-                title = dialog_title,
-                input = fmt(c),
-                hint = _("Format: R,G,B (0-255)"),
-                buttons = {{
-                    {
-                        text = _("Cancel"),
-                        id = "close",
-                        callback = function() UIManager:close(dlg) end,
-                    },
-                    {
-                        text = _("Set"),
-                        is_enter_default = true,
-                        callback = function()
-                            local text = dlg:getInputText() or ""
-                            local r, g, b = text:match("^%s*(%d+)%s*,%s*(%d+)%s*,%s*(%d+)%s*$")
-                            if r and g and b then
-                                set(
-                                    math.max(0, math.min(255, tonumber(r))),
-                                    math.max(0, math.min(255, tonumber(g))),
-                                    math.max(0, math.min(255, tonumber(b)))
-                                )
-                                UIManager:close(dlg)
-                                if touchmenu_instance then touchmenu_instance:updateItems() end
-                            end
-                        end,
-                    },
-                }},
-            }
-            UIManager:show(dlg)
-            dlg:onShowKeyboard()
+            UIManager:show(ColorWheelWidget:new{
+                title_text = dialog_title,
+                hex = string.format("#%02X%02X%02X", c[1], c[2], c[3]),
+                callback = function(hex)
+                    set(tonumber(hex:sub(2, 3), 16), tonumber(hex:sub(4, 5), 16), tonumber(hex:sub(6, 7), 16))
+                    if touchmenu_instance then touchmenu_instance:updateItems() end
+                end,
+            })
         end,
     })
 
