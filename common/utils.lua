@@ -221,7 +221,7 @@ function M.isCustomIconsEnabled()
     return _custom_icons_enabled
 end
 
---- Resolve an icon from the active pack or loose icons, then bundled icons.
+--- Resolve an icon from the active pack or loose icons, then Zen and KOReader icons.
 --- @param plugin_icons_dir string  absolute path ending with "/"
 --- @param name             string  icon name without extension
 --- @return                 string|nil

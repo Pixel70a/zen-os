@@ -22,6 +22,85 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+@pytest.mark.parametrize("width,height", [(600, 800), (800, 600)])
+@pytest.mark.parametrize("custom_stars", [False, True])
+def test_end_book_rating_is_optional_saved_and_read_only_in_preview(width, height, custom_stars):
+    runtime = Path(os.environ["KOREADER_DIR"])
+    window_scale = 2 if sys.platform == "darwin" else 1
+    with tempfile.TemporaryDirectory(prefix="zen-end-book-rating-") as temporary:
+        root = Path(temporary)
+        home, library, socket = root / "home", root / "books", root / "driver.sock"
+        home.mkdir()
+        library.mkdir()
+        book = build_library(library)["epub"]
+        config_source = None
+        full_star_suffix = "/resources/icons/mdlight/star.full.svg"
+        if custom_stars:
+            pack = home / "icons" / "zen" / "rating"
+            pack.mkdir(parents=True)
+            (pack / "pack.json").write_text(json.dumps({"schema_version": 1, "id": "rating", "name": "Rating"}))
+            shutil.copyfile(runtime / "resources/icons/mdlight/star.full.svg", pack / "star.full.svg")
+            config_source = ('return { updater = { update_auto_check = false }, '
+                             'features = { custom_icons_enabled = true }, custom_icons = { active_pack = "rating" } }')
+            full_star_suffix = str(pack / "star.full.svg")
+        for first_run in (True, False):
+            process = launch(runtime, home, socket, library, initialize_settings=first_run,
+                             zen_config_source=config_source,
+                             env_overrides={"EMULATE_READER_W": str(width // window_scale),
+                                            "EMULATE_READER_H": str(height // window_scale)})
+            try:
+                wait_for_socket(socket)
+                driver = ZenDriver(socket)
+                _wait_command(driver, "open_book", lambda result: result.get("ok"), path=str(book))
+                state = driver.command("end_book", show=True)
+                assert "rating" not in state["rows"]
+                if not first_run:
+                    assert state["rating"] == 4
+                    continue
+                assert driver.command("open_settings_page")["ok"]
+                for label in ("Reader", "End of book", "Widgets"):
+                    assert driver.command("settings_page_select", label=label)["ok"]
+                widgets = driver.command("arrange_page_state")["arrange"]
+                index = widgets["labels"].index("Rating") + 1
+                assert not widgets["checked"][index - 1]
+                assert driver.command("arrange_page_select", index=index, toggle=True)["ok"]
+                assert driver.command("arrange_page_back")["ok"]
+                assert driver.command("close_settings_page")["ok"]
+                state = _wait_command(driver, "end_book", lambda result: "rating" in result.get("rows", []))
+                assert len(state["rating_stars"]) == 5
+                assert all(star["file"].endswith("/resources/icons/mdlight/star.empty.svg")
+                           for star in state["rating_stars"])
+                assert driver.command("end_book", tap_rating=1)["rating"] == 1
+                assert driver.command("end_book", refresh_header=True)["rating"] == 1
+                driver.command("end_book", widget="rating", enabled=False)
+                assert driver.command("end_book", widget="rating", enabled=True)["rating"] == 1
+                driver.command("end_book", close=True)
+                preview = driver.command("end_book", preview=True, tap_rating=5)
+                assert preview["rating"] == 1
+                assert all(not star["enabled"] for star in preview["rating_stars"])
+                driver.command("end_book", close=True)
+                assert driver.command("end_book", show=True)["rating"] == 1
+                assert driver.command("end_book", tap_rating=3)["rating"] == 3
+                assert driver.command("end_book", tap_rating=1)["rating"] == 1
+                assert driver.command("end_book", tap_rating=1).get("rating") in (None, 0)
+                rated = driver.command("end_book", tap_rating=4)
+                assert rated["rating"] == 4
+                assert all(star["file"].endswith(full_star_suffix) for star in rated["rating_stars"][:4])
+                assert rated["rating_stars"][4]["file"].endswith("/resources/icons/mdlight/star.empty.svg")
+                driver.screenshot(Path(__file__).parents[2] / ".artifacts" / f"end-book-{width}x{height}-rating.png")
+                assert driver.command("end_book", hold_widget="rating")["hold_handled"]
+                assert driver.command("arrange_page_select", index=index, toggle=True)["ok"]
+                assert driver.command("arrange_page_back")["ok"]
+                _wait_command(driver, "end_book", lambda result: "rating" not in result.get("rows", []))
+            finally:
+                process.send_signal(signal.SIGTERM)
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+
+
 def _assert_fits(layout):
     assert not layout["has_scroll"], layout
     assert layout["featured_finished_icon"], layout["visible_texts"]

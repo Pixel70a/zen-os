@@ -23,17 +23,16 @@ local Registry = require("modules/filebrowser/patches/home/components/registry")
 local _ = require("gettext")
 
 local EndBook = FocusManager:extend{ name = "zen_end_book", covers_fullscreen = true }
-local WIDGETS = { stats_triplet = true, featured = true, quotes = true, strip = true }
+local WIDGETS = { stats_triplet = true, featured = true, rating = true, quotes = true, strip = true }
+local RATING_WIDGET = {
+    id = "rating", size = { units = 1 },
+    build = function(ctx) return ctx.menu:buildRatingWidget(ctx) end,
+}
 local _icons_dir = require("common/plugin_root") .. "/icons/"
-local _stock_icons_dir = require("libs/libkoreader-lfs").currentdir() .. "/resources/icons/mdlight/"
 
 local function resolve_icon(name)
     if type(name) == "string" and name:sub(1, 1) == "/" then return name end
-    local pack_dir = require("common/icon_packs").getActivePackDirectory()
-    return utils.resolveLocalIcon(pack_dir and pack_dir .. "/", name)
-        or utils.resolveLocalIcon(_icons_dir, name)
-        or utils.resolveLocalIcon(utils.getUserIconsDir(), name)
-        or utils.resolveLocalIcon(_stock_icons_dir, name)
+    return utils.resolveIcon(_icons_dir, name)
 end
 
 function EndBook:init()
@@ -312,6 +311,51 @@ function EndBook:buildStatusHeader()
     return header
 end
 
+function EndBook:buildRatingWidget(ctx)
+    local BookStatusWidget = require("ui/widget/bookstatuswidget")
+    local settings = self.ui and self.ui.doc_settings
+        or self.data.file and require("docsettings"):open(self.data.file)
+    local rating = settings and (settings:readSetting("summary") or {}).rating
+    local readonly = self.preview or not self.ui
+    local focus_row, ready = #self.layout + 1, false
+    local status = BookStatusWidget:extend{
+        ui = self.ui or { document = { file = self.data.file } },
+        summary = {}, layout = {}, -- Drawing saved stars must not toggle a one-star rating off.
+        star = { new = function(_prototype, opts)
+            return IconButton:new{
+                file = resolve_icon(opts.icon or "star.empty"),
+                padding = Device.screen:scaleBySize(2), enabled = not readonly,
+                show_parent = self, callback = not readonly and opts.callback or nil,
+            }
+        end },
+        refocusWidget = function(stars)
+            self.layout[focus_row] = stars.layout[1]
+            if ready then
+                if not readonly then
+                    local summary = settings:readSetting("summary") or {}
+                    summary.rating = stars.summary.rating
+                    settings:saveSetting("summary", summary)
+                    settings:flush()
+                end
+                self:refocusWidget()
+                UIManager:setDirty(self, "ui")
+            end
+        end,
+    }
+    self.rating_widget = status
+    local content = status:generateRateGroup(ctx.width, ctx.height, rating)
+    ready = true
+    local stars_h = content[1]:getSize().h
+    local top, shift = math.floor((ctx.height - stars_h) / 2), 0
+    local paint = content.paintTo
+    content.paintTo = function(container, bb, x, y) return paint(container, bb, x, y + shift) end
+    ctx.setContentBounds{
+        top = top, bottom = top + stars_h, min_shift = -top, max_shift = ctx.height - top - stars_h,
+        set_shift = function(value) shift = value end,
+    }
+    return content
+end
+
 function EndBook:_zen_status_refresh()
     if self.closed then return end
     local header = self:buildStatusHeader()
@@ -340,6 +384,7 @@ function EndBook:rebuild()
     local gap = math.max(4, Screen:scaleBySize(8))
     local content_w = width - margin * 2
     self.layout = {}
+    self.rating_widget = nil
     self.featured_navigation_buttons, self.featured_navigation_labels, self.featured_navigation_row = {}, {}, nil
     local header = self:buildStatusHeader()
     local header_h = header:getSize().h
@@ -365,7 +410,7 @@ function EndBook:rebuild()
     local strip_index, stats_index
     local stats_label, stats_label_h
     for _i, id in ipairs(config.rows.order) do
-        local widget = Registry.get(id)
+        local widget = id == "rating" and RATING_WIDGET or Registry.get(id)
         if widget and WIDGETS[id] and not seen[id] and config.rows.enabled[id]
                 and (id ~= "strip" or strip_config)
                 and (id ~= "quotes" or not self.data:getCurrentQuote().is_empty) then

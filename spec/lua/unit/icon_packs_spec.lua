@@ -375,6 +375,26 @@ describe("ZenOS icon packs", function()
         assert.are.equal(plugin_icons .. "plus.svg", IconPacks.resolve("plus", plugin_icons))
     end)
 
+    it("falls back to KOReader icons when neither the pack nor Zen supplies them", function()
+        local plugin_icons = ZenSpec.root .. "/icons/"
+        local stock_icons = lfs.currentdir() .. "/resources/icons/"
+        local utils = require("common/utils")
+        IconPacks.initialize({ features = { custom_icons_enabled = false } })
+
+        assert.are.equal(stock_icons .. "mdlight/star.empty.svg", utils.resolveIcon(plugin_icons, "star.empty"))
+        assert.are.equal(stock_icons .. "mdlight/star.full.svg", utils.resolveIcon(plugin_icons, "star.full"))
+        assert.are.equal(stock_icons .. "icon-not-found.svg", utils.resolveIcon(plugin_icons, "icon-not-found"))
+        assert.is_nil(utils.resolveIcon(plugin_icons, "zen_missing_test_icon"))
+
+        local selected = make_pack("selected", "star.full", "custom star")
+        IconPacks.initialize({
+            features = { custom_icons_enabled = true },
+            custom_icons = { active_pack = "selected" },
+        })
+        assert.are.equal(selected .. "/star.full.svg", utils.resolveIcon(plugin_icons, "star.full"))
+        assert.are.equal(stock_icons .. "mdlight/star.empty.svg", utils.resolveIcon(plugin_icons, "star.empty"))
+    end)
+
     it("accepts preferred suggestions only by names in picker directories", function()
         IconPacks.initialize({
             features = { custom_icons_enabled = false },

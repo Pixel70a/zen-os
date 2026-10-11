@@ -1,7 +1,7 @@
 local _ = require("gettext")
 local M = {}
 M.MAX_ACTIONS = 5
-M.WIDGET_UNITS = { featured = 3.75 }
+M.WIDGET_UNITS = { featured = 3.75, rating = 1 }
 M.FEATURED_TEXT_STYLES = {
     title = { font_face = "default", font_size = 14, bold = true },
     author = { font_face = "default", font_size = 12, bold = false },
@@ -15,7 +15,10 @@ function M.usedUnits(enabled, modules)
     local Registry = require("modules/filebrowser/patches/home/components/registry")
     local used = Registry.totalUnits(enabled, modules)
     for id, units in pairs(M.WIDGET_UNITS) do
-        if enabled[id] then used = used + units - Registry.sizeUnits(Registry.get(id), modules[id]) end
+        if enabled[id] then
+            local widget = Registry.get(id)
+            used = used + units - (widget and Registry.sizeUnits(widget, modules[id]) or 0)
+        end
     end
     return used
 end

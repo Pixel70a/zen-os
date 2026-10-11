@@ -188,7 +188,12 @@ describe("end of book", function()
     it("renders default and customized action icons from plugin, stock, and active-pack files", function()
         load_end_book()
         local pack_dir
-        ZenSpec.replace("common/icon_packs", { getActivePackDirectory = function() return pack_dir end })
+        ZenSpec.replace("common/icon_packs", { resolve = function(name, icons_dir)
+            local utils = require("common/utils")
+            return utils.resolveLocalIcon(pack_dir and pack_dir .. "/", name)
+                or utils.resolveLocalIcon(icons_dir, name)
+                or utils.resolveLocalIcon("/koreader/resources/icons/mdlight/", name)
+        end })
         require("libs/libkoreader-lfs").attributes = function(path)
             if path == "/plugin/icons/restart.svg" or path == "/plugin/icons/atom.svg"
                     or path == "/pack/atom.svg" or path == "/koreader/resources/icons/mdlight/alarm.svg" then
@@ -1083,6 +1088,31 @@ describe("end of book", function()
         }, { { author = "Author", files = { "current" } } }, {
             { series = "Series", items = { { file = "current" } } },
         }, function() return "complete" end))
+    end)
+
+    it("opens the widget list when holding Rating and lets its visibility and position be saved", function()
+        local arrange
+        ZenSpec.replace("common/ui/zen_arrange_list", { show = function(opts) arrange = opts end })
+        ZenSpec.replace("modules/filebrowser/patches/home/components/registry", { capacityUnits = function() return 10 end })
+        ZenSpec.replace("modules/reader/end_book_data", {
+            WIDGET_UNITS = { rating = 1 }, usedUnits = function() return 8 end,
+            stripConfig = function() return {} end,
+        })
+        plugin.config.end_book = require("common/utils").deepcopy(require("config/defaults").end_book)
+        assert.is_true(require("modules/settings/sections/end_book_settings").openWidgetSettings("rating", plugin))
+        local item = arrange.item_table[3]
+        assert.equals("rating", item.orig_item)
+        assert.is_false(item.checked_func())
+        assert.is_nil(item.sub_item_table_func)
+        item.callback()
+        assert.is_true(plugin.config.end_book.rows.enabled.rating)
+        table.remove(arrange.item_table, 3)
+        table.insert(arrange.item_table, 1, item)
+        arrange.callback()
+        assert.equals("rating", plugin.config.end_book.rows.order[1])
+        item.callback()
+        assert.is_false(plugin.config.end_book.rows.enabled.rating)
+        assert.equals(3, plugin.saves)
     end)
 
     it("keeps the previous settings page open while arranging widgets", function()

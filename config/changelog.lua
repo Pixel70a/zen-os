@@ -398,6 +398,7 @@ return {
         "Add end of book screen",
         "Add Date added sorting to library and folder context menus",
         "Add OPDS improvements",
+        "Add option to move Home button to Controls",
         "Add setting to treat file updates as New status",
         "Add hiding Reader Control buttons from Library",
         "Improves organization in Settings",

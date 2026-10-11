@@ -4,7 +4,7 @@ local M = {}
 
 M.labels = {
     stats_triplet = _("Reading statistics"), featured = _("Featured book"),
-    quotes = _("Highlights and notes"), strip = _("Book strip"),
+    rating = _("Rating"), quotes = _("Highlights and notes"), strip = _("Book strip"),
 }
 M.sources = {
     { "next_series", _("Next in series") },
@@ -213,6 +213,7 @@ local function save_config(plugin, refresh)
 end
 
 function M.openWidgetSettings(id, plugin)
+    if id == "rating" then M.showWidgets(plugin); return true end
     require("common/ui/zen_arrange_list").show{
         title = M.labels[id], plugin = plugin, allow_arrange = false, hide_footer_cancel = true,
         item_table = widget_items(plugin, plugin.config.end_book, id, function() save_config(plugin) end),
@@ -249,7 +250,7 @@ function M.showWidgets(plugin, refresh)
                 save()
             end,
             sub_title = M.labels[id],
-            sub_item_table_func = function() return widget_items(plugin, config, id, save) end,
+            sub_item_table_func = id ~= "rating" and function() return widget_items(plugin, config, id, save) end or nil,
         }
     end
     return require("common/ui/zen_arrange_list").show{

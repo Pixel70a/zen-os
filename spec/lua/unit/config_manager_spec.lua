@@ -555,6 +555,21 @@ describe("config manager folder-path migration", function()
         assert.is_true(config.end_book.modules.strip.center_books)
     end)
 
+    it("adds rating to saved end-of-book layouts and preserves its order and visibility", function()
+        settings_file.data = { end_book = { rows = {
+            order = { "strip", "featured", "stats_triplet" }, enabled = { featured = true },
+        } } }
+        local config = Manager.load()
+        assert.same({ "strip", "featured", "stats_triplet", "rating" }, config.end_book.rows.order)
+        assert.is_false(config.end_book.rows.enabled.rating)
+        config.end_book.rows.order = { "rating", "strip", "featured", "stats_triplet" }
+        config.end_book.rows.enabled.rating = true
+        Manager.save(config)
+        config = Manager.load()
+        assert.same({ "rating", "strip", "featured", "stats_triplet" }, config.end_book.rows.order)
+        assert.is_true(config.end_book.rows.enabled.rating)
+    end)
+
     it("enables recognized lookup plugins once and preserves later choices", function()
         settings_file.data = {
             highlight_lookup = {

@@ -2094,6 +2094,9 @@ function Driver:handleCommand(command)
             page:rebuild()
         end
         if active and params.refresh_header then page:_zen_status_refresh() end
+        if active and params.tap_rating and page.rating_widget then
+            page.rating_widget.layout[1][params.tap_rating]:onTapIconButton()
+        end
         local state = {
             ok = true, active = active == true,
             screen_size = { w = require("device").screen:getWidth(), h = require("device").screen:getHeight() },
@@ -2101,9 +2104,16 @@ function Driver:handleCommand(command)
             action = G_reader_settings:readSetting("end_document_action"),
             initialized = plugin.config._meta.end_book_default_applied,
             book_status = reader and (reader.doc_settings:readSetting("summary") or {}).status,
+            rating = reader and (reader.doc_settings:readSetting("summary") or {}).rating,
         }
         if active then
             state.preview = page.preview == true
+            if page.rating_widget then
+                state.rating_stars = {}
+                for _i, star in ipairs(page.rating_widget.layout[1]) do
+                    state.rating_stars[#state.rating_stars + 1] = { file = star.image.file, enabled = star.enabled }
+                end
+            end
             state.edit_mode = plugin.config.end_book.edit_mode ~= false
             state.file = page.data.file
             state.quote = page.data:getCurrentQuote()

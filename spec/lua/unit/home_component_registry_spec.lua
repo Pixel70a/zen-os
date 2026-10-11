@@ -69,6 +69,16 @@ describe("home component registry", function()
         assert.are.same(module_names, ids)
     end)
 
+    it("counts end-of-book rating toward capacity without adding it to Home", function()
+        local Registry = require("modules/filebrowser/patches/home/components/registry")
+        local Data = require("modules/reader/end_book_data")
+        local enabled, modules = { featured = true }, {}
+        local used = Data.usedUnits(enabled, modules)
+        enabled.rating = true
+        assert.equals(used + 1, Data.usedUnits(enabled, modules))
+        assert.is_nil(Registry.get("rating"))
+    end)
+
     it("normalizes duplicate, missing, and dormant row settings", function()
         local Registry = require("modules/filebrowser/patches/home/components/registry")
         local rows = Registry.normalizeRows({

@@ -1122,6 +1122,15 @@ local function migrate_changed_defaults(cfg)
         changed = true
     end
 
+    local has_rating = false
+    for _i, id in ipairs(cfg.end_book.rows.order) do
+        if id == "rating" then has_rating = true; break end
+    end
+    if not has_rating then
+        table.insert(cfg.end_book.rows.order, "rating")
+        changed = true
+    end
+
     if cfg._meta.library_font_hyperreadable_default_migrated ~= true then
         if type(cfg.library_font) ~= "table" then
             cfg.library_font = {}
