@@ -4243,6 +4243,12 @@ msgid "Outline color"
 msgstr "Color del contorno"
 
 #. Type: setting
+#. Context: Settings label in the navigation bar settings.
+#: navbar_settings.lua:1670
+msgid "Outlined"
+msgstr "Contorneado"
+
+#. Type: setting
 #. Context: Nombre de un ajuste en los ajustes de distribución y widgets de la página de inicio.
 #: home_settings.lua:2346
 msgid "Outlined boxes"

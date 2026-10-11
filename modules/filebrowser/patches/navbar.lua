@@ -137,10 +137,11 @@ local function apply_navbar()
         manga_folder = "",
         news_action = "quickrss",
         news_folder = "",
-        colored = false,
-        active_tab_color = {0x33, 0x99, 0xFF}, -- blue
+        active_tab_color = {0, 0, 0},
         active_tab_underline = true,
         active_tab_filled = false,
+        active_tab_outlined = false,
+        outlined_color = {0x4F, 0x6F, 0x8F},
         filled_outline_color = {0xFF, 0xFF, 0xFF},
         filled_background_color = {0x4F, 0x6F, 0x8F},
         filled_background_opacity = 60,
@@ -1868,13 +1869,17 @@ local function apply_navbar()
     local function createTabWidget(tab, label_max_w, is_active, font_size, is_focused)
         local styled = is_active and tab.dim ~= true
         local filled = styled and config.active_tab_filled == true
-        local use_color = styled and config.active_tab_underline and config.colored and Screen:isColorScreen()
+        local outlined = styled and config.active_tab_outlined == true and not filled
+        local use_color = styled and not outlined and config.active_tab_underline and Screen:isColorScreen()
         local active_color
         local fill_color
         if filled then
             local c = config.filled_outline_color
             active_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
             c = config.filled_background_color
+            fill_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
+        elseif outlined then
+            local c = config.outlined_color
             fill_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
         elseif use_color then
             local c = config.active_tab_color
@@ -1909,11 +1914,11 @@ local function apply_navbar()
                     dim = tab.dim == true,
                 }
             end
-            if config.active_tab_filled then
+            if config.active_tab_filled or config.active_tab_outlined then
                 local h_pad = math.floor(navbar_icon_size / 5 + 0.5)
                 local v_pad = math.floor(navbar_icon_size / 8 + 0.5)
                 icon = require("ui/widget/container/framecontainer"):new{
-                    background = fill_color,
+                    background = filled and fill_color or nil,
                     bordersize = 0,
                     padding = 0,
                     margin = 0,
@@ -1926,16 +1931,19 @@ local function apply_navbar()
                 }
                 local opacity = math.max(0, math.min(100,
                     tonumber(config.filled_background_opacity) or 60))
-                if filled then
+                if filled or outlined then
                     local paint = icon.paintTo
                     local color = fill_color
-                    if opacity < 100 then
+                    if filled and opacity < 100 then
                         color = color:getColorRGB32()
                         color.alpha = math.floor(opacity * 255 / 100 + 0.5)
                     end
                     function icon:paintTo(bb, x, y)
                         local background = Screen.night_mode and color:invert() or color
-                        if opacity > 0 and opacity < 100 then
+                        if outlined then
+                            local size = self:getSize()
+                            bb:paintBorderRGB32(x, y, size.w, size.h, Screen:scaleBySize(2), background, self.radius)
+                        elseif opacity > 0 and opacity < 100 then
                             local size = self:getSize()
                             local fill = Blitbuffer.new(size.w, size.h, Blitbuffer.TYPE_BBRGB32)
                             fill:paintRectRGB32(0, 0, size.w, size.h, Blitbuffer.ColorRGB32(0, 0, 0, 0))
@@ -1943,9 +1951,9 @@ local function apply_navbar()
                             bb:alphablitFrom(fill, x, y, 0, 0, size.w, size.h)
                             fill:free()
                         end
-                        self.background = opacity == 100 and background or nil
+                        self.background = filled and opacity == 100 and background or nil
                         paint(self, bb, x, y)
-                        self.background = fill_color
+                        self.background = filled and fill_color or nil
                     end
                 end
             end
@@ -1954,7 +1962,7 @@ local function apply_navbar()
         local size = font_size or navbar_font_size_steps[1]
         local label_face = library_font.getFace(size)
         local label
-        local label_color = filled and not show_icon and fill_color or not filled and active_color
+        local label_color = (filled or outlined) and not show_icon and fill_color or not filled and active_color
         if label_color then
             label = ColorTextWidget:new{
                 text = tab.label,
@@ -1971,33 +1979,24 @@ local function apply_navbar()
             }
         end
 
-        local show_underline = styled and config.active_tab_underline and not filled
+        local show_underline = styled and config.active_tab_underline and not filled and not outlined
         local underline
         if show_underline then
             local underline_w = show_label and label:getSize().w or icon:getSize().w
             local underline_color = Blitbuffer.COLOR_BLACK
-            if config.colored then
-                local c = config.active_tab_color
-                if c and type(c) == "table" then
-                    underline_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
-                end
+            local c = config.active_tab_color
+            if c and type(c) == "table" then
+                underline_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
             end
-            if config.colored then
-                local Widget = require("ui/widget/widget")
-                local color_line = Widget:new{
-                    dimen = Geom:new{ w = underline_w, h = underline_thickness },
-                }
-                function color_line:paintTo(bb, x, y)
-                    local color = Screen.night_mode and underline_color:invert() or underline_color
-                    bb:paintRectRGB32(x, y, self.dimen.w, self.dimen.h, color)
-                end
-                underline = color_line
-            else
-                underline = LineWidget:new{
-                    dimen = Geom:new{ w = underline_w, h = underline_thickness },
-                    background = underline_color,
-                }
+            local Widget = require("ui/widget/widget")
+            local color_line = Widget:new{
+                dimen = Geom:new{ w = underline_w, h = underline_thickness },
+            }
+            function color_line:paintTo(bb, x, y)
+                local color = Screen.night_mode and underline_color:invert() or underline_color
+                bb:paintRectRGB32(x, y, self.dimen.w, self.dimen.h, color)
             end
+            underline = color_line
         else
             underline = VerticalSpan:new{ width = underline_thickness }
         end

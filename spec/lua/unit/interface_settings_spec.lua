@@ -97,6 +97,23 @@ describe("Interface settings", function()
         assert.are.equal(1, #section.sub_item_table[1].sub_item_table)
     end)
 
+    it("keeps Outlined immediately after Filled on the Interface page", function()
+        ZenSpec.unload("modules/settings/zen_settings_utils")
+        require("modules/settings/zen_settings_utils")
+        local active_tab = { text = "Active tab", sub_item_table = {
+            { text = "Outlined" }, { text = "Filled" }, { text = "Underline" },
+        } }
+        package.loaded["modules/settings/sections/library_settings/navbar_settings"].build = function()
+            return { text = "Navbar", sub_item_table = { active_tab } }
+        end
+        require("modules/settings/sections/interface_settings").build({
+            config = { features = {} }, plugin = {}, save_and_apply = function() end,
+        }, {})
+        local labels = {}
+        for _i, item in ipairs(active_tab.sub_item_table) do labels[#labels + 1] = item.text end
+        assert.are.same({ "Underline", "Filled", "Outlined" }, labels)
+    end)
+
     it("saves and resets the accent through the color wheel and defers surface refresh", function()
         package.loaded["device"].screen.isColorScreen = function() return true end
         local picker, deferred, saves, updates

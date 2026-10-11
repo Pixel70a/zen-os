@@ -113,8 +113,7 @@ function M.build(ctx, extras_items)
     utils.reorder_nested_items_by_text({ navbar_item }, _("Active tab"), {
         _("Underline"),
         _("Filled"),
-        _("Colored"),
-        _("Active tab color"),
+        _("Outlined"),
     })
 
     utils.reorder_nested_items_by_text({ navbar_item }, _("Labels"), {

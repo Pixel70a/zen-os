@@ -2690,34 +2690,46 @@ describe("file browser navbar navigation", function()
         }, drawing)
     end)
 
-    it("blends filled backgrounds without fading icons or touching rounded corners", function()
+    it("paints filled and outlined selections without fading icons or touching their surroundings", function()
         local mock = package.loaded["ffi/blitbuffer"]
         ZenSpec.unload("ffi/blitbuffer")
         local Blitbuffer = require("ffi/blitbuffer")
         ZenSpec.replace("ffi/blitbuffer", mock)
         mock.ColorRGB32, mock.new = Blitbuffer.ColorRGB32, Blitbuffer.new
         mock.TYPE_BBRGB32 = Blitbuffer.TYPE_BBRGB32
-        package.loaded["ui/widget/container/framecontainer"].paintTo = function(frame, bb, x, y)
+        local FrameContainer = package.loaded["ui/widget/container/framecontainer"]
+        FrameContainer.paintTo = function(frame, bb, x, y)
             local size = frame:getSize()
             if frame.background then
                 bb:paintRoundedRectRGB32(x, y, size.w, size.h, frame.background, frame.radius)
             end
-            bb:paintRectRGB32(x + 8, y + 8, 4, 4, Blitbuffer.ColorRGB32(255, 255, 255, 255))
+            bb:paintRectRGB32(x + 8, y + 8, 4, 4, frame[1]._tint_color or Blitbuffer.COLOR_BLACK)
         end
         local navbar = _G.__ZEN_UI_PLUGIN.config.navbar
         navbar.show_icons = true
-        navbar.active_tab_filled = true
+        navbar.outlined_color = { 12, 34, 56 }
         local fm = make_instance()
         fm[1] = { fm.file_chooser }
         assert.are.equal(60, navbar.filled_background_opacity)
-        for _i, opacity in ipairs({ 60, 0, 50, 100 }) do
+        for _i, style in ipairs({ { false, 60 }, { false, 0 }, { false, 50 }, { false, 100 }, { true, 100 } }) do
+            local outlined, opacity = style[1], style[2]
+            navbar.active_tab_filled = not outlined
+            navbar.active_tab_outlined = outlined
             navbar.filled_background_opacity = opacity
             built_widgets = {}
             _G.__ZEN_UI_REINJECT_FM_NAVBAR()
-            local frame
+            local frame, selected_count = nil, 0
             for _j, entry in ipairs(built_widgets) do
-                if entry.widget.radius and entry.widget.background then frame = entry.widget end
+                if entry.widget.radius and entry.widget.paintTo ~= FrameContainer.paintTo then
+                    frame = entry.widget
+                    selected_count = selected_count + 1
+                end
             end
+            assert.are.equal(1, selected_count)
+            assert.are.equal(7, frame.padding_left)
+            assert.are.equal(4, frame.padding_top)
+            assert.are.equal(11, frame.radius)
+            if outlined then assert.is_nil(frame[1]._tint_color) end
             for _j, mode in ipairs({ { false, 0 }, { true, 0 }, { true, 1 }, { false, 0 } }) do
                 local screen = package.loaded["device"].screen
                 screen.night_mode = mode[1]
@@ -2733,12 +2745,13 @@ describe("file browser navbar navigation", function()
                         return screen.night_mode and mode[2] == 0 and pixel:invert() or pixel
                     end
                     local expected = background:getColorRGB32()
+                    local alpha = math.floor((outlined and 0 or opacity) * 255 / 100 + 0.5)
                     expected:blend(Blitbuffer.ColorRGB32(0x4F, 0x6F, 0x8F,
-                        math.floor(opacity * 255 / 100 + 0.5)))
+                        alpha))
                     if buffer_type == Blitbuffer.TYPE_BB8 then
                         expected = background:getColor8()
                         expected:blend(Blitbuffer.ColorRGB32(0x4F, 0x6F, 0x8F,
-                            math.floor(opacity * 255 / 100 + 0.5)):getColor8A())
+                            alpha):getColor8A())
                     end
                     local pixel = visiblePixel(7, 16)
                     -- Inversion and grayscale conversion may round one level apart.
@@ -2747,8 +2760,21 @@ describe("file browser navbar navigation", function()
                     assert.is_true(math.abs(expected:getB() - pixel:getB()) <= 1)
                     assert.is_true(math.abs(background:getColor8():getR()
                         - visiblePixel(4, 6):getColor8():getR()) <= 1)
-                    assert.are.equal(screen.night_mode and 0 or 255, visiblePixel(13, 15):getR())
-                    assert.is_not_nil(frame.background)
+                    if outlined then
+                        local outline = Blitbuffer.ColorRGB32(12, 34, 56, 255)
+                        if buffer_type == Blitbuffer.TYPE_BB8 then outline = outline:getColor8() end
+                        local border_pixel = visiblePixel(4, 16)
+                        assert.is_true(math.abs(outline:getR() - border_pixel:getR()) <= 1)
+                        assert.is_true(math.abs(outline:getG() - border_pixel:getG()) <= 1)
+                        assert.is_true(math.abs(outline:getB() - border_pixel:getB()) <= 1)
+                    end
+                    local glyph = outlined and 0 or 255
+                    assert.are.equal(screen.night_mode and 255 - glyph or glyph, visiblePixel(13, 15):getR())
+                    if outlined then
+                        assert.is_nil(frame.background)
+                    else
+                        assert.is_not_nil(frame.background)
+                    end
                     bb:free()
                 end
             end
@@ -2793,7 +2819,9 @@ describe("file browser navbar navigation", function()
         assert.are.same({ 10, 20, 30 }, navbar.filled_outline_color)
 
         navbar.active_tab_filled = false
-        navbar.colored = true
+        assert.are.same({ 0, 0, 0 }, navbar.active_tab_color)
+        navbar.active_tab_color = { 0x33, 0x99, 0xFF }
+        navbar.colored = false
         built_widgets = {}
         _G.__ZEN_UI_REINJECT_FM_NAVBAR()
         local underline
@@ -2808,15 +2836,17 @@ describe("file browser navbar navigation", function()
             assert.are.equal(night_mode and color:invert() or color, painted_color)
         end
         assert.are.same({ 0x33, 0x99, 0xFF }, navbar.active_tab_color)
+        assert.is_false(navbar.colored)
     end)
 
-    it("uses the fill color for active labels when icons are hidden", function()
+    it("uses the selected style's color for active labels when icons are hidden", function()
         screen_is_color = true
         local navbar = _G.__ZEN_UI_PLUGIN.config.navbar
         navbar.active_tab_filled = true
         navbar.filled_outline_color = { 10, 20, 30 }
         navbar.filled_background_color = { 40, 50, 60 }
-        navbar.colored = true
+        navbar.active_tab_color = { 0x33, 0x99, 0xFF }
+        navbar.colored = false
         local fm = make_instance()
         fm[1] = { fm.file_chooser }
         built_widgets = {}
@@ -2833,6 +2863,21 @@ describe("file browser navbar navigation", function()
         assert.are.same({ 40, 50, 60, 255 }, filled_labels[1].fgcolor)
 
         navbar.active_tab_filled = false
+        navbar.active_tab_outlined = true
+        navbar.outlined_color = { 70, 80, 90 }
+        built_widgets = {}
+        _G.__ZEN_UI_REINJECT_FM_NAVBAR()
+        local outlined_count = 0
+        for _i, entry in ipairs(built_widgets) do
+            local widget = entry.widget
+            if widget.text == "Home" and widget.fgcolor then
+                outlined_count = outlined_count + 1
+                assert.are.same({ 70, 80, 90, 255 }, widget.fgcolor)
+            end
+        end
+        assert.are.equal(1, outlined_count)
+
+        navbar.active_tab_outlined = false
         navbar.active_tab_underline = true
         built_widgets = {}
         _G.__ZEN_UI_REINJECT_FM_NAVBAR()

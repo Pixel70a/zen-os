@@ -2870,7 +2870,13 @@ function Driver:handleCommand(command)
             local label = item._zen_display_text or item.text or ""
             if label == params.label or index == params.index then
                 local callback = kind == "settings_page_hold" and page.onMenuHold or page.onMenuSelect
-                local ok_select, err = pcall(callback, page, item)
+                local pos
+                if params.control then
+                    local bounds = item._zen_settings_control_bounds
+                    if not bounds then return { ok = false, error = "settings control unavailable" } end
+                    pos = { x = (bounds.left + bounds.right) / 2 }
+                end
+                local ok_select, err = pcall(callback, page, item, pos)
                 return { ok = ok_select, error = ok_select and nil or tostring(err) }
             end
         end

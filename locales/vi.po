@@ -4225,6 +4225,12 @@ msgid "Outline color"
 msgstr "Màu viền"
 
 #. Type: setting
+#. Context: Settings label in the navigation bar settings.
+#: navbar_settings.lua:1670
+msgid "Outlined"
+msgstr "Có đường viền"
+
+#. Type: setting
 #. Context: Tên mục cài đặt trong phần cài đặt bố cục và tiện ích của trang chủ.
 #: home_settings.lua:2346
 msgid "Outlined boxes"

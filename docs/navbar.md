@@ -26,7 +26,7 @@ Navbar settings live under **Zen Settings > Interface > Navbar**.
 - Configure Library, Folder, Home, Manga, and News tab labels or actions.
 - Control active-tab styling, top border, label size, and icon size.
 
-Under **Styling > Active tab**, choose **Underline** or **Filled** using the radio control. Filled appears directly below Underline. Open **Underline** to move the line above the icon. Open **Filled** to pick **Outline color** for the icon and **Fill color** for the squircle behind it; the defaults are a white icon on a muted blue (#4F6F8F) squircle. With icons hidden, the active label uses the fill color. **Active tab outline color** is available when **Colored** and **Underline** are selected.
+Under **Styling > Active tab**, choose **Underline**, **Filled**, or **Outlined** using the radio control. Open **Underline** to move the line above the icon and pick **Outline color**. The underline always uses this color, defaults to black, and retains previously saved active-tab colors. Open **Filled** to pick **Outline color** for the icon and **Fill color** for the squircle behind it; the defaults are a white icon on a muted blue (#4F6F8F) squircle. **Outlined** draws a hollow border around the selected icon using the same dimensions as Filled, with its own **Outline color** picker. With icons hidden, the active label uses the selected style's color.
 
 The **Fill color** picker also has an **Opacity** slider from 0% (transparent) to 100% (opaque), with a default of 60%. Opacity affects the squircle background; icons and labels stay opaque. Color and opacity changes repaint the navbar when settings close.
 
@@ -95,6 +95,6 @@ Adjust a grouped view's display and sort from its context menu while that tab is
 | Styling > Icons > Show icons | Shows tab icons. This cannot be disabled when labels are hidden. |
 | Styling > Icons > Icon size | Sets navbar icon size from 24 to 48. |
 | Styling > Active tab > Underline | Adds an underline to the active tab. |
-| Styling > Active tab > Underline above icon | Places the active underline above the icon. |
-| Styling > Active tab > Colored | Uses an accent color for the active tab. |
-| Styling > Active tab > Active tab color | Sets the active tab color from presets or custom RGB values. |
+| Styling > Active tab > Underline > Underline above icon | Places the active underline above the icon. |
+| Styling > Active tab > Outlined | Draws a hollow border with its own Outline color picker. |
+| Styling > Active tab > Underline > Outline color | Sets the underline color, defaulting to black; also tints the selected icon and label on color screens. |

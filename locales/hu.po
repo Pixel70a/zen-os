@@ -4225,6 +4225,12 @@ msgid "Outline color"
 msgstr "Körvonal színe"
 
 #. Type: setting
+#. Context: Settings label in the navigation bar settings.
+#: navbar_settings.lua:1670
+msgid "Outlined"
+msgstr "Körvonalas"
+
+#. Type: setting
 #. Context: A beállítás neve a kezdőlap elrendezésének és widgetjeinek beállításainál.
 #: home_settings.lua:2346
 msgid "Outlined boxes"

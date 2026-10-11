@@ -38,19 +38,6 @@ function M.build(ctx)
         icon_utils.copyDefaultCustomTabIcon(ok_root and root and root .. "/icons/" or nil, config.navbar)
     end
 
-    -- Defer reinject to next event loop tick so the menu's post-callback
-    -- redraws complete first, then the navbar repaints correctly.
-    local function save_and_apply_navbar()
-        sync_default_tab_icon()
-        ctx.plugin:saveConfig()
-        local reinject = rawget(_G, "__ZEN_UI_REINJECT_FM_NAVBAR")
-        if reinject then
-            UIManager:scheduleIn(0, reinject)
-        else
-            save_and_apply("navbar")
-        end
-    end
-
     local function queue_deferred_navbar_refresh()
         if settings_apply and settings_apply.refresh_navbar_on_menu_close then
             settings_apply.refresh_navbar_on_menu_close()
@@ -70,6 +57,8 @@ function M.build(ctx)
         ctx.plugin:saveConfig()
         queue_deferred_navbar_refresh()
     end
+
+    local save_and_apply_navbar = save_and_defer_navbar_refresh
 
     local function save_and_reinit_navbar()
         save_and_defer_navbar_refresh()
@@ -1628,24 +1617,30 @@ function M.build(ctx)
                                 checked_func = function()
                                     return config.navbar.active_tab_underline ~= false
                                         and config.navbar.active_tab_filled ~= true
+                                        and config.navbar.active_tab_outlined ~= true
                                 end,
                                 checkmark_callback = function()
                                     config.navbar.active_tab_underline = true
                                     config.navbar.active_tab_filled = false
+                                    config.navbar.active_tab_outlined = false
                                     save_and_apply_navbar()
                                 end,
-                                sub_item_table = {{
-                                    text = _("Underline above icon"),
-                                    checked_func = function() return config.navbar.underline_above == true end,
-                                    enabled_func = function()
-                                        return config.navbar.active_tab_underline ~= false
-                                            and config.navbar.active_tab_filled ~= true
-                                    end,
-                                    callback = function()
-                                        config.navbar.underline_above = config.navbar.underline_above ~= true
-                                        save_and_apply_navbar()
-                                    end,
-                                }},
+                                sub_item_table = {
+                                    {
+                                        text = _("Underline above icon"),
+                                        checked_func = function() return config.navbar.underline_above == true end,
+                                        enabled_func = function()
+                                            return config.navbar.active_tab_underline ~= false
+                                                and config.navbar.active_tab_filled ~= true
+                                                and config.navbar.active_tab_outlined ~= true
+                                        end,
+                                        callback = function()
+                                            config.navbar.underline_above = config.navbar.underline_above ~= true
+                                            save_and_apply_navbar()
+                                        end,
+                                    },
+                                    navbar_color_item(_("Outline color"), "active_tab_color", {0, 0, 0}),
+                                },
                             },
                             {
                                 text = _("Filled"),
@@ -1654,6 +1649,7 @@ function M.build(ctx)
                                 checkmark_callback = function()
                                     config.navbar.active_tab_filled = true
                                     config.navbar.active_tab_underline = false
+                                    config.navbar.active_tab_outlined = false
                                     save_and_apply_navbar()
                                 end,
                                 sub_item_table = {
@@ -1663,19 +1659,22 @@ function M.build(ctx)
                                 },
                             },
                             {
-                                text = _("Colored"),
-                                checked_func = function() return config.navbar.colored == true end,
-                                callback = function()
-                                    config.navbar.colored = config.navbar.colored ~= true
+                                text = _("Outlined"),
+                                radio = true,
+                                checked_func = function()
+                                    return config.navbar.active_tab_outlined == true
+                                        and config.navbar.active_tab_filled ~= true
+                                end,
+                                checkmark_callback = function()
+                                    config.navbar.active_tab_outlined = true
+                                    config.navbar.active_tab_underline = false
+                                    config.navbar.active_tab_filled = false
                                     save_and_apply_navbar()
                                 end,
+                                sub_item_table = {
+                                    navbar_color_item(_("Outline color"), "outlined_color", {0x4F, 0x6F, 0x8F}),
+                                },
                             },
-                            navbar_color_item(_("Active tab outline color"), "active_tab_color", {0x33, 0x99, 0xFF},
-                                function()
-                                    return config.navbar.colored == true
-                                        and config.navbar.active_tab_underline ~= false
-                                        and config.navbar.active_tab_filled ~= true
-                                end),
                         },
                     },
                     {
