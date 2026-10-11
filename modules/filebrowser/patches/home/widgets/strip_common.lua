@@ -1342,6 +1342,7 @@ function M.build_strip(ctx, source_key)
     local swap_sequence = 0
 
     local function repaint_strip()
+        UIManager:waitForVSync() -- Let the e-ink controller finish reading the previous frame.
         if not ctx.refreshStrip then
             UIManager:setDirty(ctx.menu, "ui")
             return

@@ -675,12 +675,14 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             ]
             assert driver.command("settings_page_select", label="Interface")["ok"] is True
             interface_labels = driver.command("settings_page_state")["settings"]["labels"]
-            assert interface_labels[:4] == ["Controls", "Launcher", "Navbar", "Status bar"]
-            assert interface_labels[4].startswith("Font:")
-            assert interface_labels[5:] == [
+            assert interface_labels[:5] == [
+                "Controls", "Launcher", "Navbar", "Status bar", "Accent color",
+            ]
+            assert interface_labels[5].startswith("Font:")
+            assert interface_labels[6:] == [
                 "Zen Keyboard", "Wallpaper", "Custom icons", "Blur menu background", "Zen Search",
             ]
-            assert driver.command("settings_page_select", label=interface_labels[4])["ok"] is True
+            assert driver.command("settings_page_select", label=interface_labels[5])["ok"] is True
             font_labels = driver.command("settings_page_state")["settings"]["labels"]
             assert font_labels[0].startswith("Font size:")
             assert font_labels[1].startswith("Font:")

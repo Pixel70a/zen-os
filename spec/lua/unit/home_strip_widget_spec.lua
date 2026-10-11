@@ -220,6 +220,7 @@ describe("home strip widget", function()
                 end
             end,
             setDirty = function() end,
+            waitForVSync = function() end,
         })
         ZenSpec.unload("common/widget_resources")
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/strip_controls")
@@ -2215,6 +2216,8 @@ describe("home strip widget", function()
         local refreshed = 0
         local content_bounds
         local dirty
+        local refresh_pending = true
+        require("ui/uimanager").waitForVSync = function() refresh_pending = false end
         local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         local widget = Strip.build({
             width = 600,
@@ -2228,12 +2231,13 @@ describe("home strip widget", function()
             },
             shiftStrip = function(source, count, order, direction, component_id, two_rows, refresh)
                 shifted = { source, count, order, direction, component_id, two_rows }
-                show_second = true
+                show_second = direction == "next"
                 refresh()
                 return true
             end,
             setContentBounds = function(bounds) content_bounds = bounds end,
             refreshStrip = function(dimen)
+                assert.is_false(refresh_pending, "strip repaint overlaps the previous screen refresh")
                 dirty = dimen
                 refreshed = refreshed + 1
             end,
@@ -2241,6 +2245,7 @@ describe("home strip widget", function()
 
         widget.dimen.x, widget.dimen.y = 10, 511
         content_bounds.set_shift(-11)
+        local first_frame = widget[1]
         assert.is_true(widget:onSwipeStrip(nil, { pos = { x = 20, y = 520 }, direction = "west" }))
         assert.are.same({ { kind = "recent" }, 4, "default", "next", "strip", false }, shifted)
         assert.are.same({ first, second }, cover_books)
@@ -2248,6 +2253,12 @@ describe("home strip widget", function()
         assert.are.same({ 10, 500, 600, 171 }, {
             dirty.x, dirty.y, dirty.w, dirty.h,
         })
+
+        refresh_pending = true
+        assert.is_true(widget:onSwipeStrip(nil, { pos = { x = 20, y = 520 }, direction = "east" }))
+        assert.are.equal(first_frame, widget[1])
+        assert.are.equal(2, refreshed)
+        assert.are.same({ first, second }, cover_books)
     end)
 
     it("hydrates cold visible covers after paint with a strip-only refresh", function()
@@ -2258,6 +2269,8 @@ describe("home strip widget", function()
         }
         local warmed
         local refreshed = 0
+        local refresh_pending = true
+        require("ui/uimanager").waitForVSync = function() refresh_pending = false end
         local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         local widget = Strip.build({
             width = 600,
@@ -2274,7 +2287,10 @@ describe("home strip widget", function()
                     return "warmed"
                 end,
             },
-            refreshStrip = function() refreshed = refreshed + 1 end,
+            refreshStrip = function()
+                assert.is_false(refresh_pending, "cover hydration overlaps the initial screen refresh")
+                refreshed = refreshed + 1
+            end,
         })
 
         assert.are.equal(1, #cover_books)
