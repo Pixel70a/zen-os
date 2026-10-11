@@ -911,6 +911,28 @@ describe("Home widget content settings", function()
         assert.are.equal(1, backs)
     end)
 
+    it("preserves the enabled strip when adding Reading after Home settings changed", function()
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        local previous_page = home_page
+        previous_page.rows.enabled.strip = false
+        home_page = require("common/utils").deepcopy(previous_page)
+        home_page.rows.enabled.strip = true
+        local saved
+        require("config/preset_store").saveSettings = function(_kind, value) saved = value end
+
+        assert.is_true(settings.openWidgetSettings("strip", { config = {} }))
+        local controls_item = find_item(arrange_options.item_table, "Controls")
+        find_item(controls_item.sub_item_table_func(), "Tabs").callback({})
+        find_item(arrange_options.add_item_table, "Tab").callback({})
+        picker_options.on_select(find_item(picker_options.items, "Reading"))
+
+        assert.is_true(saved.rows.enabled.strip)
+        assert.same({
+            id = "hs_1", type = "status", status = "reading", label = "Reading",
+        }, saved.modules.strip.controls.custom_buttons[1])
+        assert.is_nil(previous_page.modules.strip.controls.custom_buttons[1])
+    end)
+
     it("adds end-of-book recommendations alongside existing tabs and restores deleted recommendations", function()
         local editable = require("common/utils").deepcopy(home_page)
         editable.modules.strip.controls.order = {}

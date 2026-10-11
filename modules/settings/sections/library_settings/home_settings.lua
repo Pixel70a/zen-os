@@ -2629,6 +2629,7 @@ function M.build(ctx)
     if ctx.widget_id then return build_widget_settings_items(ctx.widget_id) end
 
     open_widget_settings = function(id, owning_plugin)
+        dcfg = ensure_cfg(config) -- Reload settings instead of saving an older Home snapshot.
         local settings_page = require("modules/settings/zen_settings_page")
         local standalone_route, settings_resume = settings_page.rememberStandaloneArrangeRoute({
             { text = _("Home"), occurrence = 1 },
