@@ -688,7 +688,7 @@ describe("reader top status bar refresh", function()
             }
             _G.__ZEN_UI_PLUGIN.config.features.reader_status_bar_margins = false
             caps = {}
-            local _header, _widgets, _height, _width, slots = build_header(view)
+            local slots = select(5, build_header(view))
             assert.are.equal(slot == "center" and 480 or 530, caps[_i])
             if slot == "center" then
                 assert.is_true(slots.center.x + slots.center.w <= 540)

@@ -1073,9 +1073,9 @@ describe("shared document cache", function()
     it("leaves the corrupt database intact if renaming it fails", function()
         write_file(database_path, "not a SQLite database")
         local rename = os.rename
-        os.rename = function() return nil, "Permission denied" end
+        rawset(os, "rename", function() return nil, "Permission denied" end)
         local ok, err = pcall(Cache.withDB, function() return true end)
-        os.rename = rename
+        rawset(os, "rename", rename)
         assert.is_false(ok)
         assert.matches("Permission denied", err)
         assert.same({}, backups())
@@ -1098,13 +1098,13 @@ describe("shared document cache", function()
 
     it("keeps previous backups when corruption recurs", function()
         local date = os.date
-        os.date = function() return "20261011-200000" end
+        rawset(os, "date", function() return "20261011-200000" end)
         for i = 1, 2 do
             write_file(database_path, "broken cache " .. i)
             Cache.withDB(function(db) return db end)
             Cache.close()
         end
-        os.date = date
+        rawset(os, "date", date)
         assert.are.equal(2, #backups())
         local base = database_path .. ".corrupt-20261011-200000"
         assert.are.equal("broken cache 1", read_file(base .. "/docprops_cache.sqlite"))
