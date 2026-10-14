@@ -69,9 +69,7 @@ local function apply_reader_top_status_bar()
 
     local function is_view_active_top(view)
         if not (view and view.ui) then return false end
-        local stack = UIManager._window_stack
-        local top = stack and stack[#stack]
-        local top_widget = top and top.widget
+        local top_widget = UIManager:getTopmostVisibleWidget()
         if not top_widget then return false end
         if top_widget == view.ui or top_widget == view.ui.show_parent then
             return true
@@ -932,9 +930,7 @@ local function apply_reader_top_status_bar()
     -- items affected by the timer or event.
     local function repaintHeaderSlots(view, item_keys)
         if not should_show(view) then return end
-        local stack = UIManager._window_stack
-        local top = stack and stack[#stack]
-        local top_widget = top and top.widget
+        local top_widget = UIManager:getTopmostVisibleWidget()
         if not (top_widget == view.ui or top_widget == (view.ui and view.ui.show_parent)) then return end
         if not view._zen_header_dimen then
             DBG("repaintHeaderSlots SKIP: no _zen_header_dimen (paintTo never ran?)")

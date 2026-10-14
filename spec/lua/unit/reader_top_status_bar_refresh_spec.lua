@@ -136,6 +136,12 @@ describe("reader top status bar refresh", function()
 
         UIManager = {
             _window_stack = {},
+            getTopmostVisibleWidget = function(self)
+                for index = #self._window_stack, 1, -1 do
+                    local widget = self._window_stack[index].widget
+                    if not widget.invisible then return widget end
+                end
+            end,
             scheduleIn = function(_self, delay, callback)
                 scheduled[#scheduled + 1] = { delay = delay, callback = callback }
             end,
@@ -362,6 +368,40 @@ describe("reader top status bar refresh", function()
         assert.is_true(dirty_calls[1].dither)
         assert.same({ "clear", "header", "dogear", "dirty" }, paint_order)
     end
+
+    it("paints and refreshes the header below invisible overlays", function()
+        local view = make_view()
+        UIManager._window_stack[#UIManager._window_stack + 1] = {
+            widget = { name = "BookendsFlippingHalo", invisible = true, toast = true },
+        }
+        view._zen_header_dimen = nil
+
+        ReaderView.paintTo(view, require("device").screen.bb, 0, 0)
+        assert.is_not_nil(view._zen_header_dimen)
+        reset_paint_log()
+        ReaderUI.onNetworkConnected(view.ui)
+        assert_single_slot(0)
+
+        reset_paint_log()
+        clock_text = "12:35"
+        scheduled[1].callback()
+        assert_single_slot(250)
+    end)
+
+    it("keeps the header hidden under visible dialogs with invisible overlays above them", function()
+        local view = make_view()
+        UIManager._window_stack[#UIManager._window_stack + 1] = { widget = {} }
+        UIManager._window_stack[#UIManager._window_stack + 1] = {
+            widget = { invisible = true, toast = true },
+        }
+        view._zen_header_dimen = nil
+
+        ReaderView.paintTo(view, require("device").screen.bb, 0, 0)
+        assert.is_nil(view._zen_header_dimen)
+        ReaderUI.onNetworkConnected(view.ui)
+        assert.are.equal(0, #paint_rects)
+        assert.are.equal(0, #dirty_calls)
+    end)
 
     it("uses the default header face when the selected or inherited font is unavailable", function()
         local get_header_face = get_upvalue(build_header, "getHeaderFace")
