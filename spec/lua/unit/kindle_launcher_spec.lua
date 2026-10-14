@@ -75,6 +75,7 @@ describe("Kindle launcher installation", function()
         package.loaded["config/manager"] = original_config
         os.remove(destination)
         os.remove(destination .. ".zenos-tmp")
+        os.remove(root .. "/ZenKOReader.sh")
         os.remove(root .. "/kindle-launcher/ZenReader.sh")
         lfs.rmdir(root .. "/ZenPM/state")
         lfs.rmdir(root .. "/ZenPM")
@@ -98,6 +99,18 @@ describe("Kindle launcher installation", function()
         write(destination, "#!/bin/sh\n# Version: 1.0.0\necho old\n")
         assert.is_true(Launcher.install(root, destination))
         assert.are.equal(bundled, read(destination))
+    end)
+
+    it("skips installation when ZenKOReader.sh is already present", function()
+        write(root .. "/kindle-launcher/ZenReader.sh", "#!/bin/sh\n# Version: 1.1.0\n")
+        local legacy = "#!/bin/sh\necho legacy\n"
+        write(root .. "/ZenKOReader.sh", legacy)
+
+        assert.is_true(Launcher.install(root, destination))
+        assert.is_nil(lfs.attributes(destination, "mode"))
+        assert.are.equal(legacy, read(root .. "/ZenKOReader.sh"))
+        assert.is_nil(recorded)
+        assert.is_nil(saved)
     end)
 
     it("does not reinstall or register a removed launcher after restarting", function()

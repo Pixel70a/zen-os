@@ -4,10 +4,22 @@ return function()
     local BD = require("ui/bidi")
     local Feedback = require("common/ui/button_feedback")
     local Accent = require("common/ui/accent")
+    local Device = require("device")
     local Geom = require("ui/geometry")
     local UIManager = require("ui/uimanager")
     if Button._zen_feedback_patched then return end
     Button._zen_feedback_patched = true
+
+    local Screen = Device.screen
+    local orig_refresh_ui = Screen.refreshUIImp
+    function Screen:refreshUIImp(x, y, w, h, dither)
+        if self.waveform_full and not self.night_mode
+                and Device.isKindle and Device:isKindle() and Accent.isEnabled() then
+            -- AUTO can flash the rectangular refresh region around accent feedback.
+            return self:mech_refresh(false, self.waveform_full, x, y, w, h, false)
+        end
+        return orig_refresh_ui(self, x, y, w, h, dither)
+    end
 
     function Button:_doFeedbackHighlight()
         if self.enabled == false or self.allow_flash == false then return end

@@ -262,7 +262,8 @@ describe("TouchMenu panel gestures", function()
     end)
 
     it("clears underlying text with color refreshes only when the accent is enabled", function()
-        local screen = require("device").screen
+        local Device = require("device")
+        local screen = Device.screen
         local config = { accent_color = "#204080" }
         require("modules/menu/patches/touch_menu_panel").install({ config = config })
         local menu = new_menu()
@@ -287,15 +288,21 @@ describe("TouchMenu panel gestures", function()
         for _i, case in ipairs({
             { true, "#204080", true, "full", true },
             { true, "#204080", false, "partial", true },
+            { true, "#204080", false, "ui", false, true },
+            { true, "#204080", false, "partial", true, true, true },
+            { true, "#204080", true, "full", false, true },
+            { true, "#204080", true, "full", true, true, true },
             { true, "#000000", true, "flashui", false },
             { true, "#000000", false, "ui", false },
             { false, "#204080", true, "flashui", false },
             { false, "#204080", false, "ui", false },
         }) do
             screen.isColorScreen = function() return case[1] end
+            Device.isKindle = function() return case[6] == true end
+            screen.night_mode = case[7] == true
             config.accent_color, menu.is_fresh = case[2], case[3]
             menu:updateItems()
-            if case[5] then menu.is_fresh = false end -- Background hatching clears it in onShow.
+            if case[1] and case[2] ~= "#000000" then menu.is_fresh = false end -- Background hatching clears it in onShow.
             local mode, refreshed, dither = refresh()
             assert.are.equal(case[4], mode)
             assert.are.equal(region, refreshed)

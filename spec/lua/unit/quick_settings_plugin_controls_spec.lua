@@ -1077,9 +1077,14 @@ describe("quick settings plugin controls", function()
         end
         local menu = {}
         FileManagerMenu.setUpdateItemTable(menu)
-        local controls = menu.tab_item_table[1].panel({ item_width = 600 })
+        local controls_menu = { item_width = 600 }
+        local controls = menu.tab_item_table[1].panel(controls_menu)
         assert.are.equal(8, controls[1].width)
         assert.are.equal(status_row, controls[2])
+        local controls_status = controls_menu._zen_panel_refs.status_row
+        assert.are.equal(controls, controls_status.parent)
+        assert.are.equal(status_row, controls[controls_status.index])
+        assert.are.equal(status_row, controls_status.build())
         local launcher = _G.__ZEN_UI_BUILD_APP_LAUNCHER_PREVIEW
         for _i, enabled in ipairs({ true, false }) do
             status_enabled = enabled
@@ -1097,6 +1102,12 @@ describe("quick settings plugin controls", function()
                 if enabled then
                     assert.are.equal(controls[1].width, panel[1].width)
                     assert.are.equal(status_row, panel[2])
+                    local status = touch_menu._zen_panel_refs.status_row
+                    assert.are.equal(panel, status.parent)
+                    assert.are.equal(status_row, panel[status.index])
+                    assert.are.equal(status_row, status.build())
+                else
+                    assert.is_nil(touch_menu._zen_panel_refs.status_row)
                 end
                 if page > button_pages then
                     assert.are.equal(enabled and 376 or 416, content_height)

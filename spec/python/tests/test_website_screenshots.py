@@ -108,9 +108,9 @@ def _color_cover_epub(
         archive.writestr("OPS/cover.png", cover.getvalue())
 
 
-def test_catalog_is_the_canonical_31_image_inventory() -> None:
+def test_catalog_is_the_canonical_35_image_inventory() -> None:
     catalog = load_catalog()
-    assert len(catalog) == 31
+    assert len(catalog) == 35
     assert {scenario.id for scenario in catalog} == EXPECTED_IDS
     assert [scenario.id for scenario in catalog if scenario.id.startswith("page_browser")] == [
         "page_browser_grid", "page_browser_carousel"
@@ -299,6 +299,34 @@ def test_icon_pack_seed_copies_assets_and_sets_selection(
 def test_icon_pack_seed_rejects_a_missing_pack(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="icon pack not installed in runtime: zen-solar-colour"):
         seed_showcase(tmp_path / "ko-home", [], tmp_path / "runtime", icon_pack="zen-solar-colour")
+
+
+@pytest.mark.parametrize("style,labels,underline,above,filled,outlined", [
+    ("underline_above", False, True, True, False, False),
+    ("underline_below", True, True, False, False, False),
+    ("filled", True, False, False, True, False),
+    ("outlined", False, False, False, False, True),
+])
+def test_navbar_style_screens_show_accent_styles_with_and_without_labels(
+    style: str, labels: bool, underline: bool, above: bool, filled: bool, outlined: bool,
+) -> None:
+    screen_id = f"navbar_{style}"
+    scenario = next(screen for screen in load_catalog() if screen.id == screen_id)
+    assert scenario.action == "navbar"
+    assert scenario.group == "library"
+    assert scenario.session == "solar_icons"
+    assert scenario.options == {"navbar": screen_id, "accent_color": "#007F73"}
+    assert scenario.docs == ("docs/navbar.md",)
+    assert SHOWCASE_NAVBAR_STATES[screen_id] == {
+        **SHOWCASE_NAVBAR_STATES["icon_pack_tabs"],
+        "show_labels": labels,
+        "active_tab_use_accent": True,
+        "active_tab_underline": underline,
+        "underline_above": above,
+        "active_tab_filled": filled,
+        "active_tab_outlined": outlined,
+        "filled_background_opacity": 100,
+    }
 
 
 def test_example_profile_fills_the_four_by_three_library_grid() -> None:

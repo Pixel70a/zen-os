@@ -92,6 +92,8 @@ function M.install(plugin_root, destination)
     local ConfigManager = require("config/manager")
     local config = ConfigManager.get() or ConfigManager.load()
     if config._meta.kindle_launcher_added == true then return true end
+    local legacy_launcher = destination:gsub("[^/]+$", "ZenKOReader.sh")
+    if lfs.attributes(legacy_launcher, "mode") == "file" then return true end
 
     local bundled = read_file(plugin_root .. "/kindle-launcher/ZenReader.sh")
     if not bundled then return true end

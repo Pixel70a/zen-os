@@ -705,21 +705,25 @@
 
     local function create_panel(touch_menu)
         local buildStatusRow = SharedState.get(zen_plugin, "buildStatusRow")
-        local status_row = type(buildStatusRow) == "function"
-            and buildStatusRow(touch_menu.item_width, {
+        local function build_status_row()
+            return type(buildStatusRow) == "function" and buildStatusRow(touch_menu.item_width, {
                 padding = Screen:scaleBySize(6),
                 font_name = "x_smallinfofont",
             })
+        end
+        local status_row = build_status_row()
         local top_padding = Screen:scaleBySize(8)
         local content = create_content_panel(touch_menu,
             status_row and top_padding + status_row:getSize().h or 0)
         if not status_row then return content end
-        return VerticalGroup:new{
+        local panel = VerticalGroup:new{
             align = "left",
             VerticalSpan:new{ width = top_padding },
             status_row,
             content,
         }
+        touch_menu._zen_panel_refs.status_row = { parent = panel, index = 2, build = build_status_row }
+        return panel
     end
 
     rawset(_G, "__ZEN_UI_BUILD_APP_LAUNCHER_PREVIEW", function(item_width)

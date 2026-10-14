@@ -20,6 +20,7 @@ local function apply_status_bar()
     local LineWidget = require("ui/widget/linewidget")
     local Size = require("ui/size")
     local VerticalGroup = require("ui/widget/verticalgroup")
+    local WidgetResources = require("common/widget_resources")
     local clock_timer = require("common/clock_timer")
     local DateFormat = require("common/date_format")
     local library_font = require("modules/filebrowser/patches/library_font")
@@ -834,6 +835,12 @@ local function apply_status_bar()
                 left_group,
             },
         }
+        -- OverlapGroup does not track its painted origin.
+        local paint_row = row.paintTo
+        row.paintTo = function(widget, bb, x, y)
+            widget.dimen.x, widget.dimen.y = x, y
+            return paint_row(widget, bb, x, y)
+        end
         if center_content then
             local CenterContainer = require("ui/widget/container/centercontainer")
             table.insert(row, CenterContainer:new{
@@ -968,7 +975,29 @@ local function apply_status_bar()
                 return
             end
             if topmost_non_toast_widget() ~= target then return end
-            target:updateItems()
+            local status = target._zen_panel_refs and target._zen_panel_refs.status_row
+            local previous = status and status.parent[status.index]
+            if not (previous and previous.dimen) then return end
+            local current = status.build()
+            local old_size, new_size = previous:getSize(), current:getSize()
+            if old_size.w ~= new_size.w or old_size.h ~= new_size.h then
+                WidgetResources.free(current)
+                target:updateItems()
+                return
+            end
+            local regions = statusRowRefreshRegions(previous, current)
+            if #regions == 0 then WidgetResources.free(current); return end
+            local x, y = previous.dimen.x, previous.dimen.y
+            WidgetResources.replaceChild(status.parent, status.index, current)
+            for _i, region in ipairs(regions) do
+                local bb = Screen.bb:viewport(x + region.x, y + region.y, region.w, region.h)
+                bb:paintRect(0, 0, region.w, region.h, Blitbuffer.COLOR_WHITE)
+                current:paintTo(bb, -region.x, -region.y)
+                bb:free()
+                region.x, region.y = x + region.x, y + region.y
+                UIManager:setDirty(nil, "ui", region, target.dithered)
+            end
+            current.dimen.x, current.dimen.y = x, y
         end
         menu._zen_status_timer = tick
         clock_timer.bind(menu, tick)

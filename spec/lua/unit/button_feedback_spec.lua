@@ -5,6 +5,7 @@ describe("rounded button feedback", function()
     local Blitbuffer = require("ffi/blitbuffer")
     local Geom = require("ui/geometry")
     local modules = {
+        "ffi", "ffi/framebuffer_mxcfb",
         "device", "ui/uimanager", "ui/widget/button", "ui/widget/iconbutton", "ui/bidi",
         "common/ui/button_feedback", "modules/global/patches/button_feedback", "common/zen_logger",
     }
@@ -102,6 +103,149 @@ describe("rounded button feedback", function()
             end
         end
         before:free()
+    end)
+
+    it("uses consistent Colorsoft processing for the first frame and colored feedback", function()
+        _G.__ZEN_UI_PLUGIN = { config = { accent_color = "#204080" } }
+        local Device = package.loaded.device
+        Device.isKindle = function() return true end
+        Device.hasColorScreen = function() return true end
+        Device.canHWDither = function() return true end
+        Device.hasKaleidoWfm = function() return false end
+        screen.isColorScreen = function() return true end
+        screen.waveform_fast, screen.waveform_ui, screen.waveform_full = 1, 257, 2
+        screen.waveform_partial, screen.waveform_reagl, screen.waveform_flashui = 4, 4, 257
+        screen.debug = function() end
+        screen.bb = Blitbuffer.new(80, 80, Blitbuffer.TYPE_BBRGB32)
+        screen.bb:fill(Blitbuffer.COLOR_WHITE)
+        screen.bb:paintRect(30, 30, 4, 4, Blitbuffer.COLOR_BLACK)
+        local before = screen.bb:copy()
+        local region = Geom:new{ x = 20, y = 20, w = 32, h = 32 }
+        local pending, refreshes = nil, 0
+        local ffi = require("ffi")
+        require("ffi/mxcfb_kindle_h")
+        local native = ffi.C
+        local backend = setmetatable({
+            ioctl = function(_fd, request, update)
+                assert.are.equal(native.MXCFB_SEND_UPDATE_MTK, request)
+                assert.are.equal(refreshes == 0 and native.UPDATE_MODE_FULL or native.UPDATE_MODE_PARTIAL,
+                    tonumber(update.update_mode))
+                assert.are.equal(native.MTK_WAVEFORM_MODE_GC16, tonumber(update.waveform_mode))
+                assert.are.equal(0, tonumber(update.flags))
+                local rect = update.update_region
+                assert.are.same(refreshes == 0 and { 0, 0, 80, 80 } or { region.x, region.y, region.w, region.h },
+                    { tonumber(rect.left), tonumber(rect.top), tonumber(rect.width), tonumber(rect.height) })
+                assert.are.equal(tostring(before:getPixel(20, 20)), tostring(screen.bb:getPixel(20, 20)))
+                refreshes = refreshes + 1
+                return 0
+            end,
+        }, { __index = native })
+        ZenSpec.replace("ffi", setmetatable({ C = backend }, { __index = ffi }))
+        ZenSpec.unload("ffi/framebuffer_mxcfb")
+        local Framebuffer = require("ffi/framebuffer_mxcfb")
+        setmetatable(screen, { __index = Framebuffer })
+        screen.device = Device
+        screen.update_data = ffi.new("struct mxcfb_update_data_mtk")
+        for index = 1, 64 do
+            local name, value = debug.getupvalue(Framebuffer.init, index)
+            if name == "refresh_mtk" then screen.mech_refresh = value break end
+            if name == nil then break end
+        end
+        assert.is_function(screen.mech_refresh)
+        UIManager.setDirty = function(_self, _owner, mode, refreshed)
+            assert.are.equal("ui", mode)
+            pending = refreshed
+        end
+        UIManager.forceRePaint = function()
+            if not pending then return end
+            screen:refreshUIImp(pending.x, pending.y, pending.w, pending.h, true)
+            pending = nil
+        end
+        UIManager.yieldToEPDC = function()
+            assert.are.equal(tostring(Blitbuffer.ColorRGB32(32, 64, 128, 255)),
+                tostring(screen.bb:getPixel(36, 36)))
+            assert.are.equal(255, screen.bb:getPixel(31, 31):getColor8().a)
+        end
+        require("modules/global/patches/button_feedback")()
+
+        screen:refreshFullImp(0, 0, 80, 80, false)
+        Feedback.flash(region, 16)
+        UIManager:forceRePaint()
+        local icon = setmetatable({
+            dimen = { x = 16, y = 16, w = 40, h = 40 }, width = 24, height = 24,
+            padding_left = 8, padding_top = 8, callback = function() end,
+        }, { __index = IconButton })
+        assert.is_true(icon:onTapIconButton())
+
+        local button = setmetatable({ dimen = region }, { __index = Button })
+        button:_doFeedbackHighlight()
+        UIManager:forceRePaint()
+        button:_undoFeedbackHighlight(false)
+        UIManager:forceRePaint()
+
+        assert.are.equal(7, refreshes)
+        assert.are.equal(257, screen.waveform_ui)
+        for y = 0, 79 do
+            for x = 0, 79 do
+                assert.are.equal(tostring(before:getPixel(x, y)), tostring(screen.bb:getPixel(x, y)))
+            end
+        end
+        before:free()
+    end)
+
+    it("keeps colored feedback on color devices in light and night mode", function()
+        _G.__ZEN_UI_PLUGIN = { config = { accent_color = "#204080" } }
+        local kindle = true
+        package.loaded.device.isKindle = function() return kindle end
+        screen.isColorScreen = function() return true end
+        screen.bb = Blitbuffer.new(64, 64, Blitbuffer.TYPE_BBRGB32)
+        screen.bb:fill(Blitbuffer.COLOR_WHITE)
+        local Accent = require("common/ui/accent")
+        local region = { x = 20, y = 20, w = 32, h = 32 }
+        for _i, case in ipairs({ { true, false }, { true, true }, { false, false }, { false, true } }) do
+            kindle, screen.night_mode = case[1], case[2]
+            local saved = Feedback.highlight(region, 16)
+            assert.are.equal(tostring(Accent.color()), tostring(screen.bb:getPixel(36, 36)))
+            assert.are.equal(255, screen.bb:getPixel(20, 20):getColor8().a)
+            Feedback.restore(region, saved, 16)
+            assert.are.equal(255, screen.bb:getPixel(36, 36):getColor8().a)
+        end
+        _G.__ZEN_UI_PLUGIN.config.accent_enabled = false
+        local saved = Feedback.highlight(region, 16)
+        assert.is_nil(saved)
+        assert.are.equal(0, screen.bb:getPixel(36, 36):getColor8().a)
+        Feedback.restore(region, saved, 16)
+        assert.are.equal(255, screen.bb:getPixel(36, 36):getColor8().a)
+    end)
+
+    it("preserves normal UI refreshes without a Kindle color accent", function()
+        local color, kindle = true, true
+        _G.__ZEN_UI_PLUGIN = { config = { accent_color = "#204080" } }
+        package.loaded.device.isKindle = function() return kindle end
+        screen.isColorScreen = function() return color end
+        screen.waveform_ui, screen.waveform_full = 257, 2
+        local calls = 0
+        screen.refreshUIImp = function(_self, ...)
+            assert.are.same({ 10, 20, 30, 40, true }, { ... })
+            calls = calls + 1
+            return "stock"
+        end
+        require("modules/global/patches/button_feedback")()
+
+        kindle = false
+        assert.are.equal("stock", screen:refreshUIImp(10, 20, 30, 40, true))
+        kindle, screen.night_mode = true, true
+        assert.are.equal("stock", screen:refreshUIImp(10, 20, 30, 40, true))
+        screen.night_mode = false
+        kindle, color = true, false
+        assert.are.equal("stock", screen:refreshUIImp(10, 20, 30, 40, true))
+        color = true
+        _G.__ZEN_UI_PLUGIN.config.accent_enabled = false
+        assert.are.equal("stock", screen:refreshUIImp(10, 20, 30, 40, true))
+        _G.__ZEN_UI_PLUGIN.config.accent_enabled = true
+        screen.waveform_full = nil
+        assert.are.equal("stock", screen:refreshUIImp(10, 20, 30, 40, true))
+        assert.are.equal(5, calls)
     end)
 
     it("clips colored feedback snapshots at screen edges and restores rotated buffers", function()

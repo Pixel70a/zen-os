@@ -693,7 +693,7 @@ describe("OPDS header", function()
         assert.are.equal(1, saved)
     end)
 
-    it("repaints the whole catalog after dismissing consecutive download confirmations", function()
+    it("defers catalog repaints after download confirmations and preserves the next popup", function()
         local Base = package.loaded["ui/widget/container/framecontainer"]
         for _i, name in ipairs({
             "ui/widget/buttondialog", "ui/widget/container/leftcontainer",
@@ -744,10 +744,27 @@ describe("OPDS header", function()
                 else
                     assert.is_true(confirmation:onClose())
                 end
-                assert.are.same({ { "all", avoid_flash and "ui" or "full" } }, refreshes)
+                assert.are.same({}, refreshes)
+                assert.are.equal(1, #ticks)
+                browser:showDownloads({ title = "Next book", acquisitions = {} })
+                local next_popup = shown
+                table.remove(ticks, 1)()
+                assert.are.same({ { browser, avoid_flash and "ui" or "full" } }, refreshes)
+                assert.are.equal(next_popup, shown)
                 assert.are.equal((_i - 1) * 2 + book, close_events)
             end
         end
+
+        browser:showDownloads({ title = "Last book", acquisitions = {
+            { filetype = "epub", href = "/last" },
+        } })
+        browser.download_dialog.buttons[1][1].callback()
+        table.remove(ticks, 1)()
+        shown:onClose()
+        refreshes = {}
+        browser._zen_opds_closed = true
+        table.remove(ticks, 1)()
+        assert.are.same({}, refreshes)
     end)
 
     it("respects rounded cover corners in the book popup for images and placeholders", function()

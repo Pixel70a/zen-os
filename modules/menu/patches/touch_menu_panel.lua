@@ -231,12 +231,15 @@ function M.install(plugin)
         local is_fresh = self.is_fresh -- Background hatching may clear this in onShow.
         UIManager:setDirty((self.is_fresh or keep_bg) and self.show_parent or "all", function()
             local refresh_dimen = old_dimen and old_dimen:combine(self.dimen) or self.dimen
-            local refresh_type = colored and "partial" or "ui"
+            -- Match Colorsoft's first frame to non-flashing accent feedback.
+            local color_refresh = colored
+                and not (Device.isKindle and Device:isKindle() and not Screen.night_mode)
+            local refresh_type = color_refresh and "partial" or "ui"
             if self.is_fresh or (colored and is_fresh) then
                 refresh_type = colored and getFullRefreshMode() or "flashui"
                 self.is_fresh = false
             end
-            return refresh_type, refresh_dimen, colored
+            return refresh_type, refresh_dimen, color_refresh
         end)
     end
 

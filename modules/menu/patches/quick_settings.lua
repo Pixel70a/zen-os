@@ -1611,11 +1611,13 @@ local function apply_quick_settings()
         -- ----- Status bar row (reuses status_bar component when that feature is active) -----
 
         local buildStatusRow = get_shared("buildStatusRow")
-        local status_row  = type(buildStatusRow) == "function"
-            and buildStatusRow(panel_width, {
+        local function build_status_row()
+            return type(buildStatusRow) == "function" and buildStatusRow(panel_width, {
                 padding   = Screen:scaleBySize(6),
                 font_name = "x_smallinfofont",
             })
+        end
+        local status_row = build_status_row()
 
         -- ----- Assemble panel -----
 
@@ -1626,6 +1628,7 @@ local function apply_quick_settings()
 
         if status_row then
             table.insert(panel, status_row)
+            refs.status_row = { parent = panel, index = #panel, build = build_status_row }
             table.insert(panel, VerticalSpan:new{ width = Screen:scaleBySize(8) })
         end
 
