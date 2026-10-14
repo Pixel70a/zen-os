@@ -193,26 +193,24 @@ describe("Quickstart pages", function()
         assert.are.equal("Accent color", pages[3].title)
     end)
 
-    it("offers the update accent page only until it has been shown on a color screen", function()
+    it("does not add accent setup after updates on monochrome or color screens", function()
         local pages_mod = require("common/quickstart/quickstart_pages")
-        local ctx = { config = { _meta = {} }, plugin = {} }
 
-        assert.are.same({}, pages_mod.build_update_pages(ctx, "4.2.0"))
+        assert.are.same({}, pages_mod.build_update_pages("4.2.0"))
         color_screen = true
-        assert.are.equal("Accent color", pages_mod.build_update_pages(ctx, "4.2.0")[1].title)
-        ctx.config._meta.accent_quickstart_shown = true
-        assert.are.same({}, pages_mod.build_update_pages(ctx, "4.2.1"))
+        assert.are.same({}, pages_mod.build_update_pages("4.2.0"))
+        assert.are.same({}, pages_mod.build_update_pages("4.2.1"))
     end)
 
-    it("preserves version-specific update pages when adding the accent page", function()
+    it("preserves version-specific update pages without adding accent setup", function()
         color_screen = true
         local pages_mod = require("common/quickstart/quickstart_pages")
         local feature_page = { title = "What's new" }
         pages_mod.UPDATE_PAGES["4.2.0-beta1"] = { feature_page }
-        local pages = pages_mod.build_update_pages({ config = { _meta = {} } }, "4.2.0-beta1")
+        local pages = pages_mod.build_update_pages("4.2.0-beta1")
 
         assert.are.equal(feature_page, pages[1])
-        assert.are.equal("Accent color", pages[2].title)
+        assert.are.equal(1, #pages)
         assert.are.equal(1, #pages_mod.UPDATE_PAGES["4.2.0-beta1"])
     end)
 

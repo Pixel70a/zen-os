@@ -1,6 +1,7 @@
 describe("Zen TOC hardware focus", function()
     local ZenTocWidget
     local close_calls
+    local close_request
     local dirty_calls
     local back_icon
     local close_icon
@@ -36,6 +37,7 @@ describe("Zen TOC hardware focus", function()
         saved_feedback = package.loaded["common/ui/button_feedback"]
         ZenSpec.replace("common/ui/button_feedback", { flashButton = function() end })
         close_calls = 0
+        close_request = nil
         dirty_calls = 0
         back_icon = nil
         close_icon = nil
@@ -104,7 +106,10 @@ describe("Zen TOC hardware focus", function()
             end,
         })
         ZenSpec.replace("ui/uimanager", {
-            close = function() close_calls = close_calls + 1 end,
+            close = function(_self, widget, mode, region)
+                close_calls = close_calls + 1
+                close_request = { widget = widget, mode = mode, region = region }
+            end,
             setDirty = function() dirty_calls = dirty_calls + 1 end,
         })
         ZenSpec.replace("common/ui/zen_pager", {
@@ -310,6 +315,18 @@ describe("Zen TOC hardware focus", function()
         assert.is_true(widget:_onTap({ pos = { x = 550, y = 10 } }))
         assert.are.equal(1, close_calls)
         assert.are.equal(1, parent_closes)
+    end)
+
+    it("refreshes the whole screen when Back or X dismisses a standalone TOC", function()
+        for _i, x in ipairs({ 20, 550 }) do
+            local widget = new_widget(function() error("dismissal must not navigate") end)
+
+            assert.is_true(widget:_onTap({ pos = { x = x, y = 10 } }))
+            assert.are.equal(widget, close_request.widget)
+            assert.are.equal("ui", close_request.mode)
+            assert.are.same({ x = 0, y = 0, w = 600, h = 260 }, close_request.region)
+        end
+        assert.are.equal(2, close_calls)
     end)
 
     it("uses the library face and size for TOC entries", function()

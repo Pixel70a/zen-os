@@ -1,6 +1,6 @@
 -- Quickstart slideshow page definitions.
 -- build_install_pages(ctx): called on first install with { plugin, config }.
--- build_update_pages(ctx, version): combines release pages with one-time setup.
+-- build_update_pages(version): returns release pages for an update.
 -- UPDATE_PAGES: static pages keyed by version string.
 -- Each page: { title = string, image = string|nil, description = string }
 -- Interactive pages also have: choice_type, choices, on_apply.
@@ -971,14 +971,10 @@ M.UPDATE_PAGES = {
     -- },
 }
 
-function M.build_update_pages(ctx, version)
+function M.build_update_pages(version)
     local pages = {}
     for _i, page in ipairs(M.UPDATE_PAGES[version] or {}) do
         pages[#pages + 1] = page
-    end
-    if not ctx.config._meta.accent_quickstart_shown then
-        local accent_page = M.build_accent_page(ctx)
-        if accent_page then pages[#pages + 1] = accent_page end
     end
     return pages
 end

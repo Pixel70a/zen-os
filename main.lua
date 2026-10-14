@@ -453,17 +453,10 @@ function ZenUI:init()
             if ok_pages then
                 -- Strip beta suffix (e.g. "1.0.4-beta2" -> "1.0.4") for changelog lookup.
                 local stable_ver = current_ver:match("^([%d%.]+)")
-                pages_to_show = pages_mod.build_update_pages({
-                    plugin = self,
-                    config = self.config,
-                }, current_ver)
+                pages_to_show = pages_mod.build_update_pages(current_ver)
                 changelog_to_show = pages_mod.CHANGELOGS and (
                     pages_mod.CHANGELOGS[current_ver] or pages_mod.CHANGELOGS[stable_ver])
             end
-        end
-
-        if pages_to_show and #pages_to_show > 0 and require("common/ui/accent").isSupported() then
-            self.config._meta.accent_quickstart_shown = true
         end
 
         if shown_ver == false and pages_to_show and #pages_to_show > 0 then

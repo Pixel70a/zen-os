@@ -486,6 +486,185 @@ describe("reader footer patches", function()
         assert.are.equal(10, footer.settings.progress_margin_width)
     end)
 
+    local function load_native_footer()
+        local modules = {
+            ["device"] = {
+                screen = {
+                    getWidth = function() return 1264 end,
+                    scaleBySize = function(_self, value) return value end,
+                },
+                hasBattery = function() return false end,
+                hasAuxBattery = function() return false end,
+                hasColorScreen = function() return false end,
+                isAndroid = function() return false end,
+                isTouchDevice = function() return false end,
+            },
+            ["ui/bidi"] = {
+                wrap = function(text) return text end,
+                mirroredUILayout = function() return false end,
+            },
+            ["ui/size"] = { span = { horizontal_default = 0 }, padding = { tiny = 0 } },
+            ["ui/widget/container/widgetcontainer"] = {
+                extend = function(_self, values) return values end,
+            },
+            ["ui/uimanager"] = { scheduleIn = function() end },
+            ["gettext"] = setmetatable({ pgettext = function(_context, text) return text end }, {
+                __call = function(_self, text) return "native:" .. text end,
+            }),
+            ["ui/widget/textwidget"] = {
+                new = function(_self, values)
+                    return {
+                        getSize = function()
+                            return { w = #values.text:gsub("\u{200A}", " ") * 8 }
+                        end,
+                        free = function() end,
+                    }
+                end,
+            },
+            ["apps/reader/readerui"] = {},
+            ["ffi/util"] = package.loaded["ffi/util"],
+            ["ffi/blitbuffer"] = {},
+            ["ui/geometry"] = {},
+            ["ui/widget/container/leftcontainer"] = {},
+        }
+        -- Exercise KOReader's actual mode ordering and generator selection without a display.
+        local native = assert(loadfile("frontend/apps/reader/modules/readerfooter.lua"))
+        setfenv(native, setmetatable({
+            require = function(name) return modules[name] or {} end,
+            G_defaults = { readSetting = function(_self, key)
+                if key == "DTAP_ZONE_MINIBAR" then return { w = 1, h = 1 } end
+                return 14
+            end },
+        }, { __index = _G }))
+        local ReaderFooter = native()
+        modules["apps/reader/modules/readerfooter"] = ReaderFooter
+        saved_modules = {}
+        for name, module in pairs(modules) do
+            saved_modules[name] = package.loaded[name] or false
+            ZenSpec.replace(name, module)
+        end
+        local preset_module = "modules/reader/patches/reader_footer_presets"
+        saved_modules[preset_module] = package.loaded[preset_module] or false
+        ZenSpec.unload(preset_module)
+        ZenSpec.replace("gettext", function(text) return text end)
+        apply_patch("modules/reader/patches/reader_footer")
+        return ReaderFooter
+    end
+
+    it("centers the LCR preset and joins pages with percentage when the second filler is disabled", function()
+        local ReaderFooter = load_native_footer()
+        local chapter_text = "19 min left in chapter"
+        ReaderFooter.textGeneratorMap.chapter_time_to_read = function() return chapter_text end
+        ReaderFooter.textGeneratorMap.page_progress = function() return "461/608" end
+        ReaderFooter.textGeneratorMap.percentage = function() return "76%" end
+        local footer = setmetatable({
+            settings = require("modules/reader/patches/reader_footer_presets")[5].footer,
+            horizontal_margin = 0,
+            _saved_screen_width = 1264,
+        }, { __index = ReaderFooter })
+        footer:set_mode_index()
+
+        for _i, left_text in ipairs({ chapter_text, "" }) do
+            chapter_text = left_text
+            footer:updateFooterTextGenerator()
+            assert.are.equal(5, #footer.footerTextGenerators)
+            local text = footer:genFooterText():gsub("\u{200A}", " ")
+            local page_start = assert(text:find("461/608", 1, true))
+            local page_center = (page_start - 1 + #"461/608" / 2) * 8
+            assert.is_true(math.abs(page_center - 632) <= 8)
+            assert.are.equal("76%", text:sub(-3))
+            assert.is_nil(text:find("•", 1, true))
+        end
+
+        chapter_text = "19 min left in chapter"
+        footer.settings.dynamic_filler2 = false
+        footer:updateFooterTextGenerator()
+        local text = footer:genFooterText():gsub("\u{200A}", " ")
+        assert.are.equal(4, #footer.footerTextGenerators)
+        assert.matches("461/608 • 76%%$", text)
+        assert.is_true((assert(text:find("461/608", 1, true)) - 1) * 8 > 1264 * 0.75)
+    end)
+
+    it("shows one working second filler across gettext catalogs and migrates its saved order", function()
+        local ReaderFooter = load_native_footer()
+        local footer = setmetatable({
+            settings = require("modules/reader/patches/reader_footer_presets")[5].footer,
+            ui = {},
+            view = { footer_visible = true },
+            custom_text = "ZenOS",
+            custom_text_repetitions = 1,
+            refreshFooter = function(self) self.refreshed = true end,
+            rescheduleFooterAutoRefreshIfNeeded = function() end,
+        }, { __index = ReaderFooter })
+        footer.settings.dynamic_filler_2 = true
+        footer.settings.dynamic_filler2 = false
+        footer.settings.order = {
+            [0] = "off", "chapter_time_to_read", "dynamic_filler", "page_progress",
+            "dynamic_filler_2", "percentage", "dynamic_filler2",
+        }
+        footer:set_mode_index()
+        assert.is_true(footer.settings.dynamic_filler2)
+        assert.is_nil(footer.settings.dynamic_filler_2)
+        assert.are.equal("dynamic_filler2", footer.mode_index[4])
+        local filler_count = 0
+        footer.mode_list = {}
+        for i = 0, footer.mode_nb - 1 do
+            local name = footer.mode_index[i]
+            footer.mode_list[name] = i
+            assert.are_not.equal("dynamic_filler_2", name)
+            if name == "dynamic_filler2" then filler_count = filler_count + 1 end
+        end
+        assert.are.equal(1, filler_count)
+        footer:set_has_no_mode()
+        footer.reclaim_height = footer.settings.reclaim_height
+        footer:updateFooterTextGenerator()
+
+        local menu_items = {}
+        footer:addToMainMenu(menu_items)
+        local filler_item, arrange_item
+        filler_count = 0
+        for _i, item in ipairs(menu_items.status_bar.sub_item_table) do
+            if item.text == "native:Status bar items" then
+                for _j, child in ipairs(item.sub_item_table) do
+                    if child.text_func and child.text_func():match("Dynamic filler 2$") then
+                        filler_item = child
+                        filler_count = filler_count + 1
+                    end
+                end
+            elseif item.text == "native:Configure items" then
+                arrange_item = item.sub_item_table[1]
+            end
+        end
+        assert.are.equal(1, filler_count)
+        assert.is_true(filler_item.checked_func())
+        filler_item.callback()
+        assert.is_false(footer.settings.dynamic_filler2)
+        assert.is_true(footer.refreshed)
+        assert.are.equal(4, #footer.footerTextGenerators)
+        filler_item.callback()
+        assert.is_true(footer.settings.dynamic_filler2)
+        assert.are.equal(5, #footer.footerTextGenerators)
+
+        local arrange_name = "common/ui/zen_arrange_list"
+        saved_modules[arrange_name] = package.loaded[arrange_name] or false
+        local arranged
+        ZenSpec.replace(arrange_name, { show = function(options) arranged = options.item_table end })
+        arrange_item.callback()
+        assert.are.equal("dynamic_filler2", arranged[4].label)
+        assert.is_false(arranged[4].dim)
+
+        footer.settings.dynamic_filler_2 = false
+        footer:set_mode_index()
+        assert.is_true(footer.settings.dynamic_filler2)
+        assert.is_nil(footer.settings.dynamic_filler_2)
+
+        footer.settings.dynamic_filler_2 = false
+        footer.settings.dynamic_filler2 = false
+        footer:set_mode_index()
+        assert.is_false(footer.settings.dynamic_filler2)
+        assert.is_nil(footer.settings.dynamic_filler_2)
+    end)
+
     it("keeps the progress anchor out of cycling and uses the Zen arrange list", function()
         local dependency_names = {
             "apps/reader/modules/readerfooter",
@@ -517,23 +696,29 @@ describe("reader footer patches", function()
                     [0] = "off",
                     "page_progress",
                     "progress_bar",
-                    "dynamic_filler_2",
+                    "dynamic_filler2",
                 }
                 self.mode_nb = 4
             end,
-            addToMainMenu = function(_self, menu_items)
+            addToMainMenu = function(self, menu_items)
                 menu_items.status_bar = {
                     sub_item_table = {
                         {
                             text = "Status bar items",
-                            sub_item_table = {{ text = "External content" }},
+                            sub_item_table = {
+                                { text_func = function() return self:textOptionTitles("page_progress") end },
+                                { text = "External content" },
+                            },
                         },
                         {
                             text = "Configure items",
-                            sub_item_table = {{
-                                text = "Arrange items in status bar",
-                                callback = function() stock_arrange_called = true end,
-                            }},
+                            sub_item_table = {
+                                {
+                                    text = "Arrange items in status bar",
+                                    callback = function() stock_arrange_called = true end,
+                                },
+                                { text_func = function() return self:textOptionTitles("all_at_once") end },
+                            },
                         },
                     },
                 }
@@ -547,7 +732,7 @@ describe("reader footer patches", function()
         local footer = setmetatable({
             settings = {
                 disable_progress_bar = true,
-                dynamic_filler_2 = false,
+                dynamic_filler2 = false,
                 page_progress = true,
                 progress_bar = true,
             },
@@ -555,14 +740,14 @@ describe("reader footer patches", function()
                 [0] = "off",
                 "page_progress",
                 "progress_bar",
-                "dynamic_filler_2",
+                "dynamic_filler2",
             },
             mode_nb = 4,
             mode_list = {
                 off = 0,
                 page_progress = 1,
                 progress_bar = 2,
-                dynamic_filler_2 = 3,
+                dynamic_filler2 = 3,
             },
         }, { __index = ReaderFooter })
         local arrange_options

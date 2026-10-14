@@ -979,7 +979,7 @@ local function apply_quick_settings()
             end,
         },
         zen = {
-            icon = utils.resolveLocalIcon(_icons_dir, "quick_zen"),
+            icon = utils.resolveIcon(_icons_dir, "quick_zen"),
             label = _("Zen"),
             active_func = function()
                 local features = zen_plugin.config and zen_plugin.config.features

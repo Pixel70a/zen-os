@@ -156,6 +156,7 @@ local AUTO_DISABLE_PATCHES = {
     "2-automatic-book-series.lua",
     "2-ui-font.lua",
     "2-custom-navbar.lua",
+    "2-customize-highlight-colors.lua",
     "2-browser-double-tap.lua",
     "2-browser-hide-underline.lua",
     "2-browser-up-folder.lua",

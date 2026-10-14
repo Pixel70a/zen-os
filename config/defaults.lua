@@ -14,7 +14,6 @@ local defaults = {
         footer_backup_created = false,
         quickstart_shown_for_version = false,
         quickstart_completed = false,
-        accent_quickstart_shown = false,
         quickstart_menu_tour_pending = false,
         quickstart_reader_tour_pending = false,
         reader_defaults_apply_on_next_open = false,

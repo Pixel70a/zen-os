@@ -425,6 +425,27 @@ describe("quick settings plugin controls", function()
         assert.are.equal("/tmp/zen-ui/icons/app_launcher.svg", controls.launcher.icon)
     end)
 
+    it("renders the selected pack's Zen toggle icon in Controls", function()
+        local utils = require("common/utils")
+        local resolve = utils.resolveIcon
+        local zen_icon = "/koreader/icons/zen/zen-solar-colour/quick_zen.svg"
+        utils.resolveIcon = function(icons_dir, name)
+            if name == "quick_zen" then return zen_icon end
+            return resolve(icons_dir, name)
+        end
+        require("modules/menu/patches/quick_settings")()
+        local config = _G.__ZEN_UI_PLUGIN.config.quick_settings
+        config.button_order = { "zen" }
+        config.show_buttons = { zen = true }
+        local menu = {}
+        FileManagerMenu.setUpdateItemTable(menu)
+        local touch_menu = { item_width = 600 }
+        menu.tab_item_table[1].panel(touch_menu)
+        local zen = touch_menu._zen_panel_refs.buttons[1]
+        assert.are.equal("zen", zen.id)
+        assert.are.equal(zen_icon, zen.widget[1][1].file)
+    end)
+
     it("offers Battery Stats as a control and opens the Zen page", function()
         _G.__ZEN_UI_PLUGIN.config._meta = { installed_plugins = {} }
         local controls = {}
