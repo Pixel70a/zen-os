@@ -1042,7 +1042,9 @@ def seed_showcase(
     zen_config = _zen_config(background_path)
     if icon_pack is not None:
         zen_config["features"]["custom_icons_enabled"] = True
-        zen_config["custom_icons"] = {"active_pack": icon_pack}
+        zen_config["custom_icons"] = {
+            "active_pack": icon_pack, "invert_with_dark_mode": False,
+        }
         zen_config["quick_settings"]["background_hatching"] = False
     if accent_color is not None:
         zen_config.update({

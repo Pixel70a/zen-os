@@ -286,6 +286,7 @@ def test_icon_pack_seed_copies_assets_and_sets_selection(
     assert '["custom_icons_enabled"] = true' in config
     assert '["background_hatching"] = false' in config
     assert f'["active_pack"] = "{pack_id}"' in config
+    assert '["invert_with_dark_mode"] = false' in config
     assert f'["accent_color"] = "{accent_color}"' in config
     assert '["accent_enabled"] = true' in config
     assert '["accent_opacity"] = 100' in config

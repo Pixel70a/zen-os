@@ -40,7 +40,7 @@ the temporary `KO_HOME` and enables only the selected pack. A missing pack fails
 The fixtures use full-opacity teal (`#007F73`), cobalt (`#2456D6`), and violet (`#7638C8`)
 accents respectively, each with at least 4.5:1 contrast against white.
 Their Navbar shows Library, Authors, Tags, History, Favorites, Series, and Home as icons.
-Background hatching is disabled for these three captures.
+Background hatching and custom icon inversion with dark mode are disabled for these three captures.
 
 Every capture clears and replaces `spec/.artifacts/screenshots/`. Website-ready PNGs are written
 directly into that folder; raw frames are temporary. To also copy the screenshots to another

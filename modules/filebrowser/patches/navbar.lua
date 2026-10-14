@@ -272,7 +272,7 @@ local function apply_navbar()
         {
             id = "continue",
             label = _("Continue"),
-            icon = "book.opened",
+            icon = utils.resolveIcon(_icons_dir, "tab_continue") or utils.resolveLocalIcon(_icons_dir, "tab_continue"),
         },
         {
             id = "history",
@@ -282,7 +282,7 @@ local function apply_navbar()
         {
             id = "favorites",
             label = _("Favorites"),
-            icon = "star.empty",
+            icon = utils.resolveIcon(_icons_dir, "tab_favorites") or utils.resolveLocalIcon(_icons_dir, "tab_favorites"),
         },
         {
             id = "collections",
