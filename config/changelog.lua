@@ -411,7 +411,8 @@ return {
         "Bug fixes"
     },
     ["4.2.0"] = {
-        "Add accent color",
+        "Add accent color (Interface > Accent color)",
+        "Better support for icon packs",
         "Scale opening banner and badge font",
         "Bug fixes"
     },

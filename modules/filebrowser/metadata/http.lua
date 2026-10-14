@@ -127,6 +127,8 @@ local function verified_create(https, cafile, expected_host)
 end
 
 local function connected()
+    -- Android's JNI connectivity query aborts forked workers; let HTTP report failures.
+    if require("device"):isAndroid() then return true end
     local ok_network, NetworkManager = pcall(require, "ui/network/manager")
     if not ok_network or not NetworkManager
             or type(NetworkManager.isConnected) ~= "function" then return true end

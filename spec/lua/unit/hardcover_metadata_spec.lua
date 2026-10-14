@@ -471,7 +471,7 @@ describe("Hardcover metadata HTTPS transport", function()
         originals = {}
         for _i, name in ipairs({
             "ui/network/manager", "ssl.https", "socket.http", "ltn12",
-            "socketutil", "libs/libkoreader-lfs",
+            "socketutil", "libs/libkoreader-lfs", "device",
         }) do
             originals[name] = package.loaded[name]
         end
@@ -480,6 +480,9 @@ describe("Hardcover metadata HTTPS transport", function()
         certificate_name = "api.hardcover.app"
         tls_options = nil
         response_chunk = nil
+        ZenSpec.replace("device", {
+            isAndroid = function() return false end,
+        })
         ZenSpec.replace("ui/network/manager", {
             isConnected = function() return true end,
         })
@@ -581,6 +584,42 @@ describe("Hardcover metadata HTTPS transport", function()
         local works, err = Hardcover.search("secret-token", { title = "Dune" })
         assert.is_nil(works)
         assert.are.equal("network", err.kind)
+    end)
+
+    it("avoids Android JNI connectivity checks for metadata and cover requests", function()
+        local network_checks = 0
+        ZenSpec.replace("device", { isAndroid = function() return true end })
+        ZenSpec.replace("ui/network/manager", {
+            isConnected = function()
+                network_checks = network_checks + 1
+                error("JNI is unsafe in a forked Android worker")
+            end,
+        })
+        local Hardcover = require("modules/filebrowser/metadata/hardcover")
+        local works, err = Hardcover.search("secret-token", { title = "Dune" })
+        assert.is_nil(works)
+        assert.are.equal("no_match", err.kind)
+
+        certificate_name = "assets.hardcover.app"
+        local destination = os.tmpname() .. ".img"
+        local downloaded = Hardcover.downloadCover(
+            "https://assets.hardcover.app/edition/9/cover.jpeg", destination)
+        os.remove(destination)
+
+        assert.are.equal(destination, downloaded)
+        assert.are.equal(0, network_checks)
+    end)
+
+    it("keeps the offline precheck on other platforms", function()
+        ZenSpec.replace("ui/network/manager", {
+            isConnected = function() return false end,
+        })
+        local Hardcover = require("modules/filebrowser/metadata/hardcover")
+        local works, err = Hardcover.search("secret-token", { title = "Dune" })
+
+        assert.is_nil(works)
+        assert.are.equal("offline", err.kind)
+        assert.is_nil(captured)
     end)
 
     it("rejects oversized metadata responses", function()
