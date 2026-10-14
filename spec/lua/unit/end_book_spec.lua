@@ -911,7 +911,7 @@ describe("end of book", function()
         assert.same({ page_left = false, next_series = false, author = true,
             other_series = false, page_right = false, continue = false, to_be_read = false }, strip.controls.show_buttons)
         assert.same({ kind = "custom", paths = { "book" } }, strip.default_source)
-        assert.same({ "page_left", "recent", "search", "tags", "page_right" }, original.controls.order)
+        assert.same({ "page_left", "recent", "search", "series", "page_right" }, original.controls.order)
         strip.controls.text_style.font_size = 20
         assert.are.equal(13, original.controls.text_style.font_size)
         recommendations.author = {}

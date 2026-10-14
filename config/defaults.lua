@@ -412,7 +412,7 @@ local defaults = {
         day_value   = 20,
         night_h     = 20,
         night_m     = 0,
-        night_value = 5,
+        night_value = 8,
         use_mode_values = false,
     },
     group_view = {

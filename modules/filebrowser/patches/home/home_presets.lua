@@ -55,12 +55,12 @@ local function strip_defaults(opts)
             enabled = opts.controls == true,
             labels = {},
             next_custom_id = 0,
-            order = { "page_left", "recent", "search", "tags", "page_right" },
+            order = { "page_left", "recent", "search", "series", "page_right" },
             show_buttons = {
                 page_left = true,
                 recent = true,
                 search = true,
-                tags = true,
+                series = true,
                 page_right = true,
             },
             text_style = {
@@ -538,6 +538,8 @@ local function ensure_strip_shape(strip)
         controls.order = deepcopy(defaults.controls.order)
         controls.show_buttons.recent = true
         controls.show_buttons.to_be_read = nil
+        controls.show_buttons.tags = nil
+        controls.show_buttons.series = true
         controls.show_buttons.page_left = true
         controls.show_buttons.page_right = true
         changed = true

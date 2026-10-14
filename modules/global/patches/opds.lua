@@ -1990,6 +1990,11 @@ local function apply_opds()
                 ok_text      = "\u{F012C}  " .. _("Done"),
                 ok_callback  = function() end,
             }
+            function dlg:onCloseWidget()
+                ConfirmBox.onCloseWidget(self)
+                -- Clear accumulated popup refresh artifacts across the catalog.
+                UIManager:setDirty("all", getFullRefreshMode())
+            end
             -- Tapping outside (or Back) should just dismiss the dialog,
             -- not trigger the "Read now" cancel_callback.
             function dlg:onClose()

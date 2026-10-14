@@ -17,12 +17,13 @@ describe("unified Home strip configuration", function()
         assert.are.equal(3, strip.strip_schema_version)
         assert.is_true(strip.controls.enabled)
         assert.are.same({
-            "page_left", "recent", "search", "tags", "page_right",
+            "page_left", "recent", "search", "series", "page_right",
         }, strip.controls.order)
         for _i, id in ipairs(strip.controls.order) do
             assert.is_true(strip.controls.show_buttons[id])
         end
         assert.is_nil(strip.controls.show_buttons.to_be_read)
+        assert.is_nil(strip.controls.show_buttons.tags)
     end)
 
     it("keeps the unified strip disabled when no legacy strip was enabled", function()
@@ -147,10 +148,12 @@ describe("unified Home strip configuration", function()
         assert.is_true(Presets.normalizeStripConfig(page))
         assert.are.equal(3, page.modules.strip.strip_schema_version)
         assert.are.same({
-            "page_left", "recent", "search", "tags", "page_right",
+            "page_left", "recent", "search", "series", "page_right",
         }, controls.order)
         assert.is_true(controls.show_buttons.recent)
         assert.is_nil(controls.show_buttons.to_be_read)
+        assert.is_nil(controls.show_buttons.tags)
+        assert.is_true(controls.show_buttons.series)
         assert.is_true(controls.show_buttons.page_left)
         assert.is_true(controls.show_buttons.page_right)
     end)

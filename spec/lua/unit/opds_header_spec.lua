@@ -693,6 +693,63 @@ describe("OPDS header", function()
         assert.are.equal(1, saved)
     end)
 
+    it("repaints the whole catalog after dismissing consecutive download confirmations", function()
+        local Base = package.loaded["ui/widget/container/framecontainer"]
+        for _i, name in ipairs({
+            "ui/widget/buttondialog", "ui/widget/container/leftcontainer",
+            "ui/widget/notification", "opdspse", "ui/widget/textviewer", "util",
+        }) do
+            ZenSpec.replace(name, Base)
+        end
+        ZenSpec.replace("socket.url", { unescape = function(value) return value end })
+        local close_events, refreshes, shown, ticks = 0, {}, nil, {}
+        local ConfirmBox = Base:extend{}
+        function ConfirmBox:onCloseWidget() close_events = close_events + 1 end
+        ZenSpec.replace("ui/widget/confirmbox", ConfirmBox)
+        local UIManager = package.loaded["ui/uimanager"]
+        UIManager.show = function(_self, widget) shown = widget end
+        UIManager.close = function(_self, widget)
+            if widget.onCloseWidget then widget:onCloseWidget() end
+        end
+        UIManager.nextTick = function(_self, callback) ticks[#ticks + 1] = callback end
+        UIManager.setDirty = function(_self, widget, mode, region)
+            refreshes[#refreshes + 1] = { widget, mode, region }
+        end
+        local browser = setmetatable({
+            checkDownloadFile = function(_self, path, _url, _user, _password, callback)
+                callback(path)
+            end,
+        }, { __index = Browser })
+
+        for _i, avoid_flash in ipairs({ false, true }) do
+            G_reader_settings:saveSetting("avoid_flashing_ui", avoid_flash)
+            for book = 1, 2 do
+                local item = {
+                    title = "Book " .. book,
+                    acquisitions = {{ filetype = "epub", href = "/book" .. book }},
+                }
+                browser:showDownloads(item)
+                browser.download_dialog.buttons[1][1].callback()
+                assert.is_true(item._zen_opds_downloaded)
+                assert.is_true(_G.__ZEN_UI_PLUGIN.config.opds.downloaded[item.title])
+                assert.are.equal(1, #ticks)
+                table.remove(ticks, 1)()
+                local confirmation = shown
+                assert.are.equal("Downloaded\n" .. item.title, confirmation.text)
+
+                refreshes = {}
+                if book == 1 then
+                    confirmation.ok_callback()
+                    UIManager:close(confirmation)
+                else
+                    assert.is_true(confirmation:onClose())
+                end
+                assert.are.same({ { "all", avoid_flash and "ui" or "full" } }, refreshes)
+                assert.are.equal((_i - 1) * 2 + book, close_events)
+            end
+        end
+    end)
+
     it("respects rounded cover corners in the book popup for images and placeholders", function()
         local FrameContainer = package.loaded["ui/widget/container/framecontainer"]
         for _i, name in ipairs({

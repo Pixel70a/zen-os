@@ -57,7 +57,7 @@ local function apply_brightness_schedule()
             day_value   = tonumber(cfg.day_value)   or 20,
             night_h     = tonumber(cfg.night_h)     or 20,
             night_m     = tonumber(cfg.night_m)     or 0,
-            night_value = tonumber(cfg.night_value) or 5,
+            night_value = tonumber(cfg.night_value) or 8,
             use_mode_values = cfg.use_mode_values == true,
         }
     end

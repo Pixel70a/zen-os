@@ -138,13 +138,13 @@ describe("Home widget content settings", function()
                                 labels = {},
                                 next_custom_id = 0,
                                 order = {
-                                    "page_left", "recent", "search", "tags", "page_right",
+                                    "page_left", "recent", "search", "series", "page_right",
                                 },
                                 show_buttons = {
                                     page_left = true,
                                     recent = true,
                                     search = true,
-                                    tags = true,
+                                    series = true,
                                     page_right = true,
                                 },
                                 custom_buttons = {},
@@ -1031,13 +1031,13 @@ describe("Home widget content settings", function()
         shown[1].ok_callback()
 
         assert.are.same({
-            "page_left", "recent", "search", "tags", "page_right", "hs_4",
+            "page_left", "recent", "search", "series", "page_right", "hs_4",
         }, strip.controls.order)
         assert.are.same({
             page_left = true,
             recent = true,
             search = true,
-            tags = true,
+            series = true,
             page_right = true,
             hs_4 = false,
         }, strip.controls.show_buttons)
