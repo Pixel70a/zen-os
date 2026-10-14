@@ -57,6 +57,7 @@ EXPECTED_IDS = frozenset((
     "library_covers_full", "library_list_full", "context_menu", "metadata_editor", "stats",
     "launcher", "quicksettings", "quicksettings_minimal", "network_switcher",
     "icons_solar", "icons_mono", "icons_gradient",
+    "navbar_underline_above", "navbar_underline_below", "navbar_filled", "navbar_outlined",
     "bluetooth_switcher", "quickstart", "zen_settings",
     "launcher_add_plugin_menu", "launcher_add_koreader_menu",
     "controls_buttons_settings", "navbar_buttons_settings",
@@ -120,6 +121,19 @@ SHOWCASE_NAVBAR_STATES = {
         "show_labels": True,
     },
 }
+for style, show_labels in (
+    ("underline_above", False), ("underline_below", True), ("filled", True), ("outlined", False),
+):
+    SHOWCASE_NAVBAR_STATES[f"navbar_{style}"] = {
+        **SHOWCASE_NAVBAR_STATES["icon_pack_tabs"],
+        "show_labels": show_labels,
+        "active_tab_use_accent": True,
+        "active_tab_underline": style in ("underline_above", "underline_below"),
+        "underline_above": style == "underline_above",
+        "active_tab_filled": style == "filled",
+        "active_tab_outlined": style == "outlined",
+        "filled_background_opacity": 100,
+    }
 NON_EMULATOR_ASSETS = frozenset((
     "plugins_folder.png", "zen_update.svg", "banner.png", "social.png",
     "og-zen.png", "zenos-banner.png",
@@ -1045,7 +1059,16 @@ def seed_showcase(
         zen_config["custom_icons"] = {
             "active_pack": icon_pack, "invert_with_dark_mode": False,
         }
-        zen_config["quick_settings"]["background_hatching"] = False
+        controls = zen_config["quick_settings"]
+        controls.update({
+            "background_hatching": False, "flip_lh_rh_icon": False,
+            "zen_settings_icon": "appbar.settings",
+        })
+        controls["show_buttons"].update({
+            "zen_settings": True, "library_home": False,
+            "zen": icon_pack != "zen-streamline-flex-gradient",
+        })
+        controls["button_order"].insert(4, "zen_settings")
     if accent_color is not None:
         zen_config.update({
             "accent_enabled": True, "accent_color": accent_color, "accent_opacity": 100,
@@ -1612,6 +1635,21 @@ class CaptureWorkflow:
             if options.get("minimal_controls") is True:
                 _require_ok(driver.command("showcase_minimal_controls"), action)
             layout = _require_ok(driver.command("menu_tab_layout", tab_id=options["tab"]), action)
+            if scenario.session in ICON_PACK_SESSIONS and options["tab"] == "quicksettings":
+                expected_buttons = [
+                    "wifi", "night", "rotate", "zen", "zen_settings", "restart", "sleep",
+                ]
+                if scenario.session == "gradient_icons":
+                    expected_buttons.remove("zen")
+                if (
+                    layout.get("button_ids") != expected_buttons
+                    or "Settings" not in layout.get("visible_texts", [])
+                    or Path(layout.get("button_icons", {}).get("zen_settings", "")).stem != "appbar.settings"
+                    or layout.get("tabs", [])[-1:] != ["zen_library_home"]
+                    or Path(layout.get("tab_icons", {}).get("zen_library_home", "")).stem != "home"
+                    or layout.get("invert_custom_icons") is not False
+                ):
+                    raise CaptureError(f"icon pack Controls layout mismatch: {layout}")
             if options.get("minimal_controls") is True and (
                 layout.get("active_tab") != "quicksettings"
                 or "app_launcher" in layout.get("tabs", [])

@@ -328,22 +328,16 @@ describe("file manager status bar visibility", function()
 
     it("refreshes only changed panel status items without rebuilding the menu", function()
         local status_api, tick
-        local painted, dirty, repaints, freed = {}, {}, {}, {}
+        local dirty, repaints, freed = {}, {}, {}
+        ZenSpec.unload("ffi/blitbuffer")
+        local Blitbuffer = require("ffi/blitbuffer")
+        local framebuffer = Blitbuffer.new(600, 100, Blitbuffer.TYPE_BBRGB32)
+        framebuffer:fill(Blitbuffer.ColorRGB32(247, 248, 249, 255))
+        local expected = framebuffer:copy()
         require("ui/geometry").new = function(_self, values) return values end
         require("common/shared_state").register = function(_plugin, api) status_api = api end
         require("common/clock_timer").bind = function(_menu, callback) tick = callback end
-        require("device").screen.bb = {
-            viewport = function(_self, x, y, w, h)
-                return {
-                    paintRect = function(_bb, px, py, pw, ph)
-                        assert.are.same({ 0, 0, w, h }, { px, py, pw, ph })
-                        painted[#painted + 1] = { x = x, y = y, w = w, h = h }
-                    end,
-                    free = function() end,
-                }
-            end,
-            paintRect = function() error("must only clear the changed viewport") end,
-        }
+        require("device").screen.bb = framebuffer
         UIManager.widgetRepaint = function() error("must not repaint the whole row") end
         UIManager.setDirty = function(_self, owner, mode, region)
             assert.is_nil(owner)
@@ -356,9 +350,11 @@ describe("file manager status bar visibility", function()
             return {
                 dimen = { x = 0, y = 0, w = 580, h = 20 },
                 getSize = function(self) return self.dimen end,
-                paintTo = function(self, _bb, x, y)
+                paintTo = function(self, bb, x, y)
                     assert.are.same({ -6, 0 }, { x, y })
                     self.dimen.x, self.dimen.y = x, y
+                    bb:paintRect(x + 6, y, width, 20, Blitbuffer.COLOR_BLACK)
+                    bb:paintRect(x + 520, y, 54, 20, Blitbuffer.COLOR_BLACK)
                     repaints[#repaints + 1] = self
                 end,
                 free = function(self) freed[#freed + 1] = self end,
@@ -387,23 +383,33 @@ describe("file manager status bar visibility", function()
         tick(menu)
         assert.are.equal(previous, parent[2])
         assert.are.same({ same }, freed)
-        assert.are.same({}, painted)
+        assert.is_true(Blitbuffer.tostring(expected) == Blitbuffer.tostring(framebuffer))
         assert.are.same({}, dirty)
         assert.are.same({}, repaints)
 
+        menu.show_parent = { menu }
+        UIManager._window_stack[1].widget = menu.show_parent
         tick(menu)
         assert.are.equal(changed, parent[2])
         assert.are.same({ same, previous }, freed)
         assert.are.same({ changed }, repaints)
         assert.are.same({ x = 10, y = 60, w = 580, h = 20 }, changed.dimen)
-        assert.are.same({ { x = 16, y = 60, w = 50, h = 20 } }, painted)
-        assert.are.same(painted, dirty)
+        assert.are.same({ { x = 16, y = 60, w = 50, h = 20 } }, dirty)
+        expected:paintRect(16, 60, 50, 20, Blitbuffer.COLOR_WHITE)
+        expected:paintRect(16, 60, 40, 20, Blitbuffer.COLOR_BLACK)
+        assert.is_true(Blitbuffer.tostring(expected) == Blitbuffer.tostring(framebuffer))
 
         tick(menu)
         assert.are.same({ x = 16, y = 60, w = 40, h = 20 }, dirty[2])
         UIManager._window_stack[#UIManager._window_stack + 1] = { widget = {} }
         tick(menu)
         assert.are.equal(2, #dirty)
+        menu.show_parent = nil
+        UIManager._window_stack = {}
+        tick(menu)
+        assert.are.equal(2, #dirty)
+        framebuffer:free()
+        expected:free()
     end)
 
     it("keeps the patch active with empty status items", function()

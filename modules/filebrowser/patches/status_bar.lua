@@ -974,7 +974,8 @@ local function apply_status_bar()
                 clock_timer.unbind(target)
                 return
             end
-            if topmost_non_toast_widget() ~= target then return end
+            local top_widget = topmost_non_toast_widget()
+            if not top_widget or (top_widget ~= target and top_widget ~= target.show_parent) then return end
             local status = target._zen_panel_refs and target._zen_panel_refs.status_row
             local previous = status and status.parent[status.index]
             if not (previous and previous.dimen) then return end
@@ -990,12 +991,18 @@ local function apply_status_bar()
             local x, y = previous.dimen.x, previous.dimen.y
             WidgetResources.replaceChild(status.parent, status.index, current)
             for _i, region in ipairs(regions) do
-                local bb = Screen.bb:viewport(x + region.x, y + region.y, region.w, region.h)
-                bb:paintRect(0, 0, region.w, region.h, Blitbuffer.COLOR_WHITE)
-                current:paintTo(bb, -region.x, -region.y)
-                bb:free()
-                region.x, region.y = x + region.x, y + region.y
-                UIManager:setDirty(nil, "ui", region, target.dithered)
+                region.x, region.y, region.w, region.h = Screen.bb:getBoundedRect(
+                    x + region.x, y + region.y, region.w, region.h)
+                if region.w > 0 and region.h > 0 then
+                    -- Clip painting as well as the display refresh to changed items.
+                    local bb = Blitbuffer.new(region.w, region.h, Screen.bb:getType())
+                    bb:setInverse(Screen.bb:getInverse())
+                    bb:fill(Blitbuffer.COLOR_WHITE)
+                    current:paintTo(bb, x - region.x, y - region.y)
+                    Screen.bb:blitFrom(bb, region.x, region.y, 0, 0, region.w, region.h)
+                    bb:free()
+                    UIManager:setDirty(nil, "ui", region, target.dithered)
+                end
             end
             current.dimen.x, current.dimen.y = x, y
         end

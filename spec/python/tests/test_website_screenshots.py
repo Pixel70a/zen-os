@@ -257,11 +257,12 @@ def test_icon_pack_screens_use_isolated_controls_sessions(
     assert 1.05 / (luminance + 0.05) >= 4.5
 
 
-@pytest.mark.parametrize("pack_id", [
-    "zen-solar-colour", "zen-solar-mono", "zen-streamline-flex-gradient",
+@pytest.mark.parametrize("pack_id,zen_visible", [
+    ("zen-solar-colour", "true"), ("zen-solar-mono", "true"),
+    ("zen-streamline-flex-gradient", "false"),
 ])
 def test_icon_pack_seed_copies_assets_and_sets_selection(
-    tmp_path: Path, monkeypatch, pack_id: str,
+    tmp_path: Path, monkeypatch, pack_id: str, zen_visible: str,
 ) -> None:
     runtime = tmp_path / "runtime"
     ko_home = tmp_path / "ko-home"
@@ -287,6 +288,11 @@ def test_icon_pack_seed_copies_assets_and_sets_selection(
     assert '["background_hatching"] = false' in config
     assert f'["active_pack"] = "{pack_id}"' in config
     assert '["invert_with_dark_mode"] = false' in config
+    assert f'["zen"] = {zen_visible}' in config
+    assert '["zen_settings"] = true' in config
+    assert '["library_home"] = false' in config
+    assert '["zen_settings_icon"] = "appbar.settings"' in config
+    assert '["flip_lh_rh_icon"] = false' in config
     assert f'["accent_color"] = "{accent_color}"' in config
     assert '["accent_enabled"] = true' in config
     assert '["accent_opacity"] = 100' in config

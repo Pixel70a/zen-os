@@ -150,6 +150,50 @@
     ]
   },
   {
+    "id": "navbar_underline_above",
+    "group": "library",
+    "session": "solar_icons",
+    "action": "navbar",
+    "navbar": "navbar_underline_above",
+    "accent_color": "#007F73",
+    "docs": [
+      "docs/navbar.md"
+    ]
+  },
+  {
+    "id": "navbar_underline_below",
+    "group": "library",
+    "session": "solar_icons",
+    "action": "navbar",
+    "navbar": "navbar_underline_below",
+    "accent_color": "#007F73",
+    "docs": [
+      "docs/navbar.md"
+    ]
+  },
+  {
+    "id": "navbar_filled",
+    "group": "library",
+    "session": "solar_icons",
+    "action": "navbar",
+    "navbar": "navbar_filled",
+    "accent_color": "#007F73",
+    "docs": [
+      "docs/navbar.md"
+    ]
+  },
+  {
+    "id": "navbar_outlined",
+    "group": "library",
+    "session": "solar_icons",
+    "action": "navbar",
+    "navbar": "navbar_outlined",
+    "accent_color": "#007F73",
+    "docs": [
+      "docs/navbar.md"
+    ]
+  },
+  {
     "id": "quicksettings_minimal",
     "group": "menus",
     "session": "general",

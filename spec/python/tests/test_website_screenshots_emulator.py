@@ -98,7 +98,10 @@ def test_icon_pack_captures_use_distinct_packs_and_accents(tmp_path: Path) -> No
     books = [ResolvedBook(None, f"Book {index}", "Zen Author", None, source,
                           "featured" if index == 0 else "reader" if index == 1 else "library",
                           "EPUB") for index in range(12)]
-    ids = {"icons_solar", "icons_mono", "icons_gradient"}
+    ids = {
+        "icons_solar", "icons_mono", "icons_gradient",
+        "navbar_underline_above", "navbar_underline_below", "navbar_filled", "navbar_outlined",
+    }
     scenarios = [scenario for scenario in load_catalog() if scenario.id in ids]
     run_dir = tmp_path / "artifacts"
 
@@ -119,4 +122,4 @@ def test_icon_pack_captures_use_distinct_packs_and_accents(tmp_path: Path) -> No
             rgb = tuple(int(accent[index:index + 2], 16) for index in (1, 3, 5))
             colors = image.convert("RGB").getcolors(image.width * image.height)
             assert any(count > 100 and color == rgb for count, color in colors)
-    assert len(set(frames)) == 3
+    assert len(set(frames)) == len(scenarios)
