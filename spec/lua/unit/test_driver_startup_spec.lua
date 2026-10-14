@@ -1,4 +1,44 @@
 describe("emulator test driver startup", function()
+    it("reports the file manager status origin from its titlebar layout", function()
+        local title_bar = {
+            dimen = { y = 20 },
+            title_group = {
+                { getSize = function() return { h = 6 } end },
+                { dimen = { y = 0 } },
+            },
+        }
+        local FileManager = { instance = { title_bar = title_bar } }
+        local modules = {
+            ["ui/widget/container/widgetcontainer"] = {
+                extend = function(_self, spec) return spec end,
+            },
+            ["ui/event"] = {},
+            rapidjson = {},
+            ["ui/uimanager"] = {},
+            ["apps/filemanager/filemanager"] = FileManager,
+        }
+        local chunk = assert(loadfile(ZenSpec.root .. "/spec/python/zen_ui_test_driver.koplugin/main.lua"))
+        setfenv(chunk, setmetatable({
+            require = function(name) return modules[name] or require(name) end,
+        }, { __index = _G }))
+        local driver = chunk()
+        local status_y
+        for index = 1, 100 do
+            local name, value = debug.getupvalue(driver.handleCommand, index)
+            if not name then break end
+            if name == "filemanager_status_y" then status_y = value; break end
+        end
+        assert.is_function(status_y)
+        assert.are.equal(26, status_y())
+
+        title_bar.title_group[2] = { dimen = { y = 100 } }
+        assert.are.equal(26, status_y())
+        title_bar.dimen.y = 0
+        assert.are.equal(6, status_y())
+        FileManager.instance = nil
+        assert.are.equal(0, status_y())
+    end)
+
     it("waits for the startup repaint before accepting commands", function()
         local scheduled, started
         local modules = {

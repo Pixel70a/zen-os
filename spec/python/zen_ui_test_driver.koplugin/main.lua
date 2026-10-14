@@ -407,9 +407,11 @@ end
 
 local function filemanager_status_y()
     local FileManager = require("apps/filemanager/filemanager")
-    local title_group = FileManager.instance and FileManager.instance.title_bar
-        and FileManager.instance.title_bar.title_group
-    return widget_y(title_group and title_group[2])
+    local title_bar = FileManager.instance and FileManager.instance.title_bar
+    local title_group = title_bar and title_bar.title_group
+    if not (title_group and title_group[2]) then return 0 end
+    -- OverlapGroup does not track its painted origin.
+    return widget_y(title_bar) + widget_height(title_group[1])
 end
 
 local function focus_position(widget, target)
