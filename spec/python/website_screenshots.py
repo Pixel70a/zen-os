@@ -50,13 +50,15 @@ ICON_PACK_SESSIONS = {
     "solar_icons": "zen-solar-colour",
     "mono_icons": "zen-solar-mono",
     "gradient_icons": "zen-streamline-flex-gradient",
+    "fluent_icons": "zen-fluent-color",
 }
 SESSIONS = ("general", "reader", *ICON_PACK_SESSIONS)
 EXPECTED_IDS = frozenset((
     "zen_home", "home_bookshelf", "home_simple",
     "library_covers_full", "library_list_full", "context_menu", "metadata_editor", "stats",
     "launcher", "quicksettings", "quicksettings_minimal", "network_switcher",
-    "icons_solar", "icons_mono", "icons_gradient",
+    "icons_solar", "icons_mono", "icons_gradient", "icons_fluent",
+    "launcher_solar", "launcher_mono", "launcher_gradient", "launcher_fluent",
     "navbar_underline_above", "navbar_underline_below", "navbar_filled", "navbar_outlined",
     "bluetooth_switcher", "quickstart", "zen_settings",
     "launcher_add_plugin_menu", "launcher_add_koreader_menu",
@@ -669,6 +671,7 @@ def _zen_config(background_path: Path = SHOWCASE_BACKGROUND) -> dict[str, object
                 "notion": False,
                 "streak": False,
                 "opds": False,
+                "launcher": False,
                 "tailscale": False,
                 "zenfm": False,
                 "filebrowser": False,
@@ -1129,7 +1132,7 @@ def seed_showcase(
         "entries": [
             {
                 "id": "showcase_vocabulary", "type": "plugin",
-                "label": "Vocabulary builder", "icon": "lookup.translate",
+                "label": "Vocabulary builder", "icon": "tab_translate",
                 "plugin": {"key": "vocabbuilder", "method": "__menu_callback"},
             },
             {
@@ -1139,7 +1142,7 @@ def seed_showcase(
             },
             {
                 "id": "showcase_opds", "type": "quick_setting",
-                "label": "OPDS", "icon": "quick_opds", "quick_setting_id": "opds",
+                "label": "OPDS", "icon": "book_open", "quick_setting_id": "opds",
             },
             {
                 "id": "showcase_calibre", "type": "plugin",
@@ -1158,7 +1161,7 @@ def seed_showcase(
             },
             {
                 "id": "showcase_zenfm", "type": "action",
-                "label": "ZenFM", "icon": "zenfm", "action": {"gesture_overview": True},
+                "label": "ZenFM", "icon": "appbar.filebrowser", "action": {"gesture_overview": True},
             },
             {
                 "id": "showcase_games", "type": "folder",
@@ -1166,7 +1169,7 @@ def seed_showcase(
             },
             {
                 "id": "showcase_network", "type": "koreader_menu",
-                "label": "Network", "icon": "network",
+                "label": "Network", "icon": "quick_wifi" if icon_pack == "zen-fluent-color" else "network",
                 "koreader_menu": {"id": "network", "title": "Network"},
             },
             {
@@ -1635,6 +1638,13 @@ class CaptureWorkflow:
             if options.get("minimal_controls") is True:
                 _require_ok(driver.command("showcase_minimal_controls"), action)
             layout = _require_ok(driver.command("menu_tab_layout", tab_id=options["tab"]), action)
+            if options["tab"] == "app_launcher" and (
+                layout.get("active_tab") != "app_launcher"
+                or not {
+                    "Rakuyomi", "OPDS", "Calibre", "Battery", "Terminal", "Games", "Network", "ZenPM",
+                }.issubset(layout.get("visible_texts", []))
+            ):
+                raise CaptureError(f"Launcher layout mismatch: {layout}")
             if scenario.session in ICON_PACK_SESSIONS and options["tab"] == "quicksettings":
                 expected_buttons = [
                     "wifi", "night", "rotate", "zen", "zen_settings", "restart", "sleep",

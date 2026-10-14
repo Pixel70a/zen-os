@@ -99,7 +99,8 @@ def test_icon_pack_captures_use_distinct_packs_and_accents(tmp_path: Path) -> No
                           "featured" if index == 0 else "reader" if index == 1 else "library",
                           "EPUB") for index in range(12)]
     ids = {
-        "icons_solar", "icons_mono", "icons_gradient",
+        "icons_solar", "icons_mono", "icons_gradient", "icons_fluent",
+        "launcher_solar", "launcher_mono", "launcher_gradient", "launcher_fluent",
         "navbar_underline_above", "navbar_underline_below", "navbar_filled", "navbar_outlined",
     }
     scenarios = [scenario for scenario in load_catalog() if scenario.id in ids]
@@ -109,8 +110,8 @@ def test_icon_pack_captures_use_distinct_packs_and_accents(tmp_path: Path) -> No
 
     assert {result["id"] for result in report["results"]} == ids
     assert all(result["status"] == "passed" for result in report["results"]), report
-    assert len({result["icon_pack"] for result in report["results"]}) == 3
-    assert len({result["accent_color"] for result in report["results"]}) == 3
+    assert len({result["icon_pack"] for result in report["results"]}) == 4
+    assert len({result["accent_color"] for result in report["results"]}) == 4
     assert report["source_files_unchanged"] is True
     assert report["settings_baseline_files_unchanged"] is True
     frames = []

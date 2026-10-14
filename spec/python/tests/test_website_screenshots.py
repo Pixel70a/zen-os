@@ -108,9 +108,9 @@ def _color_cover_epub(
         archive.writestr("OPS/cover.png", cover.getvalue())
 
 
-def test_catalog_is_the_canonical_35_image_inventory() -> None:
+def test_catalog_is_the_canonical_40_image_inventory() -> None:
     catalog = load_catalog()
-    assert len(catalog) == 35
+    assert len(catalog) == 40
     assert {scenario.id for scenario in catalog} == EXPECTED_IDS
     assert [scenario.id for scenario in catalog if scenario.id.startswith("page_browser")] == [
         "page_browser_grid", "page_browser_carousel"
@@ -233,23 +233,28 @@ def test_catalog_is_the_canonical_35_image_inventory() -> None:
     ("solar", "zen-solar-colour", "#007F73"),
     ("mono", "zen-solar-mono", "#2456D6"),
     ("gradient", "zen-streamline-flex-gradient", "#7638C8"),
+    ("fluent", "zen-fluent-color", "#174C73"),
 ])
-def test_icon_pack_screens_use_isolated_controls_sessions(
-    style: str, pack_id: str, accent_color: str,
+@pytest.mark.parametrize("screen_kind,tab,docs", [
+    ("icons", "quicksettings", ("docs/icon-packs.md",)),
+    ("launcher", "app_launcher", ("docs/launcher.md", "docs/icon-packs.md")),
+])
+def test_icon_pack_screens_use_isolated_sessions(
+    style: str, pack_id: str, accent_color: str, screen_kind: str, tab: str, docs: tuple,
 ) -> None:
-    scenario = next(screen for screen in load_catalog() if screen.id == f"icons_{style}")
+    scenario = next(screen for screen in load_catalog() if screen.id == f"{screen_kind}_{style}")
     assert ICON_PACK_SESSIONS[scenario.session] == pack_id
     assert scenario.group == "menus"
     assert scenario.action == "menu_tab"
     assert scenario.options == {
-        "tab": "quicksettings", "navbar": "icon_pack_tabs", "accent_color": accent_color,
+        "tab": tab, "navbar": "icon_pack_tabs", "accent_color": accent_color,
     }
     assert SHOWCASE_NAVBAR_STATES[scenario.options["navbar"]] == {
         "tab_order": ["books", "authors", "tags", "history", "favorites", "series", "home"],
         "show_icons": True,
         "show_labels": False,
     }
-    assert scenario.docs == ("docs/icon-packs.md",)
+    assert scenario.docs == docs
     channels = [int(accent_color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
     linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
               for value in channels]
@@ -257,12 +262,13 @@ def test_icon_pack_screens_use_isolated_controls_sessions(
     assert 1.05 / (luminance + 0.05) >= 4.5
 
 
-@pytest.mark.parametrize("pack_id,zen_visible", [
-    ("zen-solar-colour", "true"), ("zen-solar-mono", "true"),
-    ("zen-streamline-flex-gradient", "false"),
+@pytest.mark.parametrize("pack_id,zen_visible,network_icon", [
+    ("zen-solar-colour", "true", "network"), ("zen-solar-mono", "true", "network"),
+    ("zen-streamline-flex-gradient", "false", "network"),
+    ("zen-fluent-color", "true", "quick_wifi"),
 ])
 def test_icon_pack_seed_copies_assets_and_sets_selection(
-    tmp_path: Path, monkeypatch, pack_id: str, zen_visible: str,
+    tmp_path: Path, monkeypatch, pack_id: str, zen_visible: str, network_icon: str,
 ) -> None:
     runtime = tmp_path / "runtime"
     ko_home = tmp_path / "ko-home"
@@ -290,6 +296,7 @@ def test_icon_pack_seed_copies_assets_and_sets_selection(
     assert '["invert_with_dark_mode"] = false' in config
     assert f'["zen"] = {zen_visible}' in config
     assert '["zen_settings"] = true' in config
+    assert '["launcher"] = false' in config
     assert '["library_home"] = false' in config
     assert '["zen_settings_icon"] = "appbar.settings"' in config
     assert '["flip_lh_rh_icon"] = false' in config
@@ -297,6 +304,8 @@ def test_icon_pack_seed_copies_assets_and_sets_selection(
     assert '["accent_enabled"] = true' in config
     assert '["accent_opacity"] = 100' in config
     assert '["active_tab_use_accent"] = true' in config
+    launcher = (ko_home / "settings" / "ZenOS" / "app_launcher.lua").read_text(encoding="utf-8")
+    assert f'["icon"] = "{network_icon}"' in launcher
     staged = ko_home / "icons" / "zen" / pack_id
     assert {path.name: path.read_bytes() for path in staged.iterdir()} == before
     assert {path.name: path.read_bytes() for path in source.iterdir()} == before
