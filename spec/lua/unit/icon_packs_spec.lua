@@ -395,6 +395,26 @@ describe("ZenOS icon packs", function()
         assert.are.equal(stock_icons .. "mdlight/star.empty.svg", utils.resolveIcon(plugin_icons, "star.empty"))
     end)
 
+    it("excludes hidden files from every icon picker directory", function()
+        local plugin_root = icons_root .. "/plugin"
+        make_dir(plugin_root)
+        make_dir(plugin_root .. "/icons")
+        for _i, dir in ipairs({ icons_root, plugin_root .. "/icons" }) do
+            write_file(dir .. "/home.svg", "icon")
+            write_file(dir .. "/._home.svg", "macOS metadata")
+            write_file(dir .. "/.hidden.svg", "hidden")
+            write_file(dir .. "/home.bak.svg", "backup")
+        end
+        IconPacks.initialize({ features = { custom_icons_enabled = false } })
+        local home
+        for _i, item in ipairs(require("common/utils").getIconPickerList(plugin_root)) do
+            assert.are_not.equal(".", item.name:sub(1, 1))
+            assert.are_not.equal("home.bak", item.name)
+            if item.name == "home" then home = item end
+        end
+        assert.are.equal(plugin_root .. "/icons/home.svg", home.file)
+    end)
+
     it("accepts preferred suggestions only by names in picker directories", function()
         IconPacks.initialize({
             features = { custom_icons_enabled = false },

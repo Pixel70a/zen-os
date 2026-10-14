@@ -644,7 +644,7 @@ describe("quick settings plugin controls", function()
         assert.are.equal("gray", touch_menu._zen_panel_refs.buttons[1].widget.background)
     end)
 
-    it("uses configured labels and icons", function()
+    it("updates configured labels and icons without reapplying the patch", function()
         local config = _G.__ZEN_UI_PLUGIN.config.quick_settings
         config.gyro_label = "Turn with device"
         config.gyro_icon = "atom"
@@ -652,9 +652,6 @@ describe("quick settings plugin controls", function()
         config.zen_settings_icon = "settings"
         config.launcher_label = "Apps"
         config.launcher_icon = "grid"
-        ZenSpec.unload("modules/menu/patches/quick_settings")
-        require("modules/menu/patches/quick_settings")()
-
         local autorotate, settings, launcher
         for _i, item in ipairs(_G.__ZEN_UI_QUICK_SETTINGS.getItems()) do
             if item.id == "gyro" then autorotate = item end
@@ -668,6 +665,31 @@ describe("quick settings plugin controls", function()
         assert.are.equal("/tmp/zen-ui/icons/settings.svg", settings.icon)
         assert.are.equal("Apps", launcher.label)
         assert.are.equal("/tmp/zen-ui/icons/grid.svg", launcher.icon)
+    end)
+
+    it("renders Settings icon changes and resets without a restart", function()
+        local config = _G.__ZEN_UI_PLUGIN.config.quick_settings
+        config.button_order = { "zen_settings" }
+        config.show_buttons = { zen_settings = true }
+        local menu = {}
+        FileManagerMenu.setUpdateItemTable(menu)
+        local touch_menu = { item_width = 600 }
+
+        for _i, choice in ipairs({
+            { icon = "settings", label = "Preferences", expected = "settings" },
+            { icon = "/koreader/icons/zen/solar/atom.svg", label = "Options",
+                expected = "/koreader/icons/zen/solar/atom.svg" },
+            { icon = "", label = "", expected = "zen_ui" },
+        }) do
+            config.zen_settings_icon = choice.icon
+            config.zen_settings_label = choice.label
+            menu.tab_item_table[1].panel(touch_menu)
+            local button = touch_menu._zen_panel_refs.buttons[1]
+            local expected = choice.expected:sub(1, 1) == "/" and choice.expected
+                or "/tmp/zen-ui/icons/" .. choice.expected .. ".svg"
+            assert.are.equal("zen_settings", button.id)
+            assert.are.equal(expected, button.widget[1][1].file)
+        end
     end)
 
     it("lists ZenPM only when installed and opens it after closing the menu", function()

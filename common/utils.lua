@@ -533,7 +533,7 @@ function M.getIconPickerList(plugin_root, excluded)
         if lfs.attributes(dir, "mode") ~= "directory" then return end
         local entries = {}
         for f in lfs.dir(dir) do
-            if f:match("%.svg$") and not f:match("%.bak%.svg$") then
+            if f:sub(1, 1) ~= "." and f:match("%.svg$") and not f:match("%.bak%.svg$") then
                 local name = f:sub(1, -5)
                 if not seen[name] and (not filter or not filter[name])
                         and (not allow or allow(name)) then

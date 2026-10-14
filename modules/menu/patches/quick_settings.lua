@@ -650,11 +650,6 @@ local function apply_quick_settings()
             end,
         },
         gyro = {
-            icon = resolveConfiguredIcon(
-                type(config.gyro_icon) == "string" and config.gyro_icon ~= ""
-                    and config.gyro_icon or "quick_rotate", "quick_rotate"),
-            label = type(config.gyro_label) == "string" and config.gyro_label ~= ""
-                and config.gyro_label or _("Autorotate"),
             visible_func = function() return Device:hasGSensor() end,
             active_func = function()
                 return G_reader_settings:nilOrFalse("input_ignore_gsensor")
@@ -859,12 +854,6 @@ local function apply_quick_settings()
             end,
         },
         zen_settings = {
-            icon = resolveConfiguredIcon(
-                type(config.zen_settings_icon) == "string" and config.zen_settings_icon ~= ""
-                    and config.zen_settings_icon or "zen_ui", "zen_ui"),
-            label = type(config.zen_settings_label) == "string"
-                and config.zen_settings_label ~= ""
-                and config.zen_settings_label or _("Settings"),
             disabled_func = function()
                 local lockdown = zen_plugin.config and zen_plugin.config.lockdown
                 local features = zen_plugin.config and zen_plugin.config.features
@@ -879,11 +868,6 @@ local function apply_quick_settings()
             end,
         },
         launcher = {
-            icon = resolveConfiguredIcon(
-                type(config.launcher_icon) == "string" and config.launcher_icon ~= ""
-                    and config.launcher_icon or "app_launcher", "app_launcher"),
-            label = type(config.launcher_label) == "string" and config.launcher_label ~= ""
-                and config.launcher_label or _("Launcher"),
             callback = function(touch_menu)
                 local open = rawget(_G, "__ZEN_UI_OPEN_APP_LAUNCHER")
                 if type(open) ~= "function" then
@@ -1171,6 +1155,16 @@ local function apply_quick_settings()
     local function install_custom_button_defs()
         button_defs.library_home.icon = resolveConfiguredIcon(
             LibraryNavigation.defaultTabIcon(zen_plugin), "library")
+        for id, default_label in pairs({
+            gyro = _("Autorotate"), zen_settings = _("Settings"), launcher = _("Launcher"),
+        }) do
+            local icon = config[id .. "_icon"]
+            local default_icon = config_default[id .. "_icon"]
+            button_defs[id].icon = resolveConfiguredIcon(
+                type(icon) == "string" and icon ~= "" and icon or default_icon, default_icon)
+            local label = config[id .. "_label"]
+            button_defs[id].label = type(label) == "string" and label ~= "" and label or default_label
+        end
         if type(config.custom_buttons) ~= "table" then return end
         for _i, cb in ipairs(config.custom_buttons) do
             if cb.type == "koreader_menu" and type(cb.koreader_menu) == "table" then
