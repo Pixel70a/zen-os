@@ -68,6 +68,7 @@ local defaults = {
     },
     custom_icons = {
         active_pack = "",
+        invert_with_dark_mode = true,
     },
     localization = {
         default_locale = "en",

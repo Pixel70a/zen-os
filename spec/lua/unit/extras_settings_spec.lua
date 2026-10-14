@@ -8,7 +8,17 @@ describe("Extras settings", function()
         replace("gettext", function(text) return text end)
         replace("device", {})
         replace("ffi/util", {})
-        replace("common/icon_packs", {})
+        local scan = { packs = {
+            { id = "one", name = "Zen CoLoR", color = false },
+            { id = "two", name = "Zen COLOUR" },
+            { id = "three", name = "Illustrated", color = true },
+            { id = "plain", name = "Monochrome" },
+            { id = "color-id-only", name = "Standard", color = false },
+        } }
+        replace("common/icon_packs", {
+            scan = function() return scan end,
+            getLastScan = function() return scan end,
+        })
         replace("modules/filebrowser/patches/rakuyomi", { is_available = function() return true end })
         replace("modules/settings/sections/global_settings", { build_extras_items = function() return {} end })
         replace("modules/settings/sections/stats_settings", { build = function() return { text = "Stats" } end })
@@ -20,6 +30,8 @@ describe("Extras settings", function()
                 return item
             end,
         })
+        local repaints = 0
+        replace("ui/uimanager", { setDirty = function() repaints = repaints + 1 end })
         replace("modules/settings/sections/extras_settings", false)
         local ok, err = pcall(function()
             local saved, updates, restart_prompts = 0, 0, 0
@@ -72,24 +84,57 @@ describe("Extras settings", function()
             assert.are.equal("custom-icons", custom_icons.icon_glyph)
             assert.are.equal(custom_icons.callback, custom_icons.checkmark_callback)
             assert.is_false(custom_icons.checked_func())
-            assert.are.equal(1, #custom_icons.sub_item_table)
+            assert.are.equal(2, #custom_icons.sub_item_table)
             local pack = custom_icons.sub_item_table[1]
             assert.are.equal(custom_icons.icon_glyph, pack.icon_glyph)
             assert.is_function(pack.text_func)
             assert.is_function(pack.sub_item_table_func)
             assert.is_false(pack.enabled_func())
+            local inversion = custom_icons.sub_item_table[2]
+            assert.are.equal("Invert with dark mode", inversion.text)
+            assert.is_true(inversion.checked_func())
+            assert.is_false(inversion.enabled_func())
 
             custom_icons.checkmark_callback(menu)
             assert.is_true(config.features.custom_icons_enabled)
             assert.is_true(custom_icons.checked_func())
             assert.is_true(pack.enabled_func())
+            assert.is_true(inversion.enabled_func())
+            inversion.callback(menu)
+            assert.is_false(config.custom_icons.invert_with_dark_mode)
+            assert.is_false(inversion.checked_func())
+            inversion.callback(menu)
+            assert.is_true(config.custom_icons.invert_with_dark_mode)
+            assert.is_true(inversion.checked_func())
             custom_icons.checkmark_callback(menu)
             assert.is_false(config.features.custom_icons_enabled)
             assert.is_false(custom_icons.checked_func())
             assert.is_false(pack.enabled_func())
-            assert.are.equal(5, saved)
-            assert.are.equal(5, updates)
+            assert.is_false(inversion.enabled_func())
+            assert.are.equal(7, saved)
+            assert.are.equal(7, updates)
             assert.are.equal(4, restart_prompts)
+            assert.are.equal(2, repaints)
+
+            local packs = pack.sub_item_table_func()
+            for _i, color_pack in ipairs({ packs[2], packs[3], packs[4] }) do
+                config.features.custom_icons_enabled = true
+                config.custom_icons.invert_with_dark_mode = true
+                color_pack.callback(menu)
+                assert.is_false(config.custom_icons.invert_with_dark_mode)
+                assert.is_false(inversion.checked_func())
+
+                config.features.custom_icons_enabled = false
+                config.custom_icons.invert_with_dark_mode = true
+                custom_icons.checkmark_callback(menu)
+                assert.is_false(config.custom_icons.invert_with_dark_mode)
+            end
+            packs[5].callback(menu)
+            assert.is_false(config.custom_icons.invert_with_dark_mode)
+            inversion.callback(menu)
+            assert.is_true(config.custom_icons.invert_with_dark_mode)
+            packs[6].callback(menu)
+            assert.is_true(config.custom_icons.invert_with_dark_mode)
         end)
         for name, original in pairs(originals) do package.loaded[name] = original.value end
         assert.is_true(ok, err)

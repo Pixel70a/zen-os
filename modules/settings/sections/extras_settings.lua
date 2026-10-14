@@ -159,6 +159,19 @@ function M.build(ctx)
         table.insert(items, item)
     end
 
+    if type(config.custom_icons) ~= "table" then config.custom_icons = { active_pack = "" } end
+    local function disable_color_pack_inversion()
+        for _i, pack in ipairs(IconPacks.getLastScan().packs or {}) do
+            if pack.id == config.custom_icons.active_pack then
+                local name = pack.name:lower()
+                if pack.color == true or name:find("color", 1, true) or name:find("colour", 1, true) then
+                    config.custom_icons.invert_with_dark_mode = false
+                end
+                return
+            end
+        end
+    end
+
     local custom_icons_item = IconItem.decorate({
         text = _("Custom icons"),
         help_text = _("When enabled, loose icons or a selected ZenOS icon pack override supported icons. Missing icons fall back to ZenOS, then KOReader."),
@@ -167,6 +180,7 @@ function M.build(ctx)
         end,
         callback = function(touchmenu_instance)
             config.features.custom_icons_enabled = config.features.custom_icons_enabled ~= true
+            if config.features.custom_icons_enabled then disable_color_pack_inversion() end
             plugin:saveConfig()
             if touchmenu_instance then touchmenu_instance:updateItems() end
             settings_apply.prompt_restart()
@@ -174,7 +188,6 @@ function M.build(ctx)
     }, icons.custom_icons)
     custom_icons_item.checkmark_callback = custom_icons_item.callback
 
-    if type(config.custom_icons) ~= "table" then config.custom_icons = { active_pack = "" } end
     local function active_pack_id()
         local value = config.custom_icons.active_pack
         return type(value) == "string" and value or ""
@@ -192,6 +205,7 @@ function M.build(ctx)
     local function select_pack(pack_id, touchmenu_instance)
         if active_pack_id() == pack_id then return end
         config.custom_icons.active_pack = pack_id
+        disable_color_pack_inversion()
         plugin:saveConfig()
         if touchmenu_instance then touchmenu_instance:updateItems() end
         settings_apply.prompt_restart()
@@ -260,7 +274,24 @@ function M.build(ctx)
         sub_item_table_func = build_pack_items,
     }, icons.custom_icons)
 
-    custom_icons_item.sub_item_table = { custom_icon_pack_item }
+    custom_icons_item.sub_item_table = {
+        custom_icon_pack_item,
+        {
+            text = _("Invert with dark mode"),
+            enabled_func = function()
+                return config.features.custom_icons_enabled == true
+            end,
+            checked_func = function()
+                return config.custom_icons.invert_with_dark_mode ~= false
+            end,
+            callback = function(touchmenu_instance)
+                config.custom_icons.invert_with_dark_mode = config.custom_icons.invert_with_dark_mode == false
+                plugin:saveConfig()
+                if touchmenu_instance then touchmenu_instance:updateItems() end
+                require("ui/uimanager"):setDirty("all", "ui")
+            end,
+        },
+    }
     table.insert(items, custom_icons_item)
 
     return items

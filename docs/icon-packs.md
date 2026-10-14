@@ -35,6 +35,14 @@ Turn on the **Custom icons** switch under **Zen Settings > Interface**, choose t
 Packs are never selected automatically, so the bundled ZenOS and KOReader
 icons remain the default.
 
+**Invert with dark mode** is enabled by default under **Custom icons**.
+Turn it off to keep custom icon colors in night mode. This applies immediately
+to loose icons and the selected pack; bundled fallback icons follow night mode.
+Black or very dark custom icons still invert to stay visible on dark backgrounds.
+Selecting or enabling a pack with `"color": true` in `pack.json`, or "color" or
+"colour" in its display name (regardless of capitalization), automatically
+turns this setting off.
+
 When custom icons are disabled, icon resolution is unchanged. When enabled,
 the selected pack is checked first; a missing pack icon falls through to the
 same bundled ZenOS and KOReader icons used without a pack. Installing or
@@ -67,10 +75,12 @@ An example `pack.json` is:
 {
   "schema_version": 1,
   "id": "my-pack",
-  "name": "My Pack"
+  "name": "My Pack",
+  "color": true
 }
 ```
 
+`color` is an optional boolean; set it to `true` for a color pack.
 `version` and `author` are optional strings. Pack IDs and icon names may use
 letters, numbers, dots, dashes, and underscores. IDs must start with a letter
 or number, and the folder name must exactly match the ID.

@@ -32,6 +32,11 @@ local SHOWCASE_NAVBARS = {
         show_icons = true,
         show_labels = false,
     },
+    icon_pack_tabs = {
+        tab_order = { "books", "authors", "tags", "history", "favorites", "series", "home" },
+        show_icons = true,
+        show_labels = false,
+    },
     regular = {
         tab_order = { "books", "authors", "series", "stats", "to_be_read", "home" },
         show_icons = true,

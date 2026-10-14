@@ -28,9 +28,19 @@ Each book record has four required fields and optional metadata overrides:
 The profile contains exactly twelve books in newest-to-oldest recent order. That order drives
 the Home recent widgets; a scenario may pin a specific Library list showcase order.
 
-Use `--list` to inspect the tracked 27-screen catalog, `--audit` to check documentation and
+Use `--list` to inspect the tracked 31-screen catalog, `--audit` to check documentation and
 carousel references, or capture with `--screen ID`, `--group GROUP`, or `--all`. OPDS and
 `update_available.png` are intentionally outside the automated catalog.
+
+`icons_solar`, `icons_mono`, and `icons_gradient` capture the same Controls screen with
+Solar Colour, Solar Mono, and Streamline Flex Gradient icons. Each uses a separate emulator
+session. Install `zen-solar-colour`, `zen-solar-mono`, and `zen-streamline-flex-gradient` under
+`KOREADER_DIR/icons/zen/` before capturing these screens; the fixture copies their assets into
+the temporary `KO_HOME` and enables only the selected pack. A missing pack fails the capture.
+The fixtures use full-opacity teal (`#007F73`), cobalt (`#2456D6`), and violet (`#7638C8`)
+accents respectively, each with at least 4.5:1 contrast against white.
+Their Navbar shows Library, Authors, Tags, History, Favorites, Series, and Home as icons.
+Background hatching is disabled for these three captures.
 
 Every capture clears and replaces `spec/.artifacts/screenshots/`. Website-ready PNGs are written
 directly into that folder; raw frames are temporary. To also copy the screenshots to another

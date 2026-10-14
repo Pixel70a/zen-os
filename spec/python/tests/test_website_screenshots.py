@@ -12,6 +12,7 @@ from PIL import Image
 from website_screenshots import (
     BB_TYPE_RGB32,
     EXPECTED_IDS,
+    ICON_PACK_SESSIONS,
     READER_FOOTER_PRESETS,
     READER_SHOWCASE_PAGE,
     READER_SHOWCASE_PRESET,
@@ -36,6 +37,7 @@ from website_screenshots import (
     load_profile,
     prepare_artifact_directory,
     resolve_calibre_books,
+    seed_showcase,
     select_scenarios,
     sha256_file,
     stage_books,
@@ -106,9 +108,9 @@ def _color_cover_epub(
         archive.writestr("OPS/cover.png", cover.getvalue())
 
 
-def test_catalog_is_the_canonical_28_image_inventory() -> None:
+def test_catalog_is_the_canonical_31_image_inventory() -> None:
     catalog = load_catalog()
-    assert len(catalog) == 28
+    assert len(catalog) == 31
     assert {scenario.id for scenario in catalog} == EXPECTED_IDS
     assert [scenario.id for scenario in catalog if scenario.id.startswith("page_browser")] == [
         "page_browser_grid", "page_browser_carousel"
@@ -225,6 +227,77 @@ def test_catalog_is_the_canonical_28_image_inventory() -> None:
         SHOWCASE_NAVBAR_STATES["zen_home_icons"]["tab_order"]
         == SHOWCASE_NAVBAR_STATES["text_only"]["tab_order"]
     )
+
+
+@pytest.mark.parametrize("style,pack_id,accent_color", [
+    ("solar", "zen-solar-colour", "#007F73"),
+    ("mono", "zen-solar-mono", "#2456D6"),
+    ("gradient", "zen-streamline-flex-gradient", "#7638C8"),
+])
+def test_icon_pack_screens_use_isolated_controls_sessions(
+    style: str, pack_id: str, accent_color: str,
+) -> None:
+    scenario = next(screen for screen in load_catalog() if screen.id == f"icons_{style}")
+    assert ICON_PACK_SESSIONS[scenario.session] == pack_id
+    assert scenario.group == "menus"
+    assert scenario.action == "menu_tab"
+    assert scenario.options == {
+        "tab": "quicksettings", "navbar": "icon_pack_tabs", "accent_color": accent_color,
+    }
+    assert SHOWCASE_NAVBAR_STATES[scenario.options["navbar"]] == {
+        "tab_order": ["books", "authors", "tags", "history", "favorites", "series", "home"],
+        "show_icons": True,
+        "show_labels": False,
+    }
+    assert scenario.docs == ("docs/icon-packs.md",)
+    channels = [int(accent_color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+    linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+              for value in channels]
+    luminance = sum(weight * value for weight, value in zip((0.2126, 0.7152, 0.0722), linear))
+    assert 1.05 / (luminance + 0.05) >= 4.5
+
+
+@pytest.mark.parametrize("pack_id", [
+    "zen-solar-colour", "zen-solar-mono", "zen-streamline-flex-gradient",
+])
+def test_icon_pack_seed_copies_assets_and_sets_selection(
+    tmp_path: Path, monkeypatch, pack_id: str,
+) -> None:
+    runtime = tmp_path / "runtime"
+    ko_home = tmp_path / "ko-home"
+    source = runtime / "icons" / "zen" / pack_id
+    source.mkdir(parents=True)
+    source.joinpath("pack.json").write_text(json.dumps({
+        "schema_version": 1, "id": pack_id, "name": pack_id,
+    }), encoding="utf-8")
+    source.joinpath("quick_wifi.svg").write_text("<svg/>", encoding="utf-8")
+    before = {path.name: path.read_bytes() for path in source.iterdir()}
+    book_path = tmp_path / "library" / "book.epub"
+    books = [StagedBook(None, "Book", "Author", None, book_path, book_path, "library", "EPUB")] * 12
+    monkeypatch.setattr("website_screenshots._seed_bookinfo", lambda *_args: None)
+    monkeypatch.setattr("website_screenshots._seed_statistics", lambda *_args: None)
+    monkeypatch.setattr("website_screenshots._seed_sidecars", lambda *_args: None)
+
+    accent_color = next(scenario.options["accent_color"] for scenario in load_catalog()
+                        if ICON_PACK_SESSIONS.get(scenario.session) == pack_id)
+    seed_showcase(ko_home, books, runtime, icon_pack=pack_id, accent_color=accent_color)
+
+    config = (ko_home / "settings" / "ZenOS" / "config.lua").read_text(encoding="utf-8")
+    assert '["custom_icons_enabled"] = true' in config
+    assert '["background_hatching"] = false' in config
+    assert f'["active_pack"] = "{pack_id}"' in config
+    assert f'["accent_color"] = "{accent_color}"' in config
+    assert '["accent_enabled"] = true' in config
+    assert '["accent_opacity"] = 100' in config
+    assert '["active_tab_use_accent"] = true' in config
+    staged = ko_home / "icons" / "zen" / pack_id
+    assert {path.name: path.read_bytes() for path in staged.iterdir()} == before
+    assert {path.name: path.read_bytes() for path in source.iterdir()} == before
+
+
+def test_icon_pack_seed_rejects_a_missing_pack(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="icon pack not installed in runtime: zen-solar-colour"):
+        seed_showcase(tmp_path / "ko-home", [], tmp_path / "runtime", icon_pack="zen-solar-colour")
 
 
 def test_example_profile_fills_the_four_by_three_library_grid() -> None:

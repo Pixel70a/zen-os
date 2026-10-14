@@ -46,11 +46,17 @@ READER_FOOTER_PRESETS = {
 FIXED_LOCAL_TIME = datetime(2026, 6, 18, 10, 9, 0)
 FORMAT_PREFERENCE = ("EPUB", "KEPUB", "AZW3", "MOBI")
 GROUPS = frozenset(("home", "library", "menus", "reader"))
-SESSIONS = frozenset(("general", "reader"))
+ICON_PACK_SESSIONS = {
+    "solar_icons": "zen-solar-colour",
+    "mono_icons": "zen-solar-mono",
+    "gradient_icons": "zen-streamline-flex-gradient",
+}
+SESSIONS = ("general", "reader", *ICON_PACK_SESSIONS)
 EXPECTED_IDS = frozenset((
     "zen_home", "home_bookshelf", "home_simple",
     "library_covers_full", "library_list_full", "context_menu", "metadata_editor", "stats",
     "launcher", "quicksettings", "quicksettings_minimal", "network_switcher",
+    "icons_solar", "icons_mono", "icons_gradient",
     "bluetooth_switcher", "quickstart", "zen_settings",
     "launcher_add_plugin_menu", "launcher_add_koreader_menu",
     "controls_buttons_settings", "navbar_buttons_settings",
@@ -68,6 +74,11 @@ SHOWCASE_NAVBAR_STATES = {
     },
     "library_home_icons": {
         "tab_order": ["books", "home"],
+        "show_icons": True,
+        "show_labels": False,
+    },
+    "icon_pack_tabs": {
+        "tab_order": ["books", "authors", "tags", "history", "favorites", "series", "home"],
         "show_icons": True,
         "show_labels": False,
     },
@@ -1011,12 +1022,33 @@ def stage_showcase_background(ko_home: Path) -> Path:
     return destination.resolve()
 
 
-def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> None:
+def seed_showcase(
+    ko_home: Path,
+    books: Sequence[StagedBook],
+    runtime: Path,
+    icon_pack: str | None = None,
+    accent_color: str | None = None,
+) -> None:
+    if icon_pack is not None:
+        source = runtime / "icons" / "zen" / icon_pack
+        if not source.is_dir():
+            raise ValueError(f"icon pack not installed in runtime: {icon_pack}")
+        shutil.copytree(source, ko_home / "icons" / "zen" / icon_pack)
     settings = ko_home / "settings"
     zen_settings = settings / "ZenOS"
     settings.mkdir(parents=True, exist_ok=True)
     zen_settings.mkdir(parents=True, exist_ok=True)
     background_path = stage_showcase_background(ko_home)
+    zen_config = _zen_config(background_path)
+    if icon_pack is not None:
+        zen_config["features"]["custom_icons_enabled"] = True
+        zen_config["custom_icons"] = {"active_pack": icon_pack}
+        zen_config["quick_settings"]["background_hatching"] = False
+    if accent_color is not None:
+        zen_config.update({
+            "accent_enabled": True, "accent_color": accent_color, "accent_opacity": 100,
+        })
+        zen_config["navbar"]["active_tab_use_accent"] = True
     _write_merged_lua(
         runtime,
         runtime / "settings.reader.lua",
@@ -1039,7 +1071,7 @@ def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> 
         runtime,
         runtime / "settings" / "ZenOS" / "config.lua",
         zen_settings / "config.lua",
-        _zen_config(background_path),
+        zen_config,
     )
     reader_baseline = runtime / "settings" / "ZenOS" / "reader.lua"
     if reader_baseline.is_file():
@@ -1400,7 +1432,7 @@ class CaptureWorkflow:
         action = scenario.action
         options = scenario.options
         expected_navbar = None
-        if scenario.session == "general":
+        if scenario.session != "reader":
             navbar_mode = str(options.get("navbar", "default"))
             expected_navbar = SHOWCASE_NAVBAR_STATES[navbar_mode]
             navbar_response = _require_ok(
@@ -1874,6 +1906,9 @@ class CaptureWorkflow:
             "session": scenario.session,
             "docs": list(scenario.docs),
         }
+        if scenario.session in ICON_PACK_SESSIONS:
+            result["icon_pack"] = ICON_PACK_SESSIONS[scenario.session]
+            result["accent_color"] = scenario.options["accent_color"]
         try:
             self._reset(driver, scenario.session)
             self._prepare_scenario(driver, scenario, books)
@@ -1922,8 +1957,12 @@ class CaptureWorkflow:
     ) -> None:
         ko_home = root / f"ko-home-{session}"
         ko_home.mkdir()
-        seed_showcase(ko_home, books, self.runtime)
-        socket_path = root / f"driver-{session}.sock"
+        seed_showcase(
+            ko_home, books, self.runtime,
+            icon_pack=ICON_PACK_SESSIONS.get(session),
+            accent_color=scenarios[0].options.get("accent_color"),
+        )
+        socket_path = root / f"{session}.sock"
         window_size = (
             (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2)
             if sys.platform == "darwin" else SCREEN_SIZE
@@ -1985,7 +2024,7 @@ class CaptureWorkflow:
             self.raw_dir = root / "raw"
             staged = stage_books(self.books, root / "library")
             stage_placeholder_texts(root / "library")
-            for session in ("general", "reader"):
+            for session in SESSIONS:
                 selected = [scenario for scenario in self.scenarios if scenario.session == session]
                 if selected:
                     self._session(session, selected, staged, root)
