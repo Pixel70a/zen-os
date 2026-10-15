@@ -129,13 +129,37 @@ describe("ZenOS icon packs", function()
         make_dir(outside)
         write_file(outside .. "/pack.json", pack_json("outside"))
         write_file(outside .. "/home.svg", "outside")
-        make_pack("inside")
+        local inside = make_pack("inside")
+        write_file(inside .. "/pack.json", pack_json("inside"):sub(1, -2) .. ',"color":true}')
 
         local scan = IconPacks.scan()
 
         assert.are.equal(packs_root, IconPacks.getPacksRoot())
         assert.are.equal(1, #scan.packs)
         assert.are.equal("inside", scan.packs[1].id)
+        assert.is_true(scan.packs[1].color)
+    end)
+
+    it("validates the optional color flag in archive metadata", function()
+        for _i, entry in ipairs({
+            { field = "" },
+            { field = ',"color":true', value = true },
+            { field = ',"color":false', value = false },
+            { field = ',"color":"true"', invalid = true },
+            { field = ',"color":1', invalid = true },
+        }) do
+            local content = pack_json("flags"):sub(1, -2) .. entry.field .. "}"
+            local metadata, err = inspect_fake({
+                { path = "flags/pack.json", mode = "file", size = #content },
+            }, { ["flags/pack.json"] = content })
+            if entry.invalid then
+                assert.is_nil(metadata)
+                assert.matches("pack color must be a boolean", err, 1, true)
+            else
+                assert.is_nil(err)
+                assert.are.equal(entry.value, metadata.color)
+            end
+        end
     end)
 
     it("returns absolute pack icon paths when KOReader uses a relative data directory", function()
@@ -395,6 +419,173 @@ describe("ZenOS icon packs", function()
         assert.are.equal(stock_icons .. "mdlight/star.empty.svg", utils.resolveIcon(plugin_icons, "star.empty"))
     end)
 
+    it("preserves custom icon colors and transparency at night when inversion is disabled", function()
+        local Blitbuffer = require("ffi/blitbuffer")
+        local screen = {
+            getWidth = function() return 600 end,
+            getHeight = function() return 800 end,
+            scaleByDPI = function(_self, size) return size end,
+            scaleBySize = function(_self, size) return size end,
+        }
+        ZenSpec.replace("device", { screen = screen })
+        ZenSpec.replace("ui/uimanager", {})
+        ZenSpec.replace("document/documentregistry", { isImageFile = function() return true end })
+        ZenSpec.unload("ui/widget/iconwidget")
+        ZenSpec.unload("ui/widget/imagewidget")
+        ZenSpec.unload("ui/renderimage")
+        _G.G_defaults = ZenSpec.memorySettings({ DGENERIC_ICON_SIZE = 2 })
+        local IconWidget = require("ui/widget/iconwidget")
+        local svg = [[<svg xmlns="http://www.w3.org/2000/svg" width="3" height="1">
+            <rect width="1" height="1" fill="#204060"/></svg>]]
+        local selected = make_pack("selected", "home", svg)
+        write_file(icons_root .. "/home.svg", svg)
+        local config = {
+            features = { custom_icons_enabled = true },
+            custom_icons = { active_pack = "selected" },
+        }
+        ZenSpec.replace("config/manager", { get = function() return config end })
+        local source = Blitbuffer.new(3, 1, Blitbuffer.TYPE_BBRGB32)
+        local color = Blitbuffer.ColorRGB32(32, 64, 96, 255)
+        source:setPixel(0, 0, color)
+        source:setPixel(2, 0, Blitbuffer.ColorRGB32(0, 0, 0, 0))
+        local background = Blitbuffer.ColorRGB32(40, 80, 120, 255)
+        local bb = Blitbuffer.new(5, 3, Blitbuffer.TYPE_BBRGB32)
+        screen.bb = bb
+        finally(function() source:free(); bb:free() end)
+
+        for _i, pack_id in ipairs({ "selected", "" }) do
+            config.custom_icons.active_pack = pack_id
+            IconPacks.initialize({
+                features = config.features, custom_icons = { active_pack = pack_id },
+            })
+            local custom_path = pack_id == "selected" and selected .. "/home.svg" or icons_root .. "/home.svg"
+            for _j, entry in ipairs({ { icon = "home" }, { file = custom_path, alpha = false },
+                    { file = ZenSpec.root .. "/icons/home.svg", fallback = true } }) do
+                local loaded = IconWidget:new{
+                    icon = entry.icon, file = entry.file, width = 3, height = 1,
+                    alpha = entry.alpha, file_do_cache = false,
+                }
+                finally(function() loaded:free() end)
+                loaded:getSize()
+                assert.are.equal(entry.fallback and 255 or 0,
+                    loaded._bb:getPixel(2, 0):getColorRGB32().alpha)
+                local icon = IconWidget:new{
+                    icon = entry.icon, file = entry.file, width = 3, height = 1,
+                    alpha = true, _bb = source, _offset_x = 0, _offset_y = 0,
+                }
+                for _k, option in ipairs({ {}, { value = false }, { value = true } }) do
+                    config.custom_icons.invert_with_dark_mode = option.value
+                    for _n, night in ipairs({ false, true, false }) do
+                        screen.night_mode = night
+                        local preserve = not entry.fallback and option.value == false
+                        for _a, straight in ipairs({ true, false }) do
+                            icon._is_straight_alpha = straight
+                            source:setPixel(1, 0, straight and Blitbuffer.ColorRGB32(32, 64, 96, 128)
+                                or Blitbuffer.ColorRGB32(16, 32, 48, 128))
+                            for _b, inverse in ipairs(night and preserve and { 0, 1 } or { 0 }) do
+                                bb:setInverse(inverse)
+                                bb:paintRectRGB32(0, 0, 5, 3, background)
+                                icon:paintTo(bb, 1, 1)
+                                assert.are.equal(inverse, bb:getInverse())
+                                bb:setInverse(0)
+                                local function visible(x, y)
+                                    local pixel = bb:getPixel(x, y):getColorRGB32()
+                                    return night and inverse == 0 and pixel:invert() or pixel
+                                end
+                                local glyph = night and not preserve and color:invert() or color
+                                local bg = night and background:invert() or background
+                                assert.are.equal(tostring(glyph), tostring(visible(1, 1)))
+                                assert.are.equal(tostring(bg), tostring(visible(3, 1)))
+                                assert.are.equal(tostring(bg), tostring(visible(0, 0)))
+                                local blend = bg:getColorRGB32()
+                                blend:blend(Blitbuffer.ColorRGB32(glyph.r, glyph.g, glyph.b, 128))
+                                local pixel = visible(2, 1)
+                                assert.is_true(math.abs(blend.r - pixel.r) <= 1,
+                                    string.format("night=%s straight=%s inverse=%d: %s vs %s",
+                                        tostring(night), tostring(straight), inverse, tostring(pixel), tostring(blend)))
+                                assert.is_true(math.abs(blend.g - pixel.g) <= 1)
+                                assert.is_true(math.abs(blend.b - pixel.b) <= 1)
+                                assert.are.equal(tostring(color), tostring(source:getPixel(0, 0)))
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        config.custom_icons.invert_with_dark_mode = false
+        for _i, entry in ipairs({
+            { rgb = { 0, 0, 0 }, dark = true },
+            { rgb = { 48, 48, 48 }, dark = true },
+            { rgb = { 64, 64, 64 }, dark = true, alpha = 2 },
+            { rgb = { 20, 25, 30 }, dark = true },
+            { rgb = { 65, 65, 65 } },
+            { rgb = { 32, 64, 96 } },
+        }) do
+            local r, g, b = unpack(entry.rgb)
+            local alpha = entry.alpha or 128
+            local glyph_color = Blitbuffer.ColorRGB32(r, g, b, 255)
+            for _j, straight in ipairs({ true, false }) do
+                local image = Blitbuffer.new(3, 1, Blitbuffer.TYPE_BBRGB32)
+                finally(function() image:free() end)
+                image:setPixel(0, 0, glyph_color)
+                image:setPixel(1, 0, straight and Blitbuffer.ColorRGB32(r, g, b, alpha)
+                    or Blitbuffer.ColorRGB32(math.floor((r * alpha + 127) / 255),
+                        math.floor((g * alpha + 127) / 255), math.floor((b * alpha + 127) / 255), alpha))
+                image:setPixel(2, 0, Blitbuffer.ColorRGB32(255, 255, 255, 0))
+                local icon = IconWidget:new{
+                    file = icons_root .. "/home.svg", width = 3, height = 1,
+                    _bb = image, _offset_x = 0, _offset_y = 0, _is_straight_alpha = straight,
+                }
+                for _k, night in ipairs({ false, true, false }) do
+                    screen.night_mode = night
+                    for _n, inverse in ipairs(night and { 0, 1 } or { 0 }) do
+                        bb:setInverse(inverse)
+                        bb:paintRectRGB32(0, 0, 5, 3, background)
+                        icon:paintTo(bb, 1, 1)
+                        assert.are.equal(inverse, bb:getInverse())
+                        bb:setInverse(0)
+                        local function visible(x, y)
+                            local pixel = bb:getPixel(x, y):getColorRGB32()
+                            return night and inverse == 0 and pixel:invert() or pixel
+                        end
+                        local glyph = night and entry.dark and glyph_color:invert() or glyph_color
+                        local bg = night and background:invert() or background
+                        assert.are.equal(tostring(glyph), tostring(visible(1, 1)))
+                        assert.are.equal(tostring(bg), tostring(visible(3, 1)))
+                        assert.are.equal(tostring(bg), tostring(visible(0, 0)))
+                        local blend = bg:getColorRGB32()
+                        blend:blend(Blitbuffer.ColorRGB32(glyph.r, glyph.g, glyph.b, alpha))
+                        local edge = visible(2, 1)
+                        assert.is_true(math.abs(blend.r - edge.r) <= 1)
+                        assert.is_true(math.abs(blend.g - edge.g) <= 1)
+                        assert.is_true(math.abs(blend.b - edge.b) <= 1)
+                    end
+                end
+            end
+        end
+    end)
+
+    it("excludes hidden files from every icon picker directory", function()
+        local plugin_root = icons_root .. "/plugin"
+        make_dir(plugin_root)
+        make_dir(plugin_root .. "/icons")
+        for _i, dir in ipairs({ icons_root, plugin_root .. "/icons" }) do
+            write_file(dir .. "/home.svg", "icon")
+            write_file(dir .. "/._home.svg", "macOS metadata")
+            write_file(dir .. "/.hidden.svg", "hidden")
+            write_file(dir .. "/home.bak.svg", "backup")
+        end
+        IconPacks.initialize({ features = { custom_icons_enabled = false } })
+        local home
+        for _i, item in ipairs(require("common/utils").getIconPickerList(plugin_root)) do
+            assert.are_not.equal(".", item.name:sub(1, 1))
+            assert.are_not.equal("home.bak", item.name)
+            if item.name == "home" then home = item end
+        end
+        assert.are.equal(plugin_root .. "/icons/home.svg", home.file)
+    end)
+
     it("accepts preferred suggestions only by names in picker directories", function()
         IconPacks.initialize({
             features = { custom_icons_enabled = false },
@@ -422,6 +613,7 @@ describe("ZenOS icon packs", function()
         local defaults = require("config/defaults")
         assert.is_false(defaults.features.custom_icons_enabled)
         assert.are.equal("", defaults.custom_icons.active_pack)
+        assert.is_true(defaults.custom_icons.invert_with_dark_mode)
     end)
 
     it("accepts only safe pack ids", function()

@@ -49,6 +49,8 @@ describe("Zen settings page", function()
 
     function Menu:init()
         self.item_table_stack = {}
+        self.perpage = 10
+        self.page = self.item_table.current and self:getPageNumber(self.item_table.current) or 1
         self.title_bar = self.custom_title_bar
         self:updateItems(1)
     end
@@ -298,6 +300,42 @@ describe("Zen settings page", function()
         settings:backToUpperMenu()
         assert.are.equal(settings._root_items, settings.item_table)
         assert.are.equal(3, settings.page)
+    end)
+
+    it("reopens the selected font page after closing Settings immediately", function()
+        local get_page_number = Menu.getPageNumber
+        Menu.getPageNumber = function(self, index)
+            return math.ceil(math.min(index, #self.item_table) / self.perpage)
+        end
+        finally(function() Menu.getPageNumber = get_page_number end)
+        local selected = 1
+        local fonts = { open_on_menu_item_id_func = function() return selected end }
+        for index = 1, 25 do
+            local font_id = index
+            fonts[index] = {
+                text = "Font " .. index, menu_item_id = font_id, radio = true,
+                checked_func = function() return selected == font_id end,
+                callback = function() selected = font_id end,
+            }
+        end
+        local font = { text = "Font", sub_item_table = fonts }
+        local reader = { text = "Reader", sub_item_table = { font } }
+        require("modules/settings/zen_settings").build = function()
+            return { sub_item_table = { reader } }
+        end
+        local plugin = { config = {} }
+        local settings = PageModule.show(plugin)
+        settings:onMenuSelect(reader)
+        settings:onMenuSelect(font)
+        settings:onMenuSelect(fonts[23])
+        settings:closeMenu()
+
+        local reopened = PageModule.show(plugin)
+        assert.are.equal("Font", reopened.title_bar.title)
+        assert.are.equal(2, #reopened.item_table_stack)
+        assert.are.equal(23, reopened.itemnumber)
+        assert.are.equal(3, reopened.page)
+        assert.is_true(reopened.item_table[23].checked_func())
     end)
 
     it("honors disabled controls and resolves callback factories on each action", function()

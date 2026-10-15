@@ -66,6 +66,10 @@ end
 
 function MenuCoachmark:_buildCallout()
     if self._callout then self._callout:free() end
+    self.ges_events.SwipeAdvance = self.steps[self._step].swipe_up and {
+        GestureRange:new{ ges = "swipe", direction = "north", range = self.dimen },
+        event = "Advance",
+    } or nil
 
     local sw = self.dimen.w
     local sh = self.dimen.h

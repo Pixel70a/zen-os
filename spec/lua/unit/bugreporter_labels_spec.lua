@@ -1,5 +1,6 @@
 local JSON = require("json")
 local lfs = require("lfs")
+local MAX_UPLOAD_LOG = 10 * 1024 * 1024
 
 describe("bug reporter labels", function()
     local channel
@@ -109,9 +110,9 @@ describe("bug reporter labels", function()
         _G.G_reader_settings = original_reader_settings
     end)
 
-    local function submit()
+    local function submit(title, description)
         require("modules/settings/zen_bugreporter")._do_submit(
-            { plugin = {} }, "Title", "Description", ""
+            { plugin = {} }, title or "Title", description or "Description", ""
         )
         UIManager.submit_callback()
         return payloads[#payloads]
@@ -137,18 +138,18 @@ describe("bug reporter labels", function()
         local log_path = data_dir .. "/crash.log"
         local file = assert(io.open(log_path, "wb"))
         file:write("old crash\n", "DEBUG ZenOS: [network_switcher] Kobo connection result\n",
-            string.rep("x", 600000), "recent crash\n")
+            string.rep("x", MAX_UPLOAD_LOG * 2 + 100000), "recent crash\n")
         file:close()
         package.loaded.datastorage.getDataDir = function() return data_dir end
 
-        submit()
+        submit("Wi-Fi connection failed")
 
         local uploaded = payloads[1].log
         assert.is_true(uploaded:find("[earlier network diagnostics]", 1, true) == 1)
         assert.is_truthy(uploaded:find("Kobo connection result", 1, true))
         assert.is_nil(uploaded:find("old crash", 1, true))
         assert.are.equal("recent crash\n", uploaded:sub(-13))
-        assert.is_true(#uploaded < 512100)
+        assert.is_true(#uploaded < MAX_UPLOAD_LOG + 100)
         os.remove(log_path)
         lfs.rmdir(data_dir)
     end)
@@ -178,7 +179,7 @@ describe("bug reporter labels", function()
         for _i, fallback in ipairs({ false, true }) do
             payloads = {}
             upload_fails = fallback
-            local issue = submit()
+            local issue = submit("Wi-Fi connection failed")
             local log = fallback and issue.body or payloads[1].log
             for _j, value in ipairs({ "Private Wi-Fi", "MY HOME NETWORK", "secret", "10.0.0.86",
                     "fe80::1234", "2001:db8:0:0:0:0:0:1" }) do
@@ -202,7 +203,121 @@ describe("bug reporter labels", function()
             "Error org.bluez.Error.Failed: br-connection-profile-unavailable\n",
             "WARN ZenOS: [kobo_bluetooth] command result operation= manager-connect success= false\n",
             string.rep("DEBUG NetworkMgr: interface is not operational yet\n", 1600),
-            string.rep("DEBUG ZenOS: [responsive_keyboard] keyboard contact\n", 13000),
+            string.rep("DEBUG ZenOS: [responsive_keyboard] keyboard contact\n", 240000),
+            "recent crash\n")
+        file:close()
+        package.loaded.datastorage.getDataDir = function() return data_dir end
+
+        for _i, fallback in ipairs({ false, true }) do
+            payloads = {}
+            upload_fails = fallback
+            local issue = submit("Bluetooth connection failed")
+            local log = fallback and issue.body or payloads[1].log
+            assert.is_truthy(log:find("[earlier bluetooth diagnostics]", 1, true))
+            assert.is_truthy(log:find("power request complete success= true", 1, true))
+            assert.is_truthy(log:find("manager-connect success= false", 1, true))
+            assert.is_truthy(log:find("br-connection-profile-unavailable", 1, true))
+            assert.is_truthy(log:find("recent crash", 1, true))
+            if not fallback then assert.is_true(#log < MAX_UPLOAD_LOG + 200) end
+        end
+        os.remove(log_path)
+        lfs.rmdir(data_dir)
+    end)
+
+    it("uploads a complete 10 MiB log and retains Bluetooth in its bounded inline fallback", function()
+        local data_dir = os.tmpname()
+        os.remove(data_dir)
+        assert.is_true(lfs.mkdir(data_dir))
+        local log_path = data_dir .. "/crash.log"
+        local prefix = "original crash\n"
+            .. string.rep("INFO ZenOS: [bluetooth] connection diagnostic\n", 600)
+        local suffix = "recent crash\n"
+        local contents = prefix .. string.rep("x", MAX_UPLOAD_LOG - #prefix - #suffix) .. suffix
+        local file = assert(io.open(log_path, "wb"))
+        file:write(contents)
+        file:close()
+        package.loaded.datastorage.getDataDir = function() return data_dir end
+
+        submit("Bluetooth connection failed")
+        assert.are.equal(MAX_UPLOAD_LOG, #payloads[1].log)
+        assert.are.equal(contents, payloads[1].log)
+        upload_fails = true
+        local issue = submit("Bluetooth connection failed")
+        assert.is_truthy(issue.body:find("[earlier bluetooth diagnostics]", 1, true))
+        assert.is_truthy(issue.body:find("connection diagnostic", 1, true))
+        assert.is_truthy(issue.body:find("recent crash", 1, true))
+        assert.is_true(#issue.body < 65536)
+        os.remove(log_path)
+        lfs.rmdir(data_dir)
+    end)
+
+    it("only includes each radio's logs when mentioned in the title or description", function()
+        local data_dir = os.tmpname()
+        os.remove(data_dir)
+        assert.is_true(lfs.mkdir(data_dir))
+        local log_path = data_dir .. "/crash.log"
+        local file = assert(io.open(log_path, "wb"))
+        local wifi_lines = {
+            "DEBUG NetworkMgr: interface is not operational yet",
+            "DEBUG WpaSupplicant: scan failed",
+            "DEBUG ZenOS: [network_switcher] scan complete",
+            "DEBUG ZenOS: [nonblocking_wifi] worker collected",
+            "DEBUG ZenOS: [kobo] Kobo authentication state",
+            "DEBUG ZenOS: [kindle] Kindle Wi-Fi scan state",
+            "WARN Wi-Fi connection failed",
+        }
+        local bluetooth_lines = {
+            "INFO ZenOS: [bluetooth] power request complete",
+            "WARN ZenOS: [kobo_bluetooth] command failed",
+            "Error org.bluez.Error.Failed: profile unavailable",
+            "INFO ZenOS: [kindle] device list counts: scan= nil discovered= 1",
+        }
+        file:write(table.concat(wifi_lines, "\n"), "\n", table.concat(bluetooth_lines, "\n"),
+            "\nDEBUG WpaSupplicant:getCurrentNetwork: Connected network: {\n",
+            '  ssid = "Private network",\n  password = "secret",\n}\n',
+            "recent crash")
+        file:close()
+        package.loaded.datastorage.getDataDir = function() return data_dir end
+
+        for _i, report in ipairs({
+            { "Reader crash", "Turning pages", false, false },
+            { "WIFI failed", "", true, false },
+            { "Connection failed", "Wi-Fi will not connect", true, false },
+            { "Connection failed", "wi fi will not connect", true, false },
+            { "BLUETOOTH failed", "", false, true },
+            { "Connection failed", "Bluetooth will not connect", false, true },
+            { "Wi-Fi failed", "Bluetooth also failed", true, true },
+        }) do
+            for _j, fallback in ipairs({ false, true }) do
+                payloads = {}
+                upload_fails = fallback
+                local issue = submit(report[1], report[2])
+                local log = fallback and issue.body or payloads[1].log
+                for _k, line in ipairs(wifi_lines) do
+                    assert.are.equal(report[3], log:find(line, 1, true) ~= nil, report[1] .. ": " .. line)
+                end
+                for _k, line in ipairs(bluetooth_lines) do
+                    assert.are.equal(report[4], log:find(line, 1, true) ~= nil, report[1] .. ": " .. line)
+                end
+                assert.is_nil(log:find("Private network", 1, true))
+                assert.is_nil(log:find("secret", 1, true))
+                assert.is_truthy(log:find("recent crash", 1, true))
+                if not fallback then assert.are.equal("recent crash", log:sub(-12)) end
+            end
+        end
+        os.remove(log_path)
+        lfs.rmdir(data_dir)
+    end)
+
+    it("filters radio chatter before truncating unrelated reports", function()
+        local data_dir = os.tmpname()
+        os.remove(data_dir)
+        assert.is_true(lfs.mkdir(data_dir))
+        local log_path = data_dir .. "/crash.log"
+        local file = assert(io.open(log_path, "wb"))
+        file:write("earlier reader failure\n",
+            string.rep("DEBUG NetworkMgr: interface is not operational yet\n", 13000),
+            string.rep("INFO ZenOS: [bluetooth] power request complete\n", 13000),
             "recent crash\n")
         file:close()
         package.loaded.datastorage.getDataDir = function() return data_dir end
@@ -212,37 +327,12 @@ describe("bug reporter labels", function()
             upload_fails = fallback
             local issue = submit()
             local log = fallback and issue.body or payloads[1].log
-            assert.is_truthy(log:find("[earlier bluetooth diagnostics]", 1, true))
-            assert.is_truthy(log:find("power request complete success= true", 1, true))
-            assert.is_truthy(log:find("manager-connect success= false", 1, true))
-            assert.is_truthy(log:find("br-connection-profile-unavailable", 1, true))
+            assert.is_truthy(log:find("earlier reader failure", 1, true))
             assert.is_truthy(log:find("recent crash", 1, true))
-            if not fallback then assert.is_true(#log < 512200) end
+            assert.is_nil(log:find("diagnostics", 1, true))
+            assert.is_nil(log:find("truncated", 1, true))
+            if not fallback then assert.are.equal("earlier reader failure\nrecent crash\n", log) end
         end
-        os.remove(log_path)
-        lfs.rmdir(data_dir)
-    end)
-
-    it("uploads a complete smaller log and retains Bluetooth in its inline fallback", function()
-        local data_dir = os.tmpname()
-        os.remove(data_dir)
-        assert.is_true(lfs.mkdir(data_dir))
-        local log_path = data_dir .. "/crash.log"
-        local contents = "original crash\n"
-            .. string.rep("INFO ZenOS: [bluetooth] connection diagnostic\n", 600)
-            .. string.rep("x", 470000) .. "recent crash\n"
-        local file = assert(io.open(log_path, "wb"))
-        file:write(contents)
-        file:close()
-        package.loaded.datastorage.getDataDir = function() return data_dir end
-
-        submit()
-        assert.are.equal(contents, payloads[1].log)
-        upload_fails = true
-        local issue = submit()
-        assert.is_truthy(issue.body:find("[earlier bluetooth diagnostics]", 1, true))
-        assert.is_truthy(issue.body:find("connection diagnostic", 1, true))
-        assert.is_truthy(issue.body:find("recent crash", 1, true))
         os.remove(log_path)
         lfs.rmdir(data_dir)
     end)

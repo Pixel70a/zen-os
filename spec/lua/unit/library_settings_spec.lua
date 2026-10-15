@@ -4,6 +4,7 @@ describe("library settings", function()
 
     local dependencies = {
         "gettext",
+        "device",
         "ui/uimanager",
         "datastorage",
         "common/paths",
@@ -31,6 +32,7 @@ describe("library settings", function()
         "ui/widget/filechooser",
         "common/ui/mosaic_layout_dialog",
         "common/ui/zen_arrange_list",
+        "common/ui/color_wheel_widget",
     }
 
     local function find_item(items, text)
@@ -114,6 +116,55 @@ describe("library settings", function()
         assert.is_nil(find_item(items, "Font"))
         assert.is_nil(find_item(items, "Wallpaper"))
         assert.is_nil(find_item(items, "Status bar"))
+        local badge_sizes = find_item(items, "Badge size").sub_item_table
+        assert.is_true(find_item(badge_sizes, "Normal").checked_func())
+        assert.is_false(find_item(badge_sizes, "Compact").checked_func())
+    end)
+
+    it("uses the color wheel for custom badge colors while preserving presets and reset", function()
+        ZenSpec.replace("device", {})
+        ZenSpec.unload("modules/settings/zen_settings_utils")
+        require("modules/settings/zen_settings_utils")
+        local picker, saves, redraws, updates = nil, 0, 0, 0
+        ZenSpec.replace("common/ui/color_wheel_widget", {
+            new = function(_self, options) return options end,
+        })
+        package.loaded["ui/uimanager"].show = function(_self, widget) picker = widget end
+        package.loaded["ui/uimanager"].setDirty = function() redraws = redraws + 1 end
+        local config = {
+            features = {}, browser_hide_up_folder = {},
+            browser_cover_badges = { badge_color = { 12, 34, 56 } },
+        }
+        local items = require("modules/settings/sections/library_settings").build({
+            config = config, plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        })
+        local colors = find_item(items, "Badges").sub_item_table[2]
+        local custom = colors.sub_item_table[#colors.sub_item_table]
+        local menu = { updateItems = function() updates = updates + 1 end }
+        assert.are.equal("Custom (12,34,56)", custom.text_func())
+        custom.callback(menu)
+        assert.are.equal("Color", picker.title_text)
+        assert.are.equal("#0C2238", picker.hex)
+        assert.is_nil(picker.opacity)
+        assert.are.equal(0, saves)
+        picker.callback("#A1b2C3")
+        assert.are.same({ 161, 178, 195 }, config.browser_cover_badges.badge_color)
+        assert.are.same({ 1, 1, 1 }, { saves, redraws, updates })
+        custom.callback(menu)
+        assert.are.equal("#A1B2C3", picker.hex)
+
+        colors.sub_item_table[1].callback()
+        assert.is_nil(config.browser_cover_badges.badge_color)
+        assert.is_true(colors.sub_item_table[1].checked_func())
+        custom.callback(menu)
+        assert.are.equal("#000000", picker.hex)
+        assert.are.equal("Custom", custom.text_func())
+        assert.are.equal(2, saves)
+        colors.sub_item_table[2].callback()
+        assert.are.same({ 0, 0, 0 }, config.browser_cover_badges.badge_color)
+        assert.is_true(colors.sub_item_table[2].checked_func())
+        assert.are.equal(3, saves)
     end)
 
     it("toggles uniform covers from the outer row and keeps only ratios in its submenu", function()

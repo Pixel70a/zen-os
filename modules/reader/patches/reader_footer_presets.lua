@@ -25,7 +25,7 @@ local preset_order = {
     [18] = "custom_text",
     [19] = "book_author",
     [20] = "page_turning_inverted",
-    [21] = "dynamic_filler_2",
+    [21] = "dynamic_filler2",
 }
 
 -- L/C/R order: chapter time on left, page_progress in center, percentage on right.
@@ -34,7 +34,7 @@ local preset_order_lcr = {
     [1] = "chapter_time_to_read",
     [2] = "dynamic_filler",
     [3] = "page_progress",
-    [4] = "dynamic_filler_2",
+    [4] = "dynamic_filler2",
     [5] = "percentage",
     [6] = "time",
     [7] = "pages_left_book",
@@ -78,7 +78,7 @@ local preset_order_bar = {
     [19] = "custom_text",
     [20] = "book_author",
     [21] = "page_turning_inverted",
-    [22] = "dynamic_filler_2",
+    [22] = "dynamic_filler2",
 }
 
 local presets = {}
@@ -358,7 +358,7 @@ presets[5] = {
         disable_progress_bar = true,
         disabled = false,
         dynamic_filler = true,
-        dynamic_filler_2 = true,
+        dynamic_filler2 = true,
         frontlight = false,
         hide_empty_generators = false,
         initial_marker = false,
@@ -422,7 +422,7 @@ presets[6] = {
         disable_progress_bar = false,
         disabled = false,
         dynamic_filler = false,
-        dynamic_filler_2 = false,
+        dynamic_filler2 = false,
         frontlight = false,
         hide_empty_generators = false,
         initial_marker = false,

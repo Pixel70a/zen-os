@@ -68,6 +68,7 @@ describe("home strip widget", function()
         ZenSpec.replace("common/ui/corner_banner", { paint = function() end })
         ZenSpec.replace("ui/geometry", {
             new = function(_, values)
+                values.x, values.y = values.x or 0, values.y or 0
                 function values:contains(pos)
                     return pos.x >= (self.x or 0) and pos.x < (self.x or 0) + self.w
                         and pos.y >= (self.y or 0) and pos.y < (self.y or 0) + self.h
@@ -97,7 +98,7 @@ describe("home strip widget", function()
             isTouchDevice = function() return touch_device end,
         })
         ZenSpec.replace("ui/font", { getFace = function(_, name, size) return { name = name, size = size } end })
-        ZenSpec.replace("common/utils", {
+        ZenSpec.replace("common/utils", setmetatable({
             deepcopy = function(value)
                 if type(value) ~= "table" then return value end
                 local out = {}
@@ -107,10 +108,9 @@ describe("home strip widget", function()
             getBadgeColor = function() return "badge" end,
             getBadgeTextColor = function() return "text" end,
             isBadgeDark = function() return false end,
-            getBadgeScale = function() return 1 end,
             getBadgeInset = function() return 1 end,
             formatPageCount = function(pages) return tostring(pages) end,
-        })
+        }, { __index = dofile(ZenSpec.root .. "/common/utils.lua") }))
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
             getFace = function(size)
                 library_font_sizes[#library_font_sizes + 1] = size
@@ -403,6 +403,74 @@ describe("home strip widget", function()
             end
         end
         assert.is_true(badge_rects > 0)
+    end)
+
+    it("leaves the rounded cover border to the shared painter after a new banner", function()
+        rawset(_G, "__ZEN_UI_PLUGIN", {
+            config = {
+                features = { browser_cover_rounded_corners = true },
+                browser_cover_badges = { show_new_banner = true },
+            },
+        })
+        cover_frame_border = 2
+        local banners = 0
+        ZenSpec.replace("common/ui/corner_banner", {
+            paint = function() banners = banners + 1 end,
+        })
+        require("modules/filebrowser/patches/home/widgets/strip").build{
+            width = 600, height = 300, component_id = "strip",
+            module_cfg = { count = 3, interactive = false, show_badges = true },
+            data = { getBooksForStrip = function()
+                return {{ path = "/book.epub", status = "new" }}
+            end },
+        }
+        local rectangles = 0
+        for _i, widget in ipairs(created) do
+            if widget.kind == "cover" then
+                widget:paintTo({ paintRect = function() rectangles = rectangles + 1 end }, 10, 20)
+            end
+        end
+
+        assert.are.equal(1, banners)
+        assert.are.equal(0, rectangles)
+    end)
+
+    it("resizes cached badge fonts when the badge size changes", function()
+        local config = {
+            browser_cover_badges = { show_mosaic_progress = true },
+            browser_page_count = { show_page_count = true },
+            browser_series_badge = { show_series_badge = true },
+        }
+        rawset(_G, "__ZEN_UI_PLUGIN", { config = config })
+        require("modules/filebrowser/patches/home/widgets/strip").build{
+            width = 600, height = 300, component_id = "strip",
+            module_cfg = { count = 3, interactive = false, show_badges = true },
+            data = { getBooksForStrip = function()
+                return {{ path = "/book.epub", status = "reading", percent = 0.45,
+                    pages = 120, series_index = 2 }}
+            end },
+        }
+        local cover
+        for _i, widget in ipairs(created) do
+            if widget.kind == "cover" then cover = widget; break end
+        end
+        assert.is_table(cover)
+        local bb = { paintRect = function() end, paintRectRGB32 = function() end }
+        for _i, preset in ipairs({
+            { "compact", 7 }, { "normal", 8 }, { "large", 9 }, { "extra_large", 11 },
+        }) do
+            config.browser_cover_badges.badge_size = preset[1]
+            cover:paintTo(bb, 0, 0)
+            local fonts = {}
+            for _j, widget in ipairs(created) do
+                if widget.kind == "ui/widget/textwidget" and not widget.free_calls then
+                    fonts[widget.text] = widget.face.size
+                end
+            end
+            assert.are.equal(preset[2], fonts["45%"])
+            assert.are.equal(preset[2], fonts["120"])
+            assert.are.equal(preset[2], fonts["#2"])
+        end
     end)
 
     it("reduces the page size when the strip is too narrow for readable covers", function()
@@ -1041,6 +1109,49 @@ describe("home strip widget", function()
         end
         assert.are.equal(226, wide_search_width)
         assert.are.same({ 226, 225 }, wide_label_widths)
+    end)
+
+    it("preserves the strip accent and contrast across dark mode round trips", function()
+        require("ffi/loadlib")
+        ZenSpec.unload("ffi/blitbuffer")
+        local Blitbuffer = require("ffi/blitbuffer")
+        local screen = require("device").screen
+        screen.isColorScreen = function() return true end
+        rawset(_G, "__ZEN_UI_PLUGIN", { config = { accent_color = "#204080" } })
+        local FrameContainer = widget_class("ui/widget/container/framecontainer")
+        ZenSpec.replace("ui/widget/container/framecontainer", { new = function(_self, values)
+            values.paintTo = function(self, bb, x, y)
+                bb:paintRectRGB32(x, y, self.width, self.height, self.background)
+            end
+            return FrameContainer:new(values)
+        end })
+        local StripControls = require("modules/filebrowser/patches/home/widgets/strip_controls")
+        local accent = Blitbuffer.ColorRGB32(32, 64, 128, 255)
+        for _i, initially_dark in ipairs({ false, true }) do
+            screen.night_mode = initially_dark
+            local frame, targets = StripControls.build{
+                width = 600, height = 30, active_id = "recent",
+                controls = {
+                    order = { "recent", "to_be_read" },
+                    show_buttons = { recent = true, to_be_read = true },
+                    labels = {}, custom_buttons = {},
+                },
+                prepare_focus = function(_target, widget) return widget end,
+            }
+            local cell = frame[1][1]
+            local bb = Blitbuffer.new(cell.width, cell.height, Blitbuffer.TYPE_BBRGB32)
+            for _j, night_mode in ipairs({ initially_dark, not initially_dark, initially_dark }) do
+                screen.night_mode = night_mode
+                cell:paintTo(bb, 0, 0)
+                local color = bb:getPixel(0, 0):getColorRGB32()
+                if night_mode then color = color:invert() end
+                assert.are.equal(tostring(accent), tostring(color))
+                local foreground = night_mode and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE
+                assert.are.equal(foreground, cell[1][1].fgcolor)
+                assert.are.equal(foreground, targets[1].focus_color)
+            end
+            bb:free()
+        end
     end)
 
     it("outlines a lone source tab, including when page arrows are visible", function()
@@ -2161,7 +2272,7 @@ describe("home strip widget", function()
             },
             shiftStrip = function(source, count, order, direction, component_id, two_rows, refresh)
                 shifted = { source, count, order, direction, component_id, two_rows }
-                show_second = true
+                show_second = direction == "next"
                 refresh()
                 return true
             end,
@@ -2174,13 +2285,80 @@ describe("home strip widget", function()
 
         widget.dimen.x, widget.dimen.y = 10, 511
         content_bounds.set_shift(-11)
+        local first_frame = widget[1]
         assert.is_true(widget:onSwipeStrip(nil, { pos = { x = 20, y = 520 }, direction = "west" }))
         assert.are.same({ { kind = "recent" }, 4, "default", "next", "strip", false }, shifted)
         assert.are.same({ first, second }, cover_books)
         assert.are.equal(1, refreshed)
-        assert.are.same({ 10, 500, 600, 171 }, {
+        assert.are.same({ 8, 498, 604, 175 }, {
             dirty.x, dirty.y, dirty.w, dirty.h,
         })
+
+        assert.is_true(widget:onSwipeStrip(nil, { pos = { x = 20, y = 520 }, direction = "east" }))
+        assert.are.equal(first_frame, widget[1])
+        assert.are.equal(2, refreshed)
+        assert.are.same({ first, second }, cover_books)
+    end)
+
+    it("refreshes the painted top border of a two-row strip without controls", function()
+        touch_device = true
+        ZenSpec.replace("ui/bidi", { mirroredUILayout = function() return false end })
+        ZenSpec.replace("util", {})
+        ZenSpec.replace("ui/size", {
+            border = { window = 0 }, padding = { default = 0 },
+            span = { horizontal_default = 0, vertical_default = 0 },
+        })
+        ZenSpec.replace("ui/widget/imagewidget", widget_class("image"))
+        require("device").hasKeys = function() return false end
+        require("ffi/blitbuffer").isColor8 = function() return true end
+        require("common/cover_utils").BORDER_SIZE = 2
+        _G.__ZEN_UI_PLUGIN = { config = { features = { browser_cover_rounded_corners = false } } }
+        for _i, name in ipairs({
+            "ui/geometry", "ui/widget/widget", "ui/widget/container/widgetcontainer",
+            "ui/widget/container/inputcontainer", "ui/widget/container/framecontainer",
+            "ui/widget/container/centercontainer", "ui/widget/container/leftcontainer",
+            "ui/widget/container/topcontainer", "ui/widget/verticalgroup",
+            "ui/widget/verticalspan", "ui/widget/horizontalgroup", "ui/widget/horizontalspan",
+            "modules/filebrowser/patches/home/widgets/cover_common",
+        }) do
+            ZenSpec.unload(name)
+        end
+        local books = {}
+        for i = 1, 8 do books[i] = { title = tostring(i) } end
+        local dirty, bounds
+        local widget = require("modules/filebrowser/patches/home/widgets/strip").build{
+            width = 600, height = 400,
+            component_id = "strip",
+            module_cfg = { count = 8, two_rows = true, controls = { enabled = false } },
+            data = { getStripItemsForPage = function() return books, false end },
+            setContentBounds = function(value) bounds = value end,
+            shiftStrip = function(_source, _count, _order, _direction, _id, _two_rows, refresh)
+                refresh()
+                return true
+            end,
+            refreshStrip = function(dimen) dirty = dimen end,
+        }
+        local painted_top
+        local function record(_bb, _x, y, _w, _h, color)
+            if color ~= "white" then painted_top = math.min(painted_top or y, y) end
+        end
+        local bb = { paintRect = record, paintRoundedRect = record, paintBorder = record }
+        local settings = G_reader_settings
+        finally(function() _G.G_reader_settings = settings end)
+        _G.G_reader_settings = { nilOrTrue = function() return false end }
+        for _i, shift in ipairs({ -20, 0, 20 }) do
+            bounds.set_shift(shift)
+            for _j, direction in ipairs({ "west", "east" }) do
+                widget:paintTo(bb, 10, 500)
+                assert.is_true(widget:onSwipeStrip(nil, {
+                    pos = { x = 20, y = 520, w = 0, h = 0 }, direction = direction,
+                }))
+                painted_top = nil
+                widget:paintTo(bb, 10, 500)
+                assert.is_true(dirty.y <= painted_top,
+                    "refresh starts at " .. dirty.y .. " but covers start at " .. painted_top)
+            end
+        end
     end)
 
     it("hydrates cold visible covers after paint with a strip-only refresh", function()

@@ -425,6 +425,27 @@ describe("quick settings plugin controls", function()
         assert.are.equal("/tmp/zen-ui/icons/app_launcher.svg", controls.launcher.icon)
     end)
 
+    it("renders the selected pack's Zen toggle icon in Controls", function()
+        local utils = require("common/utils")
+        local resolve = utils.resolveIcon
+        local zen_icon = "/koreader/icons/zen/zen-solar-colour/quick_zen.svg"
+        utils.resolveIcon = function(icons_dir, name)
+            if name == "quick_zen" then return zen_icon end
+            return resolve(icons_dir, name)
+        end
+        require("modules/menu/patches/quick_settings")()
+        local config = _G.__ZEN_UI_PLUGIN.config.quick_settings
+        config.button_order = { "zen" }
+        config.show_buttons = { zen = true }
+        local menu = {}
+        FileManagerMenu.setUpdateItemTable(menu)
+        local touch_menu = { item_width = 600 }
+        menu.tab_item_table[1].panel(touch_menu)
+        local zen = touch_menu._zen_panel_refs.buttons[1]
+        assert.are.equal("zen", zen.id)
+        assert.are.equal(zen_icon, zen.widget[1][1].file)
+    end)
+
     it("offers Battery Stats as a control and opens the Zen page", function()
         _G.__ZEN_UI_PLUGIN.config._meta = { installed_plugins = {} }
         local controls = {}
@@ -443,7 +464,7 @@ describe("quick settings plugin controls", function()
         assert.are.equal(_G.__ZEN_UI_PLUGIN, opened_plugin)
     end)
 
-    it("renders default controls while the setup tour is pending", function()
+    it("preserves configured controls while the setup tour is pending", function()
         _G.__ZEN_UI_PLUGIN.config._meta = { quickstart_menu_tour_pending = true }
         local menu = {}
         FileManagerMenu.setUpdateItemTable(menu)
@@ -457,7 +478,7 @@ describe("quick settings plugin controls", function()
             return ids
         end
 
-        assert.are.same({ "wifi", "night", "rotate", "zen", "restart", "sleep" }, rendered_ids())
+        assert.are.same({ "tailscale" }, rendered_ids())
         assert.are.same({ "tailscale" }, _G.__ZEN_UI_PLUGIN.config.quick_settings.button_order)
 
         _G.__ZEN_UI_PLUGIN.config._meta.quickstart_menu_tour_pending = false
@@ -610,18 +631,20 @@ describe("quick settings plugin controls", function()
         FileManagerMenu.setUpdateItemTable(menu)
         menu.tab_item_table[1].panel(touch_menu)
         assert.are.equal("gray", touch_menu._zen_panel_refs.buttons[1].widget.background)
+        assert.are.equal(2, touch_menu._zen_panel_refs.buttons[1].widget.bordersize)
 
         NetworkMgr.isWifiChanging = function() return false end
         NetworkMgr.lease_ssid = "Home"
         menu.tab_item_table[1].panel(touch_menu)
         assert.are.equal("black", touch_menu._zen_panel_refs.buttons[1].widget.background)
+        assert.are.equal(2, touch_menu._zen_panel_refs.buttons[1].widget.bordersize)
 
         NetworkMgr.connected = false
         menu.tab_item_table[1].panel(touch_menu)
         assert.are.equal("gray", touch_menu._zen_panel_refs.buttons[1].widget.background)
     end)
 
-    it("uses configured labels and icons", function()
+    it("updates configured labels and icons without reapplying the patch", function()
         local config = _G.__ZEN_UI_PLUGIN.config.quick_settings
         config.gyro_label = "Turn with device"
         config.gyro_icon = "atom"
@@ -629,9 +652,6 @@ describe("quick settings plugin controls", function()
         config.zen_settings_icon = "settings"
         config.launcher_label = "Apps"
         config.launcher_icon = "grid"
-        ZenSpec.unload("modules/menu/patches/quick_settings")
-        require("modules/menu/patches/quick_settings")()
-
         local autorotate, settings, launcher
         for _i, item in ipairs(_G.__ZEN_UI_QUICK_SETTINGS.getItems()) do
             if item.id == "gyro" then autorotate = item end
@@ -645,6 +665,64 @@ describe("quick settings plugin controls", function()
         assert.are.equal("/tmp/zen-ui/icons/settings.svg", settings.icon)
         assert.are.equal("Apps", launcher.label)
         assert.are.equal("/tmp/zen-ui/icons/grid.svg", launcher.icon)
+    end)
+
+    it("renders Settings icon changes and resets without a restart", function()
+        local config = _G.__ZEN_UI_PLUGIN.config.quick_settings
+        config.button_order = { "zen_settings" }
+        config.show_buttons = { zen_settings = true }
+        local menu = {}
+        FileManagerMenu.setUpdateItemTable(menu)
+        local touch_menu = { item_width = 600 }
+
+        for _i, choice in ipairs({
+            { icon = "settings", label = "Preferences", expected = "settings" },
+            { icon = "/koreader/icons/zen/solar/atom.svg", label = "Options",
+                expected = "/koreader/icons/zen/solar/atom.svg" },
+            { icon = "", label = "", expected = "zen_ui" },
+        }) do
+            config.zen_settings_icon = choice.icon
+            config.zen_settings_label = choice.label
+            menu.tab_item_table[1].panel(touch_menu)
+            local button = touch_menu._zen_panel_refs.buttons[1]
+            local expected = choice.expected:sub(1, 1) == "/" and choice.expected
+                or "/tmp/zen-ui/icons/" .. choice.expected .. ".svg"
+            assert.are.equal("zen_settings", button.id)
+            assert.are.equal(expected, button.widget[1][1].file)
+        end
+    end)
+
+    it("lists ZenPM only when installed and opens it after closing the menu", function()
+        local controls = _G.__ZEN_UI_QUICK_SETTINGS
+        local config = _G.__ZEN_UI_PLUGIN.config
+        config._meta = { installed_plugins = {} }
+        assert.is_false(controls.has("zenpm"))
+        assert.is_false(controls.activate("zenpm"))
+
+        config._meta.installed_plugins.zenpm = true
+        local zenpm_item
+        for _i, item in ipairs(controls.getItems()) do
+            if item.id == "zenpm" then zenpm_item = item end
+        end
+        assert.is_table(zenpm_item)
+        assert.are.equal("ZenPM", zenpm_item.label)
+        assert.are.equal("/tmp/zen-ui/icons/zenpm.svg", zenpm_item.icon)
+        assert.is_false(config.quick_settings.show_buttons.zenpm)
+
+        local closes = 0
+        local opens = 0
+        require("ui/uimanager").broadcastEvent = function(_self, event)
+            assert.are.equal("OpenZenPM", event.name)
+            assert.are.equal(opens + 1, closes)
+            opens = opens + 1
+        end
+        for _i, module_name in ipairs({ "apps/filemanager/filemanager", "apps/reader/readerui" }) do
+            require(module_name).instance = {}
+            assert.is_true(controls.activate("zenpm", {
+                closeMenu = function() closes = closes + 1 end,
+            }))
+        end
+        assert.are.equal(2, opens)
     end)
 
     it("lists and toggles ZenFM without closing the menu", function()
@@ -999,9 +1077,14 @@ describe("quick settings plugin controls", function()
         end
         local menu = {}
         FileManagerMenu.setUpdateItemTable(menu)
-        local controls = menu.tab_item_table[1].panel({ item_width = 600 })
+        local controls_menu = { item_width = 600 }
+        local controls = menu.tab_item_table[1].panel(controls_menu)
         assert.are.equal(8, controls[1].width)
         assert.are.equal(status_row, controls[2])
+        local controls_status = controls_menu._zen_panel_refs.status_row
+        assert.are.equal(controls, controls_status.parent)
+        assert.are.equal(status_row, controls[controls_status.index])
+        assert.are.equal(status_row, controls_status.build())
         local launcher = _G.__ZEN_UI_BUILD_APP_LAUNCHER_PREVIEW
         for _i, enabled in ipairs({ true, false }) do
             status_enabled = enabled
@@ -1019,6 +1102,12 @@ describe("quick settings plugin controls", function()
                 if enabled then
                     assert.are.equal(controls[1].width, panel[1].width)
                     assert.are.equal(status_row, panel[2])
+                    local status = touch_menu._zen_panel_refs.status_row
+                    assert.are.equal(panel, status.parent)
+                    assert.are.equal(status_row, panel[status.index])
+                    assert.are.equal(status_row, status.build())
+                else
+                    assert.is_nil(touch_menu._zen_panel_refs.status_row)
                 end
                 if page > button_pages then
                     assert.are.equal(enabled and 376 or 416, content_height)

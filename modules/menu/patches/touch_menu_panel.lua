@@ -76,6 +76,8 @@ function M.install(plugin)
     local GestureRange = require("ui/gesturerange")
     local T = require("ffi/util").template
     local UIManager = require("ui/uimanager")
+    local Accent = require("common/ui/accent")
+    local getFullRefreshMode = require("common/ui/refresh")
     local ZenSlider = require("common/ui/zen_slider")
     local _ = require("gettext")
     local Screen = Device.screen
@@ -225,14 +227,19 @@ function M.install(plugin)
         end
 
         local keep_bg = old_dimen and self.dimen.h >= old_dimen.h
+        local colored = Accent.isEnabled(active_plugin and active_plugin.config)
+        local is_fresh = self.is_fresh -- Background hatching may clear this in onShow.
         UIManager:setDirty((self.is_fresh or keep_bg) and self.show_parent or "all", function()
             local refresh_dimen = old_dimen and old_dimen:combine(self.dimen) or self.dimen
-            local refresh_type = "ui"
-            if self.is_fresh then
-                refresh_type = "flashui"
+            -- Match Colorsoft's first frame to non-flashing accent feedback.
+            local color_refresh = colored
+                and not (Device.isKindle and Device:isKindle() and not Screen.night_mode)
+            local refresh_type = color_refresh and "partial" or "ui"
+            if self.is_fresh or (colored and is_fresh) then
+                refresh_type = colored and getFullRefreshMode() or "flashui"
                 self.is_fresh = false
             end
-            return refresh_type, refresh_dimen
+            return refresh_type, refresh_dimen, color_refresh
         end)
     end
 

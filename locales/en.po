@@ -14,31 +14,37 @@ msgstr " days"
 
 #. Type: format
 #. Context: Formatted text in the book metadata editor. Formatted text in the online book catalog browser.
-#: metadata_editor.lua:269 opds.lua:1651
+#: metadata_editor.lua:269 opds.lua:1652
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
 #. Type: format
 #. Context: Formatted text in the book and folder context menu.
-#: context_menu.lua:640
+#: context_menu.lua:641
 msgid "%1 files"
 msgstr "%1 files"
 
 #. Type: setting
+#. Context: CPU clock speed in gigahertz; %1 is a number or a minimum-to-maximum range.
+#: about_settings.lua:22 about_settings.lua:110
+msgid "%1 GHz"
+msgstr "%1 GHz"
+
+#. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Formatted text in the reading-time display in the reader status bar.
-#: reader_footer_time_format.lua:70 reader_settings.lua:1274
+#: reader_footer_time_format.lua:70 reader_settings.lua:1275
 msgid "%1 min left"
 msgstr "%1 min left"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Formatted text in the reading-time display in the reader status bar.
-#: reader_footer_time_format.lua:70 reader_settings.lua:1273
+#: reader_footer_time_format.lua:70 reader_settings.lua:1274
 msgid "%1 min left in chapter"
 msgstr "%1 min left in chapter"
 
 #. Type: format
 #. Context: Formatted text in the top reading status bar.
-#: reader_top_status_bar.lua:351
+#: reader_top_status_bar.lua:349
 msgid "%1 of %2"
 msgstr "%1 of %2"
 
@@ -56,7 +62,7 @@ msgstr "%1 rejected its API credential. Open metadata settings?"
 
 #. Type: format
 #. Context: Formatted text in the book metadata editor.
-#: metadata_editor.lua:389 metadata_editor.lua:678
+#: metadata_editor.lua:390 metadata_editor.lua:679
 msgid "%1 · %2"
 msgstr "%1 · %2"
 
@@ -86,21 +92,21 @@ msgstr "%1h %2m"
 
 #. Type: unit
 #. Context: Measurement or duration unit in the reading-time display in the reader status bar. Measurement or duration unit in the Reader appearance and behavior settings.
-#: reader_footer_time_format.lua:33 reader_settings.lua:1275
+#: reader_footer_time_format.lua:33 reader_settings.lua:1276
 msgid "%1m"
 msgstr "%1m"
-
-#. Type: format
-#. Context: Formatted text in the Home page and its widgets.
-#: featured_common.lua:390
-msgid "%d%% read"
-msgstr "%d%% read"
 
 #. Type: status
 #. Context: Status message in the book library.
 #: browser_list_item_layout.lua:479
 msgid "%d%% Read"
 msgstr "%d%% Read"
+
+#. Type: format
+#. Context: Formatted text in the Home page and its widgets.
+#: featured_common.lua:390
+msgid "%d%% read"
+msgstr "%d%% read"
 
 #. Type: format
 #. Context: Formatted text in the reading goal settings and Home widget.
@@ -140,7 +146,7 @@ msgstr "%s time goal (min)"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings. Settings label in the navigation bar settings.
-#: menu_settings.lua:960 navbar_settings.lua:857
+#: menu_settings.lua:961 navbar_settings.lua:846
 msgid "(auto)"
 msgstr "(auto)"
 
@@ -152,7 +158,7 @@ msgstr "(Kindle)"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Settings label in the Quick Settings button settings. Settings label in the navigation bar settings.
-#: app_launcher_settings.lua:649 app_launcher_settings.lua:779 app_launcher_settings.lua:800 app_launcher_settings.lua:826 app_launcher_settings.lua:839 app_launcher_settings.lua:850 menu_settings.lua:848 menu_settings.lua:860 menu_settings.lua:891 menu_settings.lua:931 navbar_settings.lua:752 navbar_settings.lua:772 navbar_settings.lua:792 navbar_settings.lua:804 navbar_settings.lua:831
+#: app_launcher_settings.lua:649 app_launcher_settings.lua:779 app_launcher_settings.lua:800 app_launcher_settings.lua:826 app_launcher_settings.lua:839 app_launcher_settings.lua:850 menu_settings.lua:849 menu_settings.lua:861 menu_settings.lua:892 menu_settings.lua:932 navbar_settings.lua:741 navbar_settings.lua:761 navbar_settings.lua:781 navbar_settings.lua:793 navbar_settings.lua:820
 msgid "(none)"
 msgstr "(none)"
 
@@ -170,13 +176,13 @@ msgstr "1 author"
 
 #. Type: label
 #. Context: Label in the book collections menu. Label in the book and folder context menu. Label in the library groups for authors, series, and tags.
-#: collections.lua:442 collections.lua:540 context_menu.lua:1115 context_menu.lua:1740 group_view.lua:1354
+#: collections.lua:442 collections.lua:540 context_menu.lua:1116 context_menu.lua:1741 group_view.lua:1354
 msgid "1 book"
 msgstr "1 book"
 
 #. Type: title
 #. Context: Title in the book and folder context menu.
-#: context_menu.lua:639
+#: context_menu.lua:640
 msgid "1 file"
 msgstr "1 file"
 
@@ -200,37 +206,37 @@ msgstr "1 tag"
 
 #. Type: option
 #. Context: Selectable option in the setup guide.
-#: quickstart_pages.lua:753
+#: quickstart_pages.lua:783
 msgid "12-hour  (3:30 PM)"
 msgstr "12-hour  (3:30 PM)"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings.
-#: interface_settings.lua:136
+#: interface_settings.lua:137
 msgid "12-hour time"
 msgstr "12-hour time"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:1292 menu_settings.lua:153
+#: quick_settings.lua:1301 menu_settings.lua:154
 msgid "180°"
 msgstr "180°"
 
 #. Type: option
 #. Context: Selectable option in the setup guide.
-#: quickstart_pages.lua:754
+#: quickstart_pages.lua:784
 msgid "24-hour  (15:30)"
 msgstr "24-hour  (15:30)"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:1293 menu_settings.lua:154
+#: quick_settings.lua:1302 menu_settings.lua:155
 msgid "270°"
 msgstr "270°"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:1291 menu_settings.lua:152
+#: quick_settings.lua:1300 menu_settings.lua:153
 msgid "90°"
 msgstr "90°"
 
@@ -254,7 +260,7 @@ msgstr "A book with that name already exists in the destination."
 
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:653
+#: quickstart_pages.lua:683
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 
@@ -306,6 +312,12 @@ msgstr "A short summary of what went wrong"
 msgid "About"
 msgstr "About"
 
+#. Type: title
+#. Context: Interface accent color settings.
+#: quickstart_pages.lua:576 interface_settings.lua:155 interface_settings.lua:167 interface_settings.lua:174
+msgid "Accent color"
+msgstr "Accent color"
+
 #. Type: action
 #. Context: Action label in the ZenOS interface.
 #: mosaic_layout_dialog.lua:54
@@ -314,31 +326,19 @@ msgstr "Accept"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Settings label in the Quick Settings button settings. Settings label in the Home layout and widget settings. Also used elsewhere in ZenOS.
-#: app_launcher_settings.lua:171 app_launcher_settings.lua:172 app_launcher_settings.lua:264 app_launcher_settings.lua:563 app_launcher_settings.lua:647 app_launcher_settings.lua:649 menu_settings.lua:716 menu_settings.lua:804 menu_settings.lua:929 menu_settings.lua:931 home_settings.lua:1443 home_settings.lua:1484 navbar_settings.lua:357 navbar_settings.lua:829 navbar_settings.lua:831 navbar_settings.lua:1410
+#: app_launcher_settings.lua:171 app_launcher_settings.lua:172 app_launcher_settings.lua:264 app_launcher_settings.lua:563 app_launcher_settings.lua:647 app_launcher_settings.lua:649 menu_settings.lua:717 menu_settings.lua:805 menu_settings.lua:930 menu_settings.lua:932 home_settings.lua:1443 home_settings.lua:1484 navbar_settings.lua:346 navbar_settings.lua:818 navbar_settings.lua:820 navbar_settings.lua:1399
 msgid "Action"
 msgstr "Action"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: interface_settings.lua:107 interface_settings.lua:111 navbar_settings.lua:1622
+#: interface_settings.lua:109 interface_settings.lua:113 navbar_settings.lua:1611
 msgid "Active tab"
 msgstr "Active tab"
 
-#. Type: setting
-#. Context: Settings label in the Interface appearance settings.
-#: interface_settings.lua:115
-msgid "Active tab color"
-msgstr "Active tab color"
-
-#. Type: setting
-#. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:1672
-msgid "Active tab outline color"
-msgstr "Active tab outline color"
-
 #. Type: title
 #. Context: Title in the Launcher button and page settings. Title in the Quick Settings button settings. Title in the Home layout and widget settings. Also used elsewhere in ZenOS.
-#: app_launcher_settings.lua:285 app_launcher_settings.lua:940 menu_settings.lua:707 home_settings.lua:1619 navbar_settings.lua:1444
+#: app_launcher_settings.lua:285 app_launcher_settings.lua:940 menu_settings.lua:708 home_settings.lua:1619 navbar_settings.lua:1433
 msgid "Add"
 msgstr "Add"
 
@@ -356,13 +356,13 @@ msgstr "Add book"
 
 #. Type: button
 #. Context: Button label in the Launcher panel.
-#: app_launcher.lua:598
+#: app_launcher.lua:592
 msgid "Add buttons"
 msgstr "Add buttons"
 
 #. Type: button
 #. Context: Button label in the online book catalog browser.
-#: opds.lua:1581 opds.lua:1626
+#: opds.lua:1582 opds.lua:1627
 msgid "Add catalog"
 msgstr "Add catalog"
 
@@ -374,7 +374,7 @@ msgstr "Add control"
 
 #. Type: message
 #. Context: Message in the setup guide.
-#: quickstart_pages.lua:710
+#: quickstart_pages.lua:740
 msgid "Add custom buttons for other plugins or actions."
 msgstr "Add custom buttons for other plugins or actions."
 
@@ -398,7 +398,7 @@ msgstr "Add plugin"
 
 #. Type: title
 #. Context: Title in the book and folder context menu. Action label in the setup guide.
-#: quickstart_pages.lua:305 context_menu.lua:562 context_menu.lua:743 context_menu.lua:2402
+#: quickstart_pages.lua:305 context_menu.lua:563 context_menu.lua:744 context_menu.lua:2420
 msgid "Add to collection"
 msgstr "Add to collection"
 
@@ -410,7 +410,7 @@ msgstr "Add to vocabulary builder"
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:555
+#: context_menu.lua:556
 msgid "added"
 msgstr "added"
 
@@ -426,6 +426,12 @@ msgstr "Additional home folders"
 msgid "Address"
 msgstr "Address"
 
+#. Type: message
+#. Context: Quickstart coachmark highlighting the KOReader settings section.
+#: menu_tour.lua:15
+msgid "Adjust KOReader settings here. These tabs were previously located in the top menu"
+msgstr "Adjust KOReader settings here. These tabs were previously located in the top menu"
+
 #. Type: setting
 #. Context: Settings label in the General settings.
 #: general_settings.lua:81
@@ -434,51 +440,51 @@ msgstr "Advanced"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:830 menu_settings.lua:112
+#: quick_settings.lua:828 menu_settings.lua:112
 msgid "Airplane mode"
 msgstr "Airplane mode"
 
 #. Type: label
 #. Context: Label in the online book catalog browser.
-#: opds.lua:1829
+#: opds.lua:1830
 msgid "Alexandre Dumas"
 msgstr "Alexandre Dumas"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1536
+#: reader_settings.lua:1537
 msgid "Align status bars with book margins"
 msgstr "Align status bars with book margins"
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:1191 context_menu.lua:2789
+#: context_menu.lua:1192 context_menu.lua:2790
 msgid "All"
 msgstr "All"
 
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:805
+#: quickstart_pages.lua:835
 msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall ZenOS updates directly from your device."
 msgstr "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall ZenOS updates directly from your device."
 
 #. Type: setting
 #. Context: Settings label in the Home layout and widget settings. Settings label in the navigation bar settings.
-#: home_settings.lua:1307 navbar_settings.lua:402
+#: home_settings.lua:1307 navbar_settings.lua:391
 msgid "All tags"
 msgstr "All tags"
-
-#. Type: label
-#. Context: Label in the reading statistics page.
-#: stats_page.lua:64
-msgid "All Time"
-msgstr "All Time"
 
 #. Type: setting
 #. Context: Settings label in the reading statistics settings.
 #: stats_settings.lua:31
 msgid "All time"
 msgstr "All time"
+
+#. Type: label
+#. Context: Label in the reading statistics page.
+#: stats_page.lua:64
+msgid "All Time"
+msgstr "All Time"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
@@ -500,25 +506,25 @@ msgstr "Amber"
 
 #. Type: error
 #. Context: Error message in the book metadata editor.
-#: metadata_editor.lua:1093 metadata_editor.lua:1177 metadata_editor.lua:38
+#: metadata_editor.lua:1094 metadata_editor.lua:1178 metadata_editor.lua:38
 msgid "An EPUB language is required."
 msgstr "An EPUB language is required."
 
 #. Type: title
 #. Context: Title in the book metadata editor.
-#: metadata_editor.lua:1092 metadata_editor.lua:1174 metadata_editor.lua:37
+#: metadata_editor.lua:1093 metadata_editor.lua:1175 metadata_editor.lua:37
 msgid "An EPUB title is required."
 msgstr "An EPUB title is required."
 
 #. Type: dialog
 #. Context: Dialog text in the book and folder context menu.
-#: context_menu.lua:2317
+#: context_menu.lua:2135
 msgid "An item with that name already exists."
 msgstr "An item with that name already exists."
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings. Settings label in the Home layout and widget settings. Label in the book details dialog.
-#: library_settings.lua:963 home_settings.lua:2486 book_details.lua:386
+#: book_details.lua:386 library_settings.lua:963 home_settings.lua:2486
 msgid "Annotations"
 msgstr "Annotations"
 
@@ -530,7 +536,7 @@ msgstr "App"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:1321
+#: library_settings.lua:1324
 msgid "Appearance"
 msgstr "Appearance"
 
@@ -542,13 +548,13 @@ msgstr "Apply"
 
 #. Type: button
 #. Context: Button label in the book reading-status menu. Label in the menus and dialogs for moving books into or out of the configured archive folder. Label in the library navigation bar. Also used elsewhere in ZenOS.
-#: archive_actions.lua:164 archive_actions.lua:207 archive_actions.lua:211 archive_actions.lua:255 navbar.lua:245 end_book_data.lua:28 book_status.lua:242 library_settings.lua:1219 navbar_settings.lua:204
+#: archive_actions.lua:164 archive_actions.lua:207 archive_actions.lua:211 archive_actions.lua:255 navbar.lua:249 end_book_data.lua:31 book_status.lua:242 library_settings.lua:1219 navbar_settings.lua:193
 msgid "Archive"
 msgstr "Archive"
 
 #. Type: dialog
 #. Context: Dialog text in the library navigation bar.
-#: navbar.lua:1244
+#: navbar.lua:1248
 msgid "Archive folder not found: %1"
 msgstr "Archive folder not found: %1"
 
@@ -560,7 +566,7 @@ msgstr "Archive this book?"
 
 #. Type: dialog
 #. Context: Dialog text in the Quick Settings panel.
-#: quick_settings.lua:707
+#: quick_settings.lua:705
 msgid "Are you sure you want to exit KOReader?"
 msgstr "Are you sure you want to exit KOReader?"
 
@@ -578,43 +584,37 @@ msgstr "Are you sure you want to quit KOReader?"
 
 #. Type: dialog
 #. Context: Dialog text in the Quick Settings panel.
-#: quick_settings.lua:694
+#: quick_settings.lua:692
 msgid "Are you sure you want to restart KOReader?"
 msgstr "Are you sure you want to restart KOReader?"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Label in the book collections menu. Settings label in the library status bar settings.
-#: collections.lua:642 reader_settings.lua:366 status_bar_settings.lua:127
+#: collections.lua:642 reader_settings.lua:367 status_bar_settings.lua:127
 msgid "Arrange"
 msgstr "Arrange"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: reader_settings.lua:500 status_bar_settings.lua:325
+#: reader_settings.lua:501 status_bar_settings.lua:325
 msgid "Arrange center items"
 msgstr "Arrange center items"
 
 #. Type: title
 #. Context: Title in the bottom reading status bar.
-#: reader_footer.lua:257
+#: reader_footer.lua:276
 msgid "Arrange items"
 msgstr "Arrange items"
 
-#. Type: menu
-#. Context: Menu entry in the bottom reading status bar.
-#: reader_footer.lua:163
-msgid "Arrange items in status bar"
-msgstr "Arrange items in status bar"
-
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: reader_settings.lua:496 status_bar_settings.lua:321
+#: reader_settings.lua:497 status_bar_settings.lua:321
 msgid "Arrange left items"
 msgstr "Arrange left items"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: reader_settings.lua:504 status_bar_settings.lua:329
+#: reader_settings.lua:505 status_bar_settings.lua:329
 msgid "Arrange right items"
 msgstr "Arrange right items"
 
@@ -626,7 +626,7 @@ msgstr "Ascending"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:286
+#: navbar_settings.lua:275
 msgid "At least one tab must be visible"
 msgstr "At least one tab must be visible"
 
@@ -644,13 +644,13 @@ msgstr "Authentication failed. The password may be incorrect."
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Help text in the book metadata editor. Settings label in the Home layout and widget settings.
-#: metadata_editor.lua:964 reader_settings.lua:222 home_settings.lua:825
+#: metadata_editor.lua:964 reader_settings.lua:223 home_settings.lua:825
 msgid "Author"
 msgstr "Author"
 
 #. Type: title
 #. Context: Title in the gesture and shortcut action menu. Label in the navigation tabs and Quick Settings buttons. Selectable option in the setup guide. Also used elsewhere in ZenOS.
-#: dispatch_action.lua:506 nav_button_model.lua:9 quickstart_pages.lua:688 metadata_editor.lua:47 metadata_editor.lua:507 context_menu.lua:2630 group_view.lua:1370 group_view.lua:1415 navbar.lua:290 library_settings.lua:612 library_settings.lua:958 home_settings.lua:1070 navbar_settings.lua:186
+#: dispatch_action.lua:506 nav_button_model.lua:9 quickstart_pages.lua:718 metadata_editor.lua:48 metadata_editor.lua:508 context_menu.lua:2631 group_view.lua:1370 group_view.lua:1415 navbar.lua:294 library_settings.lua:612 library_settings.lua:958 home_settings.lua:1070 navbar_settings.lua:175
 msgid "Authors"
 msgstr "Authors"
 
@@ -686,11 +686,11 @@ msgstr "Automatic suspend"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:654 menu_settings.lua:57 menu_settings.lua:1086
+#: quick_settings.lua:1159 menu_settings.lua:57 menu_settings.lua:1087
 msgid "Autorotate"
 msgstr "Autorotate"
 
-#. Type: dialog
+#. Type: setting
 #. Context: Device statistics label for RAM available to applications. Bluetooth status for a detected device that is not paired or connected; Wi-Fi status for a detected network that is not saved or connected.
 #: bluetooth_switcher.lua:115 bluetooth_switcher.lua:188 network_switcher.lua:622 network_switcher.lua:778 about_settings.lua:93
 msgid "Available"
@@ -698,49 +698,43 @@ msgstr "Available"
 
 #. Type: button
 #. Context: Button label in the Launcher panel.
-#: app_launcher.lua:446
+#: app_launcher.lua:440
 msgid "Back"
 msgstr "Back"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:874 reader_settings.lua:877
+#: reader_settings.lua:875 reader_settings.lua:878
 msgid "Background color"
 msgstr "Background color"
 
 #. Type: message
 #. Context: Message in the Interface appearance settings.
-#: interface_settings.lua:314
+#: interface_settings.lua:361
 msgid "Background image could not be loaded. It may be corrupt or unsupported."
 msgstr "Background image could not be loaded. It may be corrupt or unsupported."
 
 #. Type: message
 #. Context: Message in the Interface appearance settings.
-#: interface_settings.lua:310
+#: interface_settings.lua:357
 msgid "Background image file not found."
 msgstr "Background image file not found."
 
-#. Type: title
-#. Context: Title in the Library appearance and behavior settings.
-#: library_settings.lua:311
-msgid "Badge color RGB"
-msgstr "Badge color RGB"
-
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:288
+#: library_settings.lua:289
 msgid "Badge color: "
 msgstr "Badge color: "
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:255
+#: library_settings.lua:256
 msgid "Badge size"
 msgstr "Badge size"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:252
+#: library_settings.lua:253
 msgid "Badges"
 msgstr "Badges"
 
@@ -752,7 +746,7 @@ msgstr "Bar"
 
 #. Type: title
 #. Context: Title in the battery statistics menu. Settings label in the Quick Settings panel. Settings label in the General settings. Also used elsewhere in ZenOS.
-#: quick_settings.lua:1079 battery_stats_menu.lua:100 general_settings.lua:76 reader_settings.lua:211 status_bar_settings.lua:33
+#: quick_settings.lua:1078 battery_stats_menu.lua:100 general_settings.lua:76 reader_settings.lua:212 status_bar_settings.lua:33
 msgid "Battery"
 msgstr "Battery"
 
@@ -764,19 +758,19 @@ msgstr "Battery health"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:212
+#: reader_settings.lua:213
 msgid "Battery icon"
 msgstr "Battery icon"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:213
+#: reader_settings.lua:214
 msgid "Battery percentage"
 msgstr "Battery percentage"
 
 #. Type: title
 #. Context: Title in the gesture and shortcut action menu. Settings label in the Quick Settings button settings.
-#: dispatch_action.lua:530 menu_settings.lua:124
+#: dispatch_action.lua:530 menu_settings.lua:125
 msgid "Battery Stats"
 msgstr "Battery Stats"
 
@@ -824,13 +818,13 @@ msgstr "Black"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings. Settings label in the Reader appearance and behavior settings.
-#: library_settings.lua:316 reader_settings.lua:66
+#: library_settings.lua:316 reader_settings.lua:67
 msgid "Blue"
 msgstr "Blue"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the General settings. Settings label in the Quick Settings button settings. Also used elsewhere in ZenOS.
-#: quick_settings.lua:559 general_settings.lua:40 menu_settings.lua:87 reader_settings.lua:216 status_bar_settings.lua:27
+#: quick_settings.lua:562 general_settings.lua:40 menu_settings.lua:87 reader_settings.lua:217 status_bar_settings.lua:27
 msgid "Bluetooth"
 msgstr "Bluetooth"
 
@@ -854,13 +848,13 @@ msgstr "Bluetooth scan failed."
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the Quick Settings button settings.
-#: interface_settings.lua:436 menu_settings.lua:1290
+#: interface_settings.lua:483 menu_settings.lua:1291
 msgid "Blur menu background"
 msgstr "Blur menu background"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Settings label in the Home layout and widget settings.
-#: reader_settings.lua:1459 home_settings.lua:401 home_settings.lua:1735
+#: reader_settings.lua:1460 home_settings.lua:401 home_settings.lua:1735
 msgid "Bold"
 msgstr "Bold"
 
@@ -872,25 +866,25 @@ msgstr "bold"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the Home layout and widget settings. Settings label in the library status bar settings.
-#: interface_settings.lua:136 home_settings.lua:898 status_bar_settings.lua:304
+#: interface_settings.lua:137 home_settings.lua:898 status_bar_settings.lua:304
 msgid "Bold text"
 msgstr "Bold text"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Label in the book library. Settings label in the Home layout and widget settings.
-#: browser_list_item_layout.lua:204 reader_settings.lua:473 home_settings.lua:1040
+#: browser_list_item_layout.lua:204 reader_settings.lua:474 home_settings.lua:1040
 msgid "Book"
 msgstr "Book"
 
 #. Type: notification
 #. Context: Notification in the online book catalog browser.
-#: opds.lua:2067
+#: opds.lua:2061
 msgid "Book added to download list"
 msgstr "Book added to download list"
 
 #. Type: title
 #. Context: Title in the Launcher button and page settings. Label in the book metadata editor. Label in the reading screen. Also used elsewhere in ZenOS.
-#: metadata_editor.lua:399 metadata_editor.lua:400 book_info_widget.lua:135 app_launcher_settings.lua:102 app_launcher_settings.lua:1047 library_settings.lua:1139 library_settings.lua:1172 book_details_page.lua:126 book_details.lua:506
+#: metadata_editor.lua:400 metadata_editor.lua:401 book_details_page.lua:126 book_details.lua:506 book_info_widget.lua:135 app_launcher_settings.lua:102 app_launcher_settings.lua:1047 library_settings.lua:1139 library_settings.lua:1172
 msgid "Book details"
 msgstr "Book details"
 
@@ -912,17 +906,17 @@ msgstr "Book moved to archive."
 msgid "Book moved to library."
 msgstr "Book moved to library."
 
-#. Type: setting
-#. Context: Settings label in the Home layout and widget settings.
-#: home_settings.lua:834
-msgid "Book status"
-msgstr "Book status"
-
 #. Type: title
 #. Context: Title in the book reading-status menu.
 #: book_status.lua:202
 msgid "Book Status"
 msgstr "Book Status"
+
+#. Type: setting
+#. Context: Settings label in the Home layout and widget settings.
+#: home_settings.lua:834
+msgid "Book status"
+msgstr "Book status"
 
 #. Type: setting
 #. Context: Settings label in the end-of-book screen settings. Label in the Home page and its widgets.
@@ -936,6 +930,12 @@ msgstr "Book strip"
 msgid "Book switcher"
 msgstr "Book switcher"
 
+#. Type: setting
+#. Context: Settings label in the end-of-book screen settings. Settings label in the Reader appearance and behavior settings.
+#: end_book_settings.lua:139 reader_settings.lua:222
+msgid "Book title"
+msgstr "Book title"
+
 #. Type: label
 #. Context: Label in the setup guide.
 #: quickstart_pages.lua:276
@@ -943,28 +943,22 @@ msgid "Book Title"
 msgstr "Book Title"
 
 #. Type: setting
-#. Context: Settings label in the end-of-book screen settings. Settings label in the Reader appearance and behavior settings.
-#: end_book_settings.lua:139 reader_settings.lua:221
-msgid "Book title"
-msgstr "Book title"
-
-#. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Label in the guided reading-screen tour.
-#: reader_tour.lua:80 reader_settings.lua:1363
+#: reader_tour.lua:80 reader_settings.lua:1364
 msgid "Bookmarks"
 msgstr "Bookmarks"
 
-#. Type: setting
-#. Context: Settings label in the Library appearance and behavior settings. Selectable option in the reading goal settings and Home widget. Label in the book library. Also used elsewhere in ZenOS.
-#: reading_goals.lua:146 browser_list_item_layout.lua:204 reading_goals.lua:106 reading_goals.lua:281 library_settings.lua:1323 navbar_settings.lua:1024
-msgid "Books"
-msgstr "Books"
-
 #. Type: label
 #. Context: Label in the book collections menu. Label in the book and folder context menu. Label in the library groups for authors, series, and tags.
-#: collections.lua:443 collections.lua:541 context_menu.lua:1115 context_menu.lua:1740 group_view.lua:1355
+#: collections.lua:443 collections.lua:541 context_menu.lua:1116 context_menu.lua:1741 group_view.lua:1355
 msgid "books"
 msgstr "books"
+
+#. Type: setting
+#. Context: Settings label in the Library appearance and behavior settings. Selectable option in the reading goal settings and Home widget. Label in the book library. Also used elsewhere in ZenOS.
+#: reading_goals.lua:146 browser_list_item_layout.lua:204 reading_goals.lua:106 reading_goals.lua:281 library_settings.lua:1326 navbar_settings.lua:1013
+msgid "Books"
+msgstr "Books"
 
 #. Type: label
 #. Context: Label in the reading statistics page.
@@ -974,19 +968,19 @@ msgstr "Books read"
 
 #. Type: title
 #. Context: Title in the navigation bar settings.
-#: navbar_settings.lua:1068
+#: navbar_settings.lua:1057
 msgid "Books tab label"
 msgstr "Books tab label"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:225
+#: library_settings.lua:226
 msgid "Bottom"
 msgstr "Bottom"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1383
+#: reader_settings.lua:1384
 msgid "Bottom status bar"
 msgstr "Bottom status bar"
 
@@ -998,7 +992,7 @@ msgstr "Brief description of the bug"
 
 #. Type: setting
 #. Context: Settings label in the device schedules and sleep-screen settings. Label in the ZenOS interface. Settings label in the Reader appearance and behavior settings. Also used elsewhere in ZenOS.
-#: color_wheel_widget.lua:484 brightness_slider.lua:44 global_settings.lua:489 global_settings.lua:509 global_settings.lua:556 global_settings.lua:569 global_settings.lua:612 global_settings.lua:625 reader_settings.lua:217 status_bar_settings.lua:32
+#: color_wheel_widget.lua:500 brightness_slider.lua:45 global_settings.lua:489 global_settings.lua:509 global_settings.lua:556 global_settings.lua:569 global_settings.lua:612 global_settings.lua:625 reader_settings.lua:218 status_bar_settings.lua:32
 msgid "Brightness"
 msgstr "Brightness"
 
@@ -1028,61 +1022,61 @@ msgstr "Button labels"
 
 #. Type: title
 #. Context: Title in the Launcher button and page settings. Title in the end-of-book screen settings. Title in the Quick Settings button settings.
-#: app_launcher_settings.lua:54 app_launcher_settings.lua:938 app_launcher_settings.lua:981 end_book_settings.lua:73 end_book_settings.lua:182 menu_settings.lua:705 menu_settings.lua:1237
+#: app_launcher_settings.lua:54 app_launcher_settings.lua:938 app_launcher_settings.lua:981 end_book_settings.lua:73 end_book_settings.lua:182 menu_settings.lua:706 menu_settings.lua:1238
 msgid "Buttons"
 msgstr "Buttons"
 
 #. Type: setting
 #. Context: Settings label in the Extras and integration settings.
-#: extras_settings.lua:217
+#: extras_settings.lua:231
 msgid "By %1"
 msgstr "By %1"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel.
-#: quick_settings.lua:1070
+#: quick_settings.lua:1069
 msgid "Calendar"
 msgstr "Calendar"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:780 menu_settings.lua:107
+#: quick_settings.lua:778 menu_settings.lua:107
 msgid "Calibre"
 msgstr "Calibre"
 
 #. Type: dialog
 #. Context: Dialog text in the library navigation bar.
-#: navbar.lua:1528
+#: navbar.lua:1532
 msgid "Calibre plugin is not installed."
 msgstr "Calibre plugin is not installed."
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings. Label in the navigation tabs and Quick Settings buttons. Settings label in the navigation bar settings.
-#: nav_button_model.lua:22 menu_settings.lua:108 navbar_settings.lua:193
+#: nav_button_model.lua:22 menu_settings.lua:108 navbar_settings.lua:182
 msgid "Calibre Search"
 msgstr "Calibre Search"
 
 #. Type: button
 #. Context: Button label in the book metadata editor. Label in the ZenOS interface. Button label in the book library. Also used elsewhere in ZenOS.
-#: color_wheel_widget.lua:394 mosaic_layout_dialog.lua:53 metadata_editor.lua:1226 home_page.lua:2468 metadata_editor.lua:967 metadata_editor.lua:1186 network_switcher.lua:563 zen_bugreporter.lua:191 zen_bugreporter.lua:238 zen_bugreporter.lua:269 zen_settings_utils.lua:638 zen_updater.lua:1367 zen_updater.lua:1670 zenpm_installer.lua:323 app_launcher_settings.lua:189 app_launcher_settings.lua:279 end_book_settings.lua:113 global_settings.lua:303 menu_settings.lua:973 menu_settings.lua:1089 reader_settings.lua:153 reader_settings.lua:271 reader_settings.lua:784 reader_settings.lua:1112 home_settings.lua:1202 home_settings.lua:2053 home_settings.lua:2131 metadata_settings.lua:38 navbar_settings.lua:870 navbar_settings.lua:1000 navbar_settings.lua:1071 navbar_settings.lua:1207 status_bar_settings.lua:273 status_bar_settings.lua:369
+#: color_wheel_widget.lua:395 mosaic_layout_dialog.lua:53 metadata_editor.lua:1227 home_page.lua:2467 metadata_editor.lua:967 metadata_editor.lua:1186 network_switcher.lua:563 zen_bugreporter.lua:191 zen_bugreporter.lua:238 zen_bugreporter.lua:269 zen_updater.lua:1367 zen_updater.lua:1670 zenpm_installer.lua:323 app_launcher_settings.lua:189 app_launcher_settings.lua:279 end_book_settings.lua:113 global_settings.lua:303 menu_settings.lua:974 menu_settings.lua:1090 reader_settings.lua:154 reader_settings.lua:272 reader_settings.lua:785 reader_settings.lua:1113 home_settings.lua:1202 home_settings.lua:2053 home_settings.lua:2131 metadata_settings.lua:38 navbar_settings.lua:859 navbar_settings.lua:989 navbar_settings.lua:1060 navbar_settings.lua:1196 status_bar_settings.lua:273 status_bar_settings.lua:369
 msgid "Cancel"
 msgstr "Cancel"
 
 #. Type: dialog
 #. Context: Dialog text in the library navigation bar.
-#: navbar.lua:1369
+#: navbar.lua:1373
 msgid "Cannot open last document"
 msgstr "Cannot open last document"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:121
+#: menu_settings.lua:122
 msgid "Casual Chess"
 msgstr "Casual Chess"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:216
+#: library_settings.lua:217
 msgid "Center"
 msgstr "Center"
 
@@ -1094,13 +1088,13 @@ msgstr "Center books"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: interface_settings.lua:137 reader_settings.lua:499 status_bar_settings.lua:324
+#: interface_settings.lua:138 reader_settings.lua:500 status_bar_settings.lua:324
 msgid "Center items"
 msgstr "Center items"
 
 #. Type: action
 #. Context: Action label in the online book catalog browser.
-#: opds.lua:2076
+#: opds.lua:2084
 msgid "Change folder"
 msgstr "Change folder"
 
@@ -1118,13 +1112,13 @@ msgstr "Changelog"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:223 reader_settings.lua:473
+#: reader_settings.lua:224 reader_settings.lua:474
 msgid "Chapter"
 msgstr "Chapter"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:656
+#: reader_settings.lua:657
 msgid "Chapter marks"
 msgstr "Chapter marks"
 
@@ -1154,15 +1148,21 @@ msgstr "Checking for updates"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:1137 quick_settings.lua:1146 menu_settings.lua:120
+#: quick_settings.lua:1136 quick_settings.lua:1145 menu_settings.lua:121
 msgid "Chess"
 msgstr "Chess"
 
 #. Type: option
 #. Context: Selectable option in the setup guide.
-#: quickstart_pages.lua:839
+#: quickstart_pages.lua:872
 msgid "Choose a different folder"
 msgstr "Choose a different folder"
+
+#. Type: description
+#. Context: Accent color setup page.
+#: quickstart_pages.lua:577
+msgid "Choose an accent color for buttons, sliders, and navigation."
+msgstr "Choose an accent color for buttons, sliders, and navigation."
 
 #. Type: title
 #. Context: Title in the book metadata editor.
@@ -1172,7 +1172,7 @@ msgstr "Choose an edition"
 
 #. Type: title
 #. Context: Title in the Launcher button and page settings. Title in the Quick Settings button settings. Title in the Home layout and widget settings. Also used elsewhere in ZenOS.
-#: app_launcher_settings.lua:477 menu_settings.lua:462 home_settings.lua:1421 navbar_settings.lua:695 navbar_settings.lua:717
+#: app_launcher_settings.lua:477 menu_settings.lua:463 home_settings.lua:1421 navbar_settings.lua:684 navbar_settings.lua:706
 msgid "Choose control"
 msgstr "Choose control"
 
@@ -1184,13 +1184,13 @@ msgstr "Choose image"
 
 #. Type: label
 #. Context: Label in the ZenOS interface.
-#: zen_menu_picker.lua:200
+#: zen_menu_picker.lua:201
 msgid "Choose item"
 msgstr "Choose item"
 
 #. Type: title
 #. Context: Title in the Launcher button and page settings. Title in the Quick Settings button settings. Title in the Home layout and widget settings. Also used elsewhere in ZenOS.
-#: app_launcher_settings.lua:420 menu_settings.lua:441 home_settings.lua:1403 navbar_settings.lua:498
+#: app_launcher_settings.lua:420 menu_settings.lua:442 home_settings.lua:1403 navbar_settings.lua:487
 msgid "Choose KOReader menu"
 msgstr "Choose KOReader menu"
 
@@ -1202,13 +1202,13 @@ msgstr "Choose match manually"
 
 #. Type: title
 #. Context: Title in the Launcher button and page settings. Title in the Quick Settings button settings. Title in the Home layout and widget settings. Also used elsewhere in ZenOS.
-#: app_launcher_settings.lua:326 app_launcher_settings.lua:396 menu_settings.lua:426 home_settings.lua:1381 navbar_settings.lua:483
+#: app_launcher_settings.lua:326 app_launcher_settings.lua:396 menu_settings.lua:427 home_settings.lua:1381 navbar_settings.lua:472
 msgid "Choose plugin menu"
 msgstr "Choose plugin menu"
 
 #. Type: title
 #. Context: Title in the Home layout and widget settings. Title in the navigation bar settings.
-#: home_settings.lua:1331 navbar_settings.lua:423
+#: home_settings.lua:1331 navbar_settings.lua:412
 msgid "Choose tab"
 msgstr "Choose tab"
 
@@ -1220,7 +1220,7 @@ msgstr "Choose tag"
 
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:679
+#: quickstart_pages.lua:709
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 
@@ -1232,7 +1232,7 @@ msgstr "Classic"
 
 #. Type: button
 #. Context: Button label in the advanced settings. Label in the ZenOS interface. Label in the book and folder context menu. Also used elsewhere in ZenOS.
-#: folder_cover_picker.lua:52 folder_cover_picker.lua:411 context_menu.lua:2741 metadata_editor.lua:1046 advanced_settings.lua:134 metadata_settings.lua:88
+#: folder_cover_picker.lua:53 folder_cover_picker.lua:412 context_menu.lua:2742 metadata_editor.lua:1046 advanced_settings.lua:134 metadata_settings.lua:88
 msgid "Clear"
 msgstr "Clear"
 
@@ -1292,7 +1292,7 @@ msgstr "Close this book before editing its metadata."
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel.
-#: quick_settings.lua:756
+#: quick_settings.lua:754
 msgid "Cloud"
 msgstr "Cloud"
 
@@ -1304,13 +1304,13 @@ msgstr "Cloud storage"
 
 #. Type: setting
 #. Context: Settings label in the Home layout and widget settings. Label in the navigation tabs and Quick Settings buttons. Selectable option in the setup guide. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:13 quickstart_pages.lua:687 collections.lua:937 collections.lua:949 navbar.lua:285 home_settings.lua:1072 navbar_settings.lua:185
+#: nav_button_model.lua:13 quickstart_pages.lua:717 collections.lua:937 collections.lua:949 navbar.lua:289 home_settings.lua:1072 navbar_settings.lua:174
 msgid "Collections"
 msgstr "Collections"
 
-#. Type: setting
+#. Type: title
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:183
+#: zen_settings_utils.lua:592 reader_settings.lua:184
 msgid "Color"
 msgstr "Color"
 
@@ -1321,14 +1321,8 @@ msgid "Color picker"
 msgstr "Color picker"
 
 #. Type: setting
-#. Context: Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: interface_settings.lua:114 navbar_settings.lua:1665
-msgid "Colored"
-msgstr "Colored"
-
-#. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: interface_settings.lua:136 reader_settings.lua:673 status_bar_settings.lua:312
+#: interface_settings.lua:137 reader_settings.lua:674 status_bar_settings.lua:312
 msgid "Colored status icons"
 msgstr "Colored status icons"
 
@@ -1340,7 +1334,7 @@ msgstr "Columns"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:258
+#: library_settings.lua:259
 msgid "Compact"
 msgstr "Compact"
 
@@ -1406,7 +1400,7 @@ msgstr "Connection failed"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:1019 menu_settings.lua:119
+#: quick_settings.lua:1018 menu_settings.lua:120
 msgid "Connections"
 msgstr "Connections"
 
@@ -1416,57 +1410,63 @@ msgstr "Connections"
 msgid "Content: "
 msgstr "Content: "
 
+#. Type: title
+#. Context: Title in the setup guide.
+#: quickstart_pages.lua:702 quickstart_pages.lua:935
+msgid "Context Menu"
+msgstr "Context Menu"
+
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
 #: library_settings.lua:1216
 msgid "Context menu"
 msgstr "Context menu"
 
-#. Type: title
-#. Context: Title in the setup guide.
-#: quickstart_pages.lua:672 quickstart_pages.lua:902
-msgid "Context Menu"
-msgstr "Context Menu"
-
 #. Type: button
 #. Context: Button label in the bug report form. Label in the navigation tabs and Quick Settings buttons. Selectable option in the setup guide. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:18 quickstart_pages.lua:684 navbar.lua:270 zen_bugreporter.lua:221 end_book_settings.lua:12 home_settings.lua:1072 navbar_settings.lua:182
+#: nav_button_model.lua:18 quickstart_pages.lua:714 navbar.lua:274 zen_bugreporter.lua:221 end_book_settings.lua:12 home_settings.lua:1072 navbar_settings.lua:171
 msgid "Continue"
 msgstr "Continue"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Settings label in the Quick Settings button settings. Settings label in the Home layout and widget settings. Also used elsewhere in ZenOS.
-#: app_launcher_settings.lua:570 app_launcher_settings.lua:800 menu_settings.lua:711 home_settings.lua:1491 navbar_settings.lua:772 navbar_settings.lua:1425
+#: app_launcher_settings.lua:570 app_launcher_settings.lua:800 menu_settings.lua:712 home_settings.lua:1491 navbar_settings.lua:761 navbar_settings.lua:1414
 msgid "Control"
 msgstr "Control"
 
 #. Type: title
 #. Context: Title in the Quick Settings panel. Settings label in the Launcher button and page settings. Settings label in the Home layout and widget settings. Also used elsewhere in ZenOS.
-#: quick_settings.lua:1353 app_launcher_settings.lua:813 home_settings.lua:1598 navbar_settings.lua:784
+#: quick_settings.lua:1362 app_launcher_settings.lua:813 home_settings.lua:1598 navbar_settings.lua:773
 msgid "Control settings"
 msgstr "Control settings"
 
 #. Type: title
 #. Context: Title in the Home layout and widget settings. Settings label in the device schedules and sleep-screen settings. Settings label in the Interface appearance settings. Also used elsewhere in ZenOS.
-#: global_settings.lua:872 interface_settings.lua:128 menu_settings.lua:1233 home_settings.lua:1529 home_settings.lua:1688 home_settings.lua:1715 home_settings.lua:1764
+#: global_settings.lua:872 interface_settings.lua:129 menu_settings.lua:1234 home_settings.lua:1529 home_settings.lua:1688 home_settings.lua:1715 home_settings.lua:1764
 msgid "Controls"
 msgstr "Controls"
 
 #. Type: button
 #. Context: Button label in the book and folder context menu.
-#: context_menu.lua:504 context_menu.lua:707 context_menu.lua:2079
+#: context_menu.lua:505 context_menu.lua:708 context_menu.lua:2080
 msgid "Copy"
 msgstr "Copy"
 
 #. Type: dialog
 #. Context: Dialog text in the book and folder context menu.
-#: context_menu.lua:503
+#: context_menu.lua:504
 msgid "Copy selected files?"
 msgstr "Copy selected files?"
 
+#. Type: setting
+#. Context: Device CPU statistics label for the number of processor cores.
+#: about_settings.lua:115
+msgid "Cores"
+msgstr "Cores"
+
 #. Type: dialog
 #. Context: Dialog text in the Quick Settings panel. Message in the Bluetooth device menu and pairing dialogs. Dialog text in the General settings.
-#: bluetooth_switcher.lua:247 quick_settings.lua:569 general_settings.lua:52
+#: bluetooth_switcher.lua:247 quick_settings.lua:572 general_settings.lua:52
 msgid "Could not change Bluetooth power."
 msgstr "Could not change Bluetooth power."
 
@@ -1502,7 +1502,7 @@ msgstr "Could not get release from update server."
 
 #. Type: message
 #. Context: Message in the Extras and integration settings.
-#: extras_settings.lua:245
+#: extras_settings.lua:259
 msgid "Could not install %1: %2"
 msgstr "Could not install %1: %2"
 
@@ -1535,12 +1535,6 @@ msgstr "Could not reach update server. Check your internet connection."
 #: bluetooth_switcher.lua:66
 msgid "Could not read Bluetooth devices."
 msgstr "Could not read Bluetooth devices."
-
-#. Type: message
-#. Context: Message in the Wi-Fi network menu and connection dialogs.
-#: network_switcher.lua:445
-msgid "Could not replace the saved Wi-Fi password."
-msgstr "Could not replace the saved Wi-Fi password."
 
 #. Type: dialog
 #. Context: Dialog text in the battery statistics menu.
@@ -1580,7 +1574,7 @@ msgstr "Could not update %1."
 
 #. Type: title
 #. Context: Title in the book metadata editor. Label in the ZenOS interface.
-#: folder_cover_picker.lua:300 folder_cover_picker.lua:424 folder_cover_picker.lua:444 metadata_editor.lua:1053
+#: folder_cover_picker.lua:301 folder_cover_picker.lua:425 folder_cover_picker.lua:445 metadata_editor.lua:1053
 msgid "Cover"
 msgstr "Cover"
 
@@ -1592,9 +1586,15 @@ msgstr "CoverBrowser plugin is not enabled, some features will not work correctl
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:140 library_settings.lua:249
+#: library_settings.lua:141 library_settings.lua:250
 msgid "Covers"
 msgstr "Covers"
+
+#. Type: setting
+#. Context: Settings menu showing maximum CPU clock speed, with processor, core count, and clock details.
+#: about_settings.lua:98 about_settings.lua:113
+msgid "CPU"
+msgstr "CPU"
 
 #. Type: message
 #. Context: Message in the bug report form.
@@ -1604,39 +1604,39 @@ msgstr "crash.log will be embedded in a public GitHub issue. It may contain file
 
 #. Type: option
 #. Context: Selectable option in the setup guide.
-#: quickstart_pages.lua:838
+#: quickstart_pages.lua:871
 msgid "Create this folder and use as home"
 msgstr "Create this folder and use as home"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:1038 menu_settings.lua:118
+#: quick_settings.lua:1037 menu_settings.lua:119
 msgid "Crossword"
 msgstr "Crossword"
 
 #. Type: label
 #. Context: Label in the book metadata editor.
-#: metadata_editor.lua:606
+#: metadata_editor.lua:607
 msgid "Current"
 msgstr "Current"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:227
+#: reader_settings.lua:228
 msgid "Current / total pages"
 msgstr "Current / total pages"
-
-#. Type: title
-#. Context: Title in the reading statistics page.
-#: stats_page.lua:67 stats_page.lua:261
-msgid "Current Book"
-msgstr "Current Book"
 
 #. Type: setting
 #. Context: Settings label in the reading statistics settings.
 #: stats_settings.lua:34
 msgid "Current book"
 msgstr "Current book"
+
+#. Type: title
+#. Context: Title in the reading statistics page.
+#: stats_page.lua:67 stats_page.lua:261
+msgid "Current Book"
+msgstr "Current Book"
 
 #. Type: setting
 #. Context: Settings label in the battery statistics menu.
@@ -1649,6 +1649,12 @@ msgstr "Current capacity"
 #: battery_stats_menu.lua:24
 msgid "Current charge"
 msgstr "Current charge"
+
+#. Type: setting
+#. Context: Device CPU statistics label for the current clock speed or speed range, in GHz.
+#: about_settings.lua:117
+msgid "Current clock"
+msgstr "Current clock"
 
 #. Type: title
 #. Context: Title in the Library appearance and behavior settings.
@@ -1664,7 +1670,7 @@ msgstr "Current only"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:225
+#: reader_settings.lua:226
 msgid "Current page"
 msgstr "Current page"
 
@@ -1676,7 +1682,7 @@ msgstr "Current/total pages"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Label in the navigation tabs and Quick Settings buttons. Label in the library navigation bar. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:137 nav_button_model.lua:145 nav_button_model.lua:154 navbar.lua:2105 quick_settings.lua:1226 menu_settings.lua:202 menu_settings.lua:369 menu_settings.lua:373 menu_settings.lua:375 menu_settings.lua:376 menu_settings.lua:796 menu_settings.lua:802 menu_settings.lua:803 reader_settings.lua:812 home_settings.lua:952 home_settings.lua:994 navbar_settings.lua:242 navbar_settings.lua:334 navbar_settings.lua:349 navbar_settings.lua:355 navbar_settings.lua:356 navbar_settings.lua:540 navbar_settings.lua:545 navbar_settings.lua:547 navbar_settings.lua:548 navbar_settings.lua:1056 navbar_settings.lua:1057 status_bar_settings.lua:358
+#: nav_button_model.lua:137 nav_button_model.lua:145 nav_button_model.lua:154 navbar.lua:2114 quick_settings.lua:1235 zen_settings_utils.lua:624 zen_settings_utils.lua:625 menu_settings.lua:203 menu_settings.lua:370 menu_settings.lua:374 menu_settings.lua:376 menu_settings.lua:377 menu_settings.lua:797 menu_settings.lua:803 menu_settings.lua:804 reader_settings.lua:813 home_settings.lua:952 home_settings.lua:994 navbar_settings.lua:231 navbar_settings.lua:323 navbar_settings.lua:338 navbar_settings.lua:344 navbar_settings.lua:345 navbar_settings.lua:529 navbar_settings.lua:534 navbar_settings.lua:536 navbar_settings.lua:537 navbar_settings.lua:1045 navbar_settings.lua:1046 status_bar_settings.lua:358
 msgid "Custom"
 msgstr "Custom"
 
@@ -1688,19 +1694,19 @@ msgstr "Custom books"
 
 #. Type: title
 #. Context: Title in the Quick Settings button settings.
-#: menu_settings.lua:968
+#: menu_settings.lua:969
 msgid "Custom button label"
 msgstr "Custom button label"
 
 #. Type: setting
 #. Context: Settings label in the Extras and integration settings.
-#: extras_settings.lua:254
+#: extras_settings.lua:268
 msgid "Custom icon pack: %1"
 msgstr "Custom icon pack: %1"
 
 #. Type: setting
 #. Context: Settings label in the Extras and integration settings. Settings label in the Interface appearance settings.
-#: extras_settings.lua:163 interface_settings.lua:435
+#: extras_settings.lua:176 interface_settings.lua:482
 msgid "Custom icons"
 msgstr "Custom icons"
 
@@ -1711,12 +1717,6 @@ msgid "Custom quotes"
 msgstr "Custom quotes"
 
 #. Type: title
-#. Context: Title in the settings value selection dialogs.
-#: zen_settings_utils.lua:592 zen_settings_utils.lua:624 zen_settings_utils.lua:625
-msgid "Custom RGB"
-msgstr "Custom RGB"
-
-#. Type: title
 #. Context: Title in the library status bar settings.
 #: status_bar_settings.lua:365
 msgid "Custom separator"
@@ -1724,25 +1724,25 @@ msgstr "Custom separator"
 
 #. Type: title
 #. Context: Title in the Home layout and widget settings. Title in the navigation bar settings.
-#: home_settings.lua:1199 navbar_settings.lua:865
+#: home_settings.lua:1199 navbar_settings.lua:854
 msgid "Custom tab label"
 msgstr "Custom tab label"
 
 #. Type: title
 #. Context: Title in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: reader_settings.lua:220 reader_settings.lua:257 reader_settings.lua:265 status_bar_settings.lua:36 status_bar_settings.lua:260 status_bar_settings.lua:268
+#: reader_settings.lua:221 reader_settings.lua:258 reader_settings.lua:266 status_bar_settings.lua:36 status_bar_settings.lua:260 status_bar_settings.lua:268
 msgid "Custom text"
 msgstr "Custom text"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:761 reader_settings.lua:812
+#: reader_settings.lua:762 reader_settings.lua:813
 msgid "Custom theme"
 msgstr "Custom theme"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:995
+#: reader_settings.lua:996
 msgid "Custom themes"
 msgstr "Custom themes"
 
@@ -1754,19 +1754,19 @@ msgstr "Customize widget"
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:2068
+#: context_menu.lua:2069
 msgid "Cut"
 msgstr "Cut"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:65
+#: reader_settings.lua:66
 msgid "Cyan"
 msgstr "Cyan"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:1290 menu_settings.lua:151
+#: quick_settings.lua:1299 menu_settings.lua:152
 msgid "Cycle"
 msgstr "Cycle"
 
@@ -1778,19 +1778,19 @@ msgstr "Daily"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:702
+#: reader_settings.lua:703
 msgid "Dark graphite"
 msgstr "Dark graphite"
 
 #. Type: setting
 #. Context: Settings label in the device schedules and sleep-screen settings. Settings label in the Reader appearance and behavior settings.
-#: global_settings.lua:112 global_settings.lua:612 global_settings.lua:625 global_settings.lua:766 global_settings.lua:779 reader_settings.lua:1010
+#: global_settings.lua:112 global_settings.lua:612 global_settings.lua:625 global_settings.lua:766 global_settings.lua:779 reader_settings.lua:1011
 msgid "Dark mode"
 msgstr "Dark mode"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:701
+#: reader_settings.lua:702
 msgid "Dark warm gray"
 msgstr "Dark warm gray"
 
@@ -1802,7 +1802,7 @@ msgstr "Date"
 
 #. Type: label
 #. Context: Label in the book library. Label in the book and folder context menu.
-#: browser_folder_sort.lua:115 context_menu.lua:2633
+#: browser_folder_sort.lua:115 context_menu.lua:2634
 msgid "Date added"
 msgstr "Date added"
 
@@ -1868,21 +1868,15 @@ msgstr "Decrease"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Label in the ZenOS interface. Settings label in the Library appearance and behavior settings. Also used elsewhere in ZenOS.
-#: library_font_path.lua:67 interface_settings.lua:150 interface_settings.lua:182 library_settings.lua:1051 reader_settings.lua:511 reader_settings.lua:545 reader_settings.lua:894 reader_settings.lua:1438 home_settings.lua:322
+#: library_font_path.lua:67 interface_settings.lua:197 interface_settings.lua:229 library_settings.lua:1051 reader_settings.lua:512 reader_settings.lua:546 reader_settings.lua:895 reader_settings.lua:1439 home_settings.lua:322
 msgid "default"
 msgstr "default"
 
 #. Type: setting
 #. Context: Settings label in the settings value selection dialogs. Settings label in the Library appearance and behavior settings. Settings label in the Reader appearance and behavior settings. Also used elsewhere in ZenOS.
-#: zen_settings_utils.lua:590 library_settings.lua:309 reader_settings.lua:700 reader_settings.lua:735 navbar_settings.lua:998
+#: zen_settings_utils.lua:590 library_settings.lua:310 library_settings.lua:311 reader_settings.lua:701 reader_settings.lua:736 navbar_settings.lua:987
 msgid "Default"
 msgstr "Default"
-
-#. Type: setting
-#. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:310
-msgid "Default (black)"
-msgstr "Default (black)"
 
 #. Type: setting
 #. Context: Settings label in the reading statistics settings.
@@ -1904,13 +1898,13 @@ msgstr "Default route"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: interface_settings.lua:101 navbar_settings.lua:1693
+#: interface_settings.lua:103 navbar_settings.lua:1701
 msgid "Default tab: "
 msgstr "Default tab: "
 
 #. Type: button
 #. Context: Button label in the book and folder context menu. Action label in the online book catalog browser. Label in the screenshot countdown and save notification. Also used elsewhere in ZenOS.
-#: context_menu.lua:719 context_menu.lua:727 context_menu.lua:2175 opds.lua:1793 opds.lua:1797 countdown_screenshot.lua:160 app_launcher_settings.lua:880 app_launcher_settings.lua:898 global_settings.lua:351 menu_settings.lua:1009 menu_settings.lua:1040 menu_settings.lua:1121 menu_settings.lua:1127 reader_settings.lua:926 reader_settings.lua:1156 home_settings.lua:1566 home_settings.lua:1579 home_settings.lua:2102 home_settings.lua:2190 navbar_settings.lua:907 navbar_settings.lua:935 navbar_settings.lua:1321 navbar_settings.lua:1327
+#: context_menu.lua:720 context_menu.lua:728 context_menu.lua:2269 opds.lua:1794 opds.lua:1798 countdown_screenshot.lua:161 app_launcher_settings.lua:880 app_launcher_settings.lua:898 global_settings.lua:351 menu_settings.lua:1010 menu_settings.lua:1041 menu_settings.lua:1122 menu_settings.lua:1128 reader_settings.lua:927 reader_settings.lua:1157 home_settings.lua:1566 home_settings.lua:1579 home_settings.lua:2102 home_settings.lua:2190 navbar_settings.lua:896 navbar_settings.lua:924 navbar_settings.lua:1310 navbar_settings.lua:1316
 msgid "Delete"
 msgstr "Delete"
 
@@ -1922,43 +1916,43 @@ msgstr "Delete collection"
 
 #. Type: dialog
 #. Context: Dialog text in the online book catalog browser.
-#: opds.lua:1796
+#: opds.lua:1797
 msgid "Delete OPDS catalog?"
 msgstr "Delete OPDS catalog?"
 
 #. Type: dialog
 #. Context: Dialog text in the device schedules and sleep-screen settings. Dialog text in the Reader appearance and behavior settings. Dialog text in the Home layout and widget settings.
-#: global_settings.lua:350 reader_settings.lua:1155 home_settings.lua:2101
+#: global_settings.lua:350 reader_settings.lua:1156 home_settings.lua:2101
 msgid "Delete preset?"
 msgstr "Delete preset?"
 
 #. Type: dialog
 #. Context: Dialog text in the book and folder context menu.
-#: context_menu.lua:726
+#: context_menu.lua:727
 msgid "Delete selected files?\nIf you delete a file, it is permanently lost."
 msgstr "Delete selected files?\nIf you delete a file, it is permanently lost."
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:920
+#: reader_settings.lua:921
 msgid "Delete theme"
 msgstr "Delete theme"
 
 #. Type: dialog
 #. Context: Dialog text in the Quick Settings button settings. Message in the Launcher button and page settings.
-#: app_launcher_settings.lua:897 menu_settings.lua:1039
+#: app_launcher_settings.lua:897 menu_settings.lua:1040
 msgid "Delete this button?"
 msgstr "Delete this button?"
 
 #. Type: dialog
 #. Context: Dialog text in the Quick Settings button settings.
-#: menu_settings.lua:1126
+#: menu_settings.lua:1127
 msgid "Delete this control?"
 msgstr "Delete this control?"
 
 #. Type: dialog
 #. Context: Dialog text in the Reader appearance and behavior settings.
-#: reader_settings.lua:925
+#: reader_settings.lua:926
 msgid "Delete this custom theme?"
 msgstr "Delete this custom theme?"
 
@@ -1976,7 +1970,7 @@ msgstr "Delete this row break?"
 
 #. Type: dialog
 #. Context: Dialog text in the Home layout and widget settings. Dialog text in the navigation bar settings.
-#: home_settings.lua:1578 navbar_settings.lua:934 navbar_settings.lua:1326
+#: home_settings.lua:1578 navbar_settings.lua:923 navbar_settings.lua:1315
 msgid "Delete this tab?"
 msgstr "Delete this tab?"
 
@@ -1988,7 +1982,7 @@ msgstr "Descending"
 
 #. Type: title
 #. Context: Title in the Library appearance and behavior settings. Help text in the book metadata editor. Action label in the online book catalog browser. Also used elsewhere in ZenOS.
-#: metadata_editor.lua:52 metadata_editor.lua:410 metadata_editor.lua:411 metadata_editor.lua:539 opds.lua:2005 library_settings.lua:970 library_settings.lua:1070 library_settings.lua:1094 home_settings.lua:829
+#: metadata_editor.lua:53 metadata_editor.lua:411 metadata_editor.lua:412 metadata_editor.lua:540 opds.lua:2072 library_settings.lua:970 library_settings.lua:1070 library_settings.lua:1094 home_settings.lua:829
 msgid "Description"
 msgstr "Description"
 
@@ -2006,7 +2000,7 @@ msgstr "Detailed list items"
 
 #. Type: button
 #. Context: Button label in the setup guide. Label in the book and folder context menu.
-#: quickstart_pages.lua:303 context_menu.lua:2240
+#: quickstart_pages.lua:303 context_menu.lua:2352
 msgid "Details"
 msgstr "Details"
 
@@ -2060,7 +2054,7 @@ msgstr "Disable word search on hold"
 
 #. Type: message
 #. Context: Message in the setup guide.
-#: quickstart_pages.lua:718
+#: quickstart_pages.lua:748
 msgid "Disable zen mode to access default KOReader menus."
 msgstr "Disable zen mode to access default KOReader menus."
 
@@ -2072,7 +2066,7 @@ msgstr "Disable Zen Mode with this icon to adjust KOReader settings that aren’
 
 #. Type: label
 #. Context: Label in the book metadata editor.
-#: metadata_editor.lua:1042 metadata_editor.lua:1239
+#: metadata_editor.lua:1043 metadata_editor.lua:1240
 msgid "Discard"
 msgstr "Discard"
 
@@ -2084,19 +2078,19 @@ msgstr "Disconnect"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: reader_settings.lua:219 status_bar_settings.lua:30
+#: reader_settings.lua:220 status_bar_settings.lua:30
 msgid "Disk space"
 msgstr "Disk space"
 
 #. Type: label
 #. Context: Label in the book collections menu. Label in the book and folder context menu.
-#: collections.lua:455 collections.lua:564 collections.lua:637 context_menu.lua:1148 context_menu.lua:2618
+#: collections.lua:455 collections.lua:564 collections.lua:637 context_menu.lua:1149 context_menu.lua:2619
 msgid "Display"
 msgstr "Display"
 
 #. Type: title
 #. Context: Title in the book collections menu. Title in the book and folder context menu. Title in the library groups for authors, series, and tags. Also used elsewhere in ZenOS.
-#: collections.lua:425 collections.lua:523 collections.lua:616 context_menu.lua:2605 group_view.lua:580 kindle_virtual_library.lua:280 extras_settings.lua:60
+#: collections.lua:425 collections.lua:523 collections.lua:616 context_menu.lua:2606 group_view.lua:580 kindle_virtual_library.lua:280 extras_settings.lua:60
 msgid "Display mode"
 msgstr "Display mode"
 
@@ -2114,7 +2108,7 @@ msgstr "Dividing lines"
 
 #. Type: button
 #. Context: Button label in the online book catalog browser.
-#: opds.lua:1989
+#: opds.lua:1990
 msgid "Done"
 msgstr "Done"
 
@@ -2132,7 +2126,7 @@ msgstr "Double-tap to open a book"
 
 #. Type: action
 #. Context: Action label in the online book catalog browser.
-#: opds.lua:2047
+#: opds.lua:2041
 msgid "Download"
 msgstr "Download"
 
@@ -2150,7 +2144,7 @@ msgstr "Download failed: "
 
 #. Type: label
 #. Context: Label in the online book catalog browser.
-#: opds.lua:1973
+#: opds.lua:1974
 msgid "Downloaded"
 msgstr "Downloaded"
 
@@ -2174,25 +2168,25 @@ msgstr "Downloading ZenPM"
 
 #. Type: label
 #. Context: Label in the bottom reading status bar.
-#: reader_footer.lua:78
+#: reader_footer.lua:79
 msgid "Dynamic filler 2"
 msgstr "Dynamic filler 2"
 
 #. Type: action
 #. Context: Action label in the setup guide. Label in the book and folder context menu. Action label in the online book catalog browser. Also used elsewhere in ZenOS.
-#: quickstart_pages.lua:307 context_menu.lua:2853 opds.lua:1787 network_switcher.lua:707 book_info_widget.lua:116
+#: quickstart_pages.lua:307 context_menu.lua:2854 opds.lua:1788 network_switcher.lua:707 book_info_widget.lua:116
 msgid "Edit"
 msgstr "Edit"
 
 #. Type: title
 #. Context: Title in the book metadata editor. Label in the book and folder context menu.
-#: metadata_editor.lua:645 context_menu.lua:2144
+#: metadata_editor.lua:646 context_menu.lua:2238
 msgid "Edit metadata"
 msgstr "Edit metadata"
 
 #. Type: setting
 #. Context: Settings label in the end-of-book screen settings. Settings label in the reading statistics settings. Settings label in the Home layout and widget settings.
-#: end_book_settings.lua:270 stats_settings.lua:339 home_settings.lua:2669
+#: end_book_settings.lua:271 stats_settings.lua:339 home_settings.lua:2670
 msgid "Edit mode"
 msgstr "Edit mode"
 
@@ -2210,7 +2204,7 @@ msgstr "Enable"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1308
+#: reader_settings.lua:1309
 msgid "Enable bottom swipe"
 msgstr "Enable bottom swipe"
 
@@ -2264,7 +2258,7 @@ msgstr "Enabling debug logging, restart required. Please reproduce the issue, th
 
 #. Type: title
 #. Context: Title in the end-of-book screen settings. Settings label in the Reader appearance and behavior settings. Settings label in the Home layout and widget settings.
-#: end_book_settings.lua:256 reader_settings.lua:1560 home_settings.lua:1528
+#: end_book_settings.lua:257 reader_settings.lua:1561 home_settings.lua:1528
 msgid "End of book"
 msgstr "End of book"
 
@@ -2282,7 +2276,7 @@ msgstr "Enter a title to search metadata."
 
 #. Type: error
 #. Context: Error message in the book metadata editor.
-#: metadata_editor.lua:942
+#: metadata_editor.lua:943
 msgid "Enter a valid filename."
 msgstr "Enter a valid filename."
 
@@ -2300,7 +2294,7 @@ msgstr "Enter a valid Hardcover token without spaces."
 
 #. Type: description
 #. Context: Help text in the book metadata editor.
-#: metadata_editor.lua:1105
+#: metadata_editor.lua:1106
 msgid "Enter one value per line."
 msgstr "Enter one value per line."
 
@@ -2348,19 +2342,19 @@ msgstr "Exclude from Home"
 
 #. Type: button
 #. Context: Button label in the Quick Settings panel. Label in the navigation tabs and Quick Settings buttons. Label in the library navigation bar. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:24 navbar.lua:335 quick_settings.lua:704 quick_settings.lua:708 menu_settings.lua:98 navbar_settings.lua:195
+#: nav_button_model.lua:24 navbar.lua:339 quick_settings.lua:702 quick_settings.lua:706 menu_settings.lua:98 navbar_settings.lua:184
 msgid "Exit"
 msgstr "Exit"
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:758
+#: context_menu.lua:759
 msgid "Exit select mode"
 msgstr "Exit select mode"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:261
+#: library_settings.lua:262
 msgid "Extra large"
 msgstr "Extra large"
 
@@ -2396,7 +2390,7 @@ msgstr "Failed to clear cache:"
 
 #. Type: dialog
 #. Context: Dialog text in the book and folder context menu.
-#: context_menu.lua:2040
+#: context_menu.lua:2041
 msgid "Failed to clear folder cover."
 msgstr "Failed to clear folder cover."
 
@@ -2414,7 +2408,7 @@ msgstr "Failed to move book."
 
 #. Type: dialog
 #. Context: Dialog text in the book and folder context menu.
-#: context_menu.lua:2022
+#: context_menu.lua:2023
 msgid "Failed to set folder cover."
 msgstr "Failed to set folder cover."
 
@@ -2426,7 +2420,7 @@ msgstr "Failed to submit report: "
 
 #. Type: setting
 #. Context: Settings label in the Home layout and widget settings. Label in the navigation tabs and Quick Settings buttons. Selectable option in the setup guide. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:7 quickstart_pages.lua:686 collections.lua:355 collections.lua:989 collections.lua:1025 context_menu.lua:553 favorites.lua:122 favorites.lua:125 favorites.lua:159 favorites.lua:168 navbar.lua:280 home_settings.lua:1069 navbar_settings.lua:184
+#: nav_button_model.lua:7 quickstart_pages.lua:716 collections.lua:355 collections.lua:989 collections.lua:1025 context_menu.lua:554 favorites.lua:122 favorites.lua:125 favorites.lua:159 favorites.lua:168 navbar.lua:284 home_settings.lua:1069 navbar_settings.lua:173
 msgid "Favorites"
 msgstr "Favorites"
 
@@ -2462,55 +2456,55 @@ msgstr "File type"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:1098 menu_settings.lua:116
+#: quick_settings.lua:1097 menu_settings.lua:117
 msgid "Filebrowser"
 msgstr "Filebrowser"
 
 #. Type: dialog
 #. Context: Dialog text in the Quick Settings panel.
-#: quick_settings.lua:1119
+#: quick_settings.lua:1118
 msgid "Filebrowser plugin is not installed."
 msgstr "Filebrowser plugin is not installed."
 
 #. Type: title
 #. Context: Title in the book metadata editor. Label in the book and folder context menu. Label in the library groups for authors, series, and tags. Also used elsewhere in ZenOS.
-#: metadata_editor.lua:512 metadata_editor.lua:960 context_menu.lua:2629 group_view.lua:867 library_settings.lua:612
+#: metadata_editor.lua:513 metadata_editor.lua:961 context_menu.lua:2630 group_view.lua:867 library_settings.lua:612
 msgid "Filename"
 msgstr "Filename"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:1660
+#: navbar_settings.lua:1656
 msgid "Fill color"
 msgstr "Fill color"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: interface_settings.lua:113 navbar_settings.lua:1650
+#: interface_settings.lua:115 navbar_settings.lua:1645
 msgid "Filled"
 msgstr "Filled"
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:1237 context_menu.lua:2838
+#: context_menu.lua:1238 context_menu.lua:2839
 msgid "Filter"
 msgstr "Filter"
 
 #. Type: title
 #. Context: Title in the book and folder context menu.
-#: context_menu.lua:1222 context_menu.lua:2823
+#: context_menu.lua:1223 context_menu.lua:2824
 msgid "Filter by status"
 msgstr "Filter by status"
 
 #. Type: label
 #. Context: Label in the book metadata editor.
-#: metadata_editor.lua:680 metadata_editor.lua:919 metadata_editor.lua:1038
+#: metadata_editor.lua:681 metadata_editor.lua:920 metadata_editor.lua:1038
 msgid "Find metadata"
 msgstr "Find metadata"
 
 #. Type: status
 #. Context: Status message in the book library. Label in the navigation tabs and Quick Settings buttons. Label in the book and folder context menu. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:35 browser_list_item_layout.lua:472 context_menu.lua:684 context_menu.lua:1187 context_menu.lua:2524 context_menu.lua:2784 stats_page.lua:941 stats_page.lua:953
+#: nav_button_model.lua:35 browser_list_item_layout.lua:472 context_menu.lua:685 context_menu.lua:1188 context_menu.lua:2542 context_menu.lua:2785 stats_page.lua:941 stats_page.lua:953
 msgid "Finished"
 msgstr "Finished"
 
@@ -2522,7 +2516,7 @@ msgstr "Firmware: "
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:152
+#: library_settings.lua:153
 msgid "First cover image"
 msgstr "First cover image"
 
@@ -2540,7 +2534,7 @@ msgstr "Fixed layout documents (pdf, djvu, pics…)"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1525
+#: reader_settings.lua:1526
 msgid "Flash on every CBZ page turn"
 msgstr "Flash on every CBZ page turn"
 
@@ -2552,13 +2546,13 @@ msgstr "Flash the screen in the library when a page is not full of books to prev
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:1282
+#: menu_settings.lua:1283
 msgid "Flip LH/RH icon"
 msgstr "Flip LH/RH icon"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Label in the library folder and tag selectors. Label in the book library. Also used elsewhere in ZenOS.
-#: library_destination.lua:6 browser_list_item_layout.lua:198 navbar.lua:229 app_launcher_settings.lua:594 app_launcher_settings.lua:758 menu_settings.lua:721 menu_settings.lua:870 home_settings.lua:1119 home_settings.lua:1473 navbar_settings.lua:166 navbar_settings.lua:762 navbar_settings.lua:1415
+#: library_destination.lua:6 browser_list_item_layout.lua:198 navbar.lua:233 app_launcher_settings.lua:594 app_launcher_settings.lua:758 menu_settings.lua:722 menu_settings.lua:871 home_settings.lua:1119 home_settings.lua:1473 navbar_settings.lua:155 navbar_settings.lua:751 navbar_settings.lua:1404
 msgid "Folder"
 msgstr "Folder"
 
@@ -2570,25 +2564,25 @@ msgstr "Folder buttons"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:202
+#: library_settings.lua:203
 msgid "Folder name"
 msgstr "Folder name"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:213
+#: library_settings.lua:214
 msgid "Folder name position"
 msgstr "Folder name position"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:1118
+#: navbar_settings.lua:1107
 msgid "Folder presets"
 msgstr "Folder presets"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings. Label in the book library. Label in the empty-library screen.
-#: browser_list_item_layout.lua:198 empty_library.lua:39 library_settings.lua:136
+#: browser_list_item_layout.lua:198 empty_library.lua:39 library_settings.lua:137
 msgid "Folders"
 msgstr "Folders"
 
@@ -2600,9 +2594,15 @@ msgstr "font"
 
 #. Type: title
 #. Context: Title in the Reader appearance and behavior settings. Settings label in the Interface appearance settings. Settings label in the Library appearance and behavior settings. Also used elsewhere in ZenOS.
-#: interface_settings.lua:146 interface_settings.lua:152 interface_settings.lua:178 interface_settings.lua:184 library_settings.lua:1047 library_settings.lua:1053 reader_settings.lua:507 reader_settings.lua:514 reader_settings.lua:541 reader_settings.lua:547 reader_settings.lua:1194 reader_settings.lua:1439 reader_settings.lua:1445 reader_settings.lua:1485 home_settings.lua:368 home_settings.lua:371 home_settings.lua:675 home_settings.lua:677 home_settings.lua:1701 home_settings.lua:1704 home_settings.lua:1783 home_settings.lua:1785
+#: interface_settings.lua:193 interface_settings.lua:199 interface_settings.lua:225 interface_settings.lua:231 library_settings.lua:1047 library_settings.lua:1053 reader_settings.lua:508 reader_settings.lua:515 reader_settings.lua:542 reader_settings.lua:548 reader_settings.lua:1195 reader_settings.lua:1440 reader_settings.lua:1446 reader_settings.lua:1486 home_settings.lua:368 home_settings.lua:371 home_settings.lua:675 home_settings.lua:677 home_settings.lua:1701 home_settings.lua:1704 home_settings.lua:1783 home_settings.lua:1785
 msgid "Font"
 msgstr "Font"
+
+#. Type: title
+#. Context: Title in the end-of-book screen settings. Settings label in the Interface appearance settings. Settings label in the Library appearance and behavior settings. Also used elsewhere in ZenOS.
+#: end_book_settings.lua:141 end_book_settings.lua:144 interface_settings.lua:205 interface_settings.lua:212 library_settings.lua:1086 reader_settings.lua:521 reader_settings.lua:527 reader_settings.lua:1327 reader_settings.lua:1334 reader_settings.lua:1411 reader_settings.lua:1418 stats_settings.lua:114 home_settings.lua:348 home_settings.lua:651 home_settings.lua:1681 home_settings.lua:2211 home_settings.lua:2305 home_settings.lua:2562
+msgid "Font size"
+msgstr "Font size"
 
 #. Type: title
 #. Context: Title in the Library appearance and behavior settings. Title in the reading statistics settings. Title in the Home layout and widget settings.
@@ -2610,27 +2610,21 @@ msgstr "Font"
 msgid "font size"
 msgstr "font size"
 
-#. Type: title
-#. Context: Title in the end-of-book screen settings. Settings label in the Interface appearance settings. Settings label in the Library appearance and behavior settings. Also used elsewhere in ZenOS.
-#: end_book_settings.lua:141 end_book_settings.lua:144 interface_settings.lua:158 interface_settings.lua:165 library_settings.lua:1086 reader_settings.lua:520 reader_settings.lua:526 reader_settings.lua:1326 reader_settings.lua:1333 reader_settings.lua:1410 reader_settings.lua:1417 stats_settings.lua:114 home_settings.lua:348 home_settings.lua:651 home_settings.lua:1681 home_settings.lua:2211 home_settings.lua:2305 home_settings.lua:2562
-msgid "Font size"
-msgstr "Font size"
-
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:774
+#: quickstart_pages.lua:804
 msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
 msgstr "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
 
 #. Type: action
 #. Context: Action label in the online book catalog browser.
-#: opds.lua:1765
+#: opds.lua:1766
 msgid "Force sync"
 msgstr "Force sync"
 
 #. Type: action
 #. Context: Action label in the online book catalog browser.
-#: opds.lua:1593
+#: opds.lua:1594
 msgid "Force sync all catalogs"
 msgstr "Force sync all catalogs"
 
@@ -2652,12 +2646,6 @@ msgstr "Forget Bluetooth device %1?"
 msgid "Forget Wi-Fi network %1?"
 msgstr "Forget Wi-Fi network %1?"
 
-#. Type: placeholder
-#. Context: Input hint in the settings value selection dialogs.
-#: zen_settings_utils.lua:635
-msgid "Format: R,G,B (0-255)"
-msgstr "Format: R,G,B (0-255)"
-
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
 #: menu_settings.lua:89
@@ -2672,7 +2660,7 @@ msgstr "Full capacity"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:143
+#: library_settings.lua:144
 msgid "Gallery"
 msgstr "Gallery"
 
@@ -2684,13 +2672,13 @@ msgstr "General"
 
 #. Type: label
 #. Context: Label in the book metadata editor.
-#: metadata_editor.lua:49 metadata_editor.lua:509
+#: metadata_editor.lua:50 metadata_editor.lua:510
 msgid "Genres"
 msgstr "Genres"
 
 #. Type: label
 #. Context: Label in the setup guide. Label in the ZenOS interface.
-#: quickstart_screen.lua:489 quickstart_screen.lua:532 zen_screen.lua:509 zen_screen.lua:515
+#: quickstart_screen.lua:515 quickstart_screen.lua:558 zen_screen.lua:510 zen_screen.lua:516
 msgid "Get Started"
 msgstr "Get Started"
 
@@ -2738,25 +2726,25 @@ msgstr "Graph range"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings. Settings label in the Reader appearance and behavior settings.
-#: library_settings.lua:315 reader_settings.lua:68
+#: library_settings.lua:315 reader_settings.lua:69
 msgid "Gray"
 msgstr "Gray"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings. Settings label in the Reader appearance and behavior settings.
-#: library_settings.lua:317 reader_settings.lua:63
+#: library_settings.lua:317 reader_settings.lua:64
 msgid "Green"
 msgstr "Green"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:105
+#: library_settings.lua:106
 msgid "Group book series into folders"
 msgstr "Group book series into folders"
 
 #. Type: setting
 #. Context: Settings label in the book metadata provider settings. Label in the book metadata editor.
-#: metadata_editor.lua:677 metadata_editor.lua:1151 metadata_editor.lua:123 metadata_settings.lua:164
+#: metadata_editor.lua:678 metadata_editor.lua:1152 metadata_editor.lua:123 metadata_settings.lua:164
 msgid "Hardcover"
 msgstr "Hardcover"
 
@@ -2780,19 +2768,19 @@ msgstr "Hide finished books"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:121
+#: library_settings.lua:122
 msgid "Hide grouped series"
 msgstr "Hide grouped series"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:685 reader_settings.lua:1495
+#: reader_settings.lua:686 reader_settings.lua:1496
 msgid "Hide in CBZ/PDF files"
 msgstr "Hide in CBZ/PDF files"
 
 #. Type: setting
 #. Context: Settings label in the Home layout and widget settings. Settings label in the navigation bar settings.
-#: home_settings.lua:1238 navbar_settings.lua:1246
+#: home_settings.lua:1238 navbar_settings.lua:1235
 msgid "Hide Kindle Library folder"
 msgstr "Hide Kindle Library folder"
 
@@ -2810,7 +2798,7 @@ msgstr "Hide on-hold books"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Settings label in the Quick Settings button settings.
-#: app_launcher_settings.lua:1095 menu_settings.lua:1327
+#: app_launcher_settings.lua:1095 menu_settings.lua:1328
 msgid "Hide reader actions in library"
 msgstr "Hide reader actions in library"
 
@@ -2828,25 +2816,25 @@ msgstr "Hide up folder"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: reader_settings.lua:300 status_bar_settings.lua:100
+#: reader_settings.lua:301 status_bar_settings.lua:100
 msgid "Hide when off"
 msgstr "Hide when off"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1227
+#: reader_settings.lua:1228
 msgid "Highlight"
 msgstr "Highlight"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1222
+#: reader_settings.lua:1223
 msgid "Highlight / Lookup"
 msgstr "Highlight / Lookup"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:186
+#: reader_settings.lua:187
 msgid "Highlight color: %1"
 msgstr "Highlight color: %1"
 
@@ -2858,13 +2846,13 @@ msgstr "Highlights and notes"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings. Label in the navigation tabs and Quick Settings buttons. Selectable option in the setup guide. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:19 quickstart_pages.lua:685 history.lua:203 history.lua:224 navbar.lua:275 navbar_settings.lua:183
+#: nav_button_model.lua:19 quickstart_pages.lua:715 history.lua:203 history.lua:224 navbar.lua:279 navbar_settings.lua:172
 msgid "History"
 msgstr "History"
 
 #. Type: setting
 #. Context: Settings label in the end-of-book screen settings. Settings label in the reading statistics settings. Settings label in the Home layout and widget settings.
-#: end_book_settings.lua:271 stats_settings.lua:340 home_settings.lua:2670
+#: end_book_settings.lua:272 stats_settings.lua:340 home_settings.lua:2671
 msgid "Hold a widget to open settings directly"
 msgstr "Hold a widget to open settings directly"
 
@@ -2874,15 +2862,15 @@ msgstr "Hold a widget to open settings directly"
 msgid "Hold to skip"
 msgstr "Hold to skip"
 
-#. Type: setting
+#. Type: title
 #. Context: Title in the gesture and shortcut action menu. Label in the navigation tabs and Quick Settings buttons. Selectable option in the setup guide. Also used elsewhere in ZenOS.
-#: dispatch_action.lua:494 nav_button_model.lua:20 quickstart_pages.lua:683 context_menu.lua:331 navbar.lua:225 quick_settings.lua:849 end_book_data.lua:27 zen_settings.lua:65 menu_settings.lua:101 home_settings.lua:1527 home_settings.lua:1951 home_settings.lua:2634 home_settings.lua:2650 home_settings.lua:2763 navbar_settings.lua:160 navbar_settings.lua:998 navbar_settings.lua:1033
+#: dispatch_action.lua:494 nav_button_model.lua:20 quickstart_pages.lua:713 context_menu.lua:332 navbar.lua:229 quick_settings.lua:847 end_book_data.lua:30 zen_settings.lua:65 menu_settings.lua:101 home_settings.lua:1527 home_settings.lua:1951 home_settings.lua:2635 home_settings.lua:2651 home_settings.lua:2764 navbar_settings.lua:149 navbar_settings.lua:987 navbar_settings.lua:1022
 msgid "Home"
 msgstr "Home"
 
 #. Type: title
 #. Context: Title in the setup guide.
-#: quickstart_pages.lua:834 quickstart_pages.lua:906
+#: quickstart_pages.lua:867 quickstart_pages.lua:939
 msgid "Home Folder"
 msgstr "Home Folder"
 
@@ -2900,7 +2888,7 @@ msgstr "Home page preset"
 
 #. Type: title
 #. Context: Title in the navigation bar settings.
-#: navbar_settings.lua:996
+#: navbar_settings.lua:985
 msgid "Home tab label"
 msgstr "Home tab label"
 
@@ -2918,49 +2906,49 @@ msgstr "HTML"
 
 #. Type: title
 #. Context: Title in the end-of-book screen settings. Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: end_book_settings.lua:167 end_book_settings.lua:171 interface_settings.lua:125 navbar_settings.lua:1594
+#: end_book_settings.lua:167 end_book_settings.lua:171 interface_settings.lua:126 navbar_settings.lua:1583
 msgid "Icon size:"
 msgstr "Icon size:"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Settings label in the end-of-book screen settings. Settings label in the Quick Settings button settings. Also used elsewhere in ZenOS.
-#: app_launcher_settings.lua:716 end_book_settings.lua:55 menu_settings.lua:941 menu_settings.lua:1064 navbar_settings.lua:840 navbar_settings.lua:1180
+#: app_launcher_settings.lua:716 end_book_settings.lua:55 menu_settings.lua:942 menu_settings.lua:1065 navbar_settings.lua:829 navbar_settings.lua:1169
 msgid "Icon: %1"
 msgstr "Icon: %1"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: interface_settings.lua:106 interface_settings.lua:123 navbar_settings.lua:1573
+#: interface_settings.lua:108 interface_settings.lua:124 navbar_settings.lua:1562
 msgid "Icons"
 msgstr "Icons"
 
 #. Type: message
 #. Context: Message in the Interface appearance settings.
-#: interface_settings.lua:312
+#: interface_settings.lua:359
 msgid "Image support is unavailable on this device."
 msgstr "Image support is unavailable on this device."
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings.
-#: interface_settings.lua:364
+#: interface_settings.lua:411
 msgid "Image: "
 msgstr "Image: "
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings.
-#: interface_settings.lua:361
+#: interface_settings.lua:408
 msgid "Image: none"
 msgstr "Image: none"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:1249
+#: library_settings.lua:1252
 msgid "Include new books in TBR"
 msgstr "Include new books in TBR"
 
 #. Type: title
 #. Context: Title in the ZenOS interface. Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings. Also used elsewhere in ZenOS.
-#: incognito_mode.lua:256 quick_settings.lua:1003 menu_settings.lua:93 reader_settings.lua:214 status_bar_settings.lua:28
+#: incognito_mode.lua:256 quick_settings.lua:1002 menu_settings.lua:93 reader_settings.lua:215 status_bar_settings.lua:28
 msgid "Incognito"
 msgstr "Incognito"
 
@@ -2984,7 +2972,7 @@ msgstr "Incognito mode timed out"
 
 #. Type: dialog
 #. Context: Dialog text in the incompatible-plugin warnings.
-#: incompatible_plugins_check.lua:292
+#: incompatible_plugins_check.lua:293
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Incompatible plugins and patches have been disabled:"
 
@@ -3044,17 +3032,17 @@ msgstr "Interactive"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Label in the Wi-Fi network menu and connection dialogs.
-#: network_switcher.lua:635 interface_settings.lua:439
+#: network_switcher.lua:635 interface_settings.lua:486
 msgid "Interface"
 msgstr "Interface"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings.
-#: interface_settings.lua:421
+#: extras_settings.lua:280 interface_settings.lua:468
 msgid "Invert with dark mode"
 msgstr "Invert with dark mode"
 
-#. Type: label
+#. Type: setting
 #. Context: Settings label in the About and Device settings. Label in the Wi-Fi network menu and connection dialogs.
 #: network_switcher.lua:627 about_settings.lua:70
 msgid "IP address"
@@ -3086,25 +3074,25 @@ msgstr "Keep an EPUB metadata backup"
 
 #. Type: button
 #. Context: Button label in the book metadata editor.
-#: metadata_editor.lua:1041 metadata_editor.lua:1238 metadata_editor.lua:114
+#: metadata_editor.lua:1042 metadata_editor.lua:1239 metadata_editor.lua:114
 msgid "Keep editing"
 msgstr "Keep editing"
 
 #. Type: option
 #. Context: Selectable option in the setup guide.
-#: quickstart_pages.lua:727 quickstart_pages.lua:777
+#: quickstart_pages.lua:757 quickstart_pages.lua:807
 msgid "Keep existing settings"
 msgstr "Keep existing settings"
 
 #. Type: error
 #. Context: Error message in the book metadata editor.
-#: metadata_editor.lua:946
+#: metadata_editor.lua:947
 msgid "Keep the current file extension."
 msgstr "Keep the current file extension."
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings. Label in the navigation tabs and Quick Settings buttons. Label in the book and folder context menu. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:15 context_menu.lua:1479 context_menu.lua:1906 navbar.lua:255 navbar_settings.lua:179
+#: nav_button_model.lua:15 context_menu.lua:1480 context_menu.lua:1907 navbar.lua:259 navbar_settings.lua:168
 msgid "Kindle Library"
 msgstr "Kindle Library"
 
@@ -3116,25 +3104,25 @@ msgstr "KOReader"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Label in the navigation tabs and Quick Settings buttons. Settings label in the Launcher button and page settings. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:152 quick_settings.lua:1167 app_launcher_settings.lua:584 app_launcher_settings.lua:825 menu_settings.lua:544 menu_settings.lua:736 menu_settings.lua:790 menu_settings.lua:859 home_settings.lua:1501 navbar_settings.lua:343 navbar_settings.lua:587 navbar_settings.lua:803 navbar_settings.lua:1435
+#: nav_button_model.lua:152 quick_settings.lua:1176 app_launcher_settings.lua:584 app_launcher_settings.lua:825 menu_settings.lua:545 menu_settings.lua:737 menu_settings.lua:791 menu_settings.lua:860 home_settings.lua:1501 navbar_settings.lua:332 navbar_settings.lua:576 navbar_settings.lua:792 navbar_settings.lua:1424
 msgid "KOReader menu"
 msgstr "KOReader menu"
 
 #. Type: title
 #. Context: Title in the end-of-book screen settings. Settings label in the Launcher button and page settings. Settings label in the Quick Settings button settings. Also used elsewhere in ZenOS.
-#: app_launcher_settings.lua:728 end_book_settings.lua:106 end_book_settings.lua:111 end_book_settings.lua:131 end_book_settings.lua:134 menu_settings.lua:961 menu_settings.lua:1078 home_settings.lua:1559 navbar_settings.lua:858 navbar_settings.lua:989 navbar_settings.lua:1095 navbar_settings.lua:1197 navbar_settings.lua:1204
+#: app_launcher_settings.lua:728 end_book_settings.lua:106 end_book_settings.lua:111 end_book_settings.lua:131 end_book_settings.lua:134 menu_settings.lua:962 menu_settings.lua:1079 home_settings.lua:1559 navbar_settings.lua:847 navbar_settings.lua:978 navbar_settings.lua:1084 navbar_settings.lua:1186 navbar_settings.lua:1193
 msgid "Label"
 msgstr "Label"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: interface_settings.lua:120 navbar_settings.lua:1542
+#: interface_settings.lua:121 navbar_settings.lua:1531
 msgid "Label size:"
 msgstr "Label size:"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: interface_settings.lua:105 interface_settings.lua:118 navbar_settings.lua:1521
+#: interface_settings.lua:107 interface_settings.lua:119 navbar_settings.lua:1510
 msgid "Labels"
 msgstr "Labels"
 
@@ -3152,13 +3140,13 @@ msgstr "Landscape mosaic mode"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings. Label in the book metadata editor.
-#: metadata_editor.lua:50 metadata_editor.lua:510 library_settings.lua:614 library_settings.lua:961
+#: metadata_editor.lua:51 metadata_editor.lua:511 library_settings.lua:614 library_settings.lua:961
 msgid "Language"
 msgstr "Language"
 
 #. Type: title
 #. Context: Title in the library groups for authors, series, and tags. Label in the navigation tabs and Quick Settings buttons. Label in the library navigation bar. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:11 group_view.lua:1371 group_view.lua:1417 navbar.lua:300 home_settings.lua:1071 navbar_settings.lua:188
+#: nav_button_model.lua:11 group_view.lua:1371 group_view.lua:1417 navbar.lua:304 home_settings.lua:1071 navbar_settings.lua:177
 msgid "Languages"
 msgstr "Languages"
 
@@ -3170,7 +3158,7 @@ msgstr "languages"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:260
+#: library_settings.lua:261
 msgid "Large"
 msgstr "Large"
 
@@ -3182,7 +3170,7 @@ msgstr "Last name"
 
 #. Type: button
 #. Context: Button label in the settings change confirmation dialogs. Label in the ZenOS interface. Settings label in the ZenOS update screens. Also used elsewhere in ZenOS.
-#: zen_screen.lua:489 zen_screen.lua:502 zen_settings_apply.lua:89 zen_updater.lua:1594 zenpm_installer.lua:386
+#: zen_screen.lua:490 zen_screen.lua:503 zen_settings_apply.lua:90 zen_updater.lua:1594 zenpm_installer.lua:386
 msgid "Later"
 msgstr "Later"
 
@@ -3194,13 +3182,13 @@ msgstr "latest"
 
 #. Type: button
 #. Context: Button label in the Launcher panel. Settings label in the Quick Settings panel. Settings label in the Launcher button and page settings. Also used elsewhere in ZenOS.
-#: app_launcher.lua:617 quick_settings.lua:883 app_launcher_settings.lua:1152 app_launcher_settings.lua:1157 interface_settings.lua:130 menu_settings.lua:77 menu_settings.lua:1086
+#: app_launcher.lua:611 quick_settings.lua:1159 app_launcher_settings.lua:1152 app_launcher_settings.lua:1157 interface_settings.lua:131 menu_settings.lua:77 menu_settings.lua:1087
 msgid "Launcher"
 msgstr "Launcher"
 
 #. Type: button
 #. Context: Button label in the Launcher panel.
-#: app_launcher.lua:238
+#: app_launcher.lua:232
 msgid "Launcher entry is unavailable"
 msgstr "Launcher entry is unavailable"
 
@@ -3218,7 +3206,7 @@ msgstr "Layout"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Settings label in the Quick Settings button settings. Settings label in the navigation bar settings.
-#: app_launcher_settings.lua:186 menu_settings.lua:971 navbar_settings.lua:868
+#: app_launcher_settings.lua:186 menu_settings.lua:972 navbar_settings.lua:857
 msgid "Leave empty to use action title"
 msgstr "Leave empty to use action title"
 
@@ -3230,49 +3218,49 @@ msgstr "Left"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: interface_settings.lua:137 reader_settings.lua:495 status_bar_settings.lua:320
+#: interface_settings.lua:138 reader_settings.lua:496 status_bar_settings.lua:320
 msgid "Left items"
 msgstr "Left items"
 
-#. Type: setting
+#. Type: title
 #. Context: Title in the gesture and shortcut action menu. Label in the navigation tabs and Quick Settings buttons. Label in the library navigation bar. Also used elsewhere in ZenOS.
-#: dispatch_action.lua:500 nav_button_model.lua:14 navbar.lua:221 stats_page.lua:66 end_book_data.lua:24 zen_settings.lua:70 global_settings.lua:856 stats_settings.lua:33 navbar_settings.lua:177 navbar_settings.lua:246 navbar_settings.lua:1042
+#: dispatch_action.lua:500 nav_button_model.lua:14 navbar.lua:225 stats_page.lua:66 end_book_data.lua:27 zen_settings.lua:70 global_settings.lua:856 stats_settings.lua:33 navbar_settings.lua:166 navbar_settings.lua:235 navbar_settings.lua:1031
 msgid "Library"
 msgstr "Library"
 
 #. Type: message
 #. Context: Message in the ZenOS interface.
-#: background.lua:52
+#: background.lua:53
 msgid "Library background was disabled because the image file was not found."
 msgstr "Library background was disabled because the image file was not found."
 
 #. Type: title
 #. Context: Title in the setup guide.
-#: quickstart_pages.lua:658
+#: quickstart_pages.lua:688
 msgid "Library View"
 msgstr "Library View"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel.
-#: quick_settings.lua:617
+#: quick_settings.lua:620
 msgid "Light"
 msgstr "Light"
 
 #. Type: setting
 #. Context: Settings label in the device schedules and sleep-screen settings. Settings label in the Reader appearance and behavior settings.
-#: global_settings.lua:112 global_settings.lua:556 global_settings.lua:569 global_settings.lua:710 global_settings.lua:723 reader_settings.lua:1011
+#: global_settings.lua:112 global_settings.lua:556 global_settings.lua:569 global_settings.lua:710 global_settings.lua:723 reader_settings.lua:1012
 msgid "Light mode"
 msgstr "Light mode"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:703
+#: reader_settings.lua:704
 msgid "Light sepia"
 msgstr "Light sepia"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:704
+#: reader_settings.lua:705
 msgid "Light tan"
 msgstr "Light tan"
 
@@ -3284,19 +3272,19 @@ msgstr "List"
 
 #. Type: label
 #. Context: Label in the book collections menu. Label in the book and folder context menu. Label in the library groups for authors, series, and tags. Also used elsewhere in ZenOS.
-#: collections.lua:430 collections.lua:528 collections.lua:621 context_menu.lua:2610 group_view.lua:585 kindle_virtual_library.lua:285
+#: collections.lua:430 collections.lua:528 collections.lua:621 context_menu.lua:2611 group_view.lua:585 kindle_virtual_library.lua:285
 msgid "List (basic)"
 msgstr "List (basic)"
 
 #. Type: label
 #. Context: Label in the book collections menu. Label in the book and folder context menu. Label in the library groups for authors, series, and tags. Also used elsewhere in ZenOS.
-#: collections.lua:429 collections.lua:527 collections.lua:620 context_menu.lua:2609 group_view.lua:584 kindle_virtual_library.lua:284
+#: collections.lua:429 collections.lua:527 collections.lua:620 context_menu.lua:2610 group_view.lua:584 kindle_virtual_library.lua:284
 msgid "List (detailed)"
 msgstr "List (detailed)"
 
 #. Type: option
 #. Context: Selectable option in the setup guide.
-#: quickstart_pages.lua:662
+#: quickstart_pages.lua:692
 msgid "List - detailed titles and metadata"
 msgstr "List - detailed titles and metadata"
 
@@ -3308,7 +3296,7 @@ msgstr "Load more"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:898 menu_settings.lua:113
+#: quick_settings.lua:885 menu_settings.lua:113
 msgid "LocalSend"
 msgstr "LocalSend"
 
@@ -3320,7 +3308,7 @@ msgstr "Lock home folder"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:987 menu_settings.lua:92
+#: quick_settings.lua:986 menu_settings.lua:92
 msgid "Lockdown"
 msgstr "Lockdown"
 
@@ -3338,13 +3326,13 @@ msgstr "Long-press to add to vocabulary builder"
 
 #. Type: setting
 #. Context: Settings label in the Extras and integration settings.
-#: extras_settings.lua:185
+#: extras_settings.lua:198
 msgid "Loose icons"
 msgstr "Loose icons"
 
 #. Type: setting
 #. Context: Settings label in the Extras and integration settings.
-#: extras_settings.lua:204
+#: extras_settings.lua:218
 msgid "Loose icons in /koreader/icons"
 msgstr "Loose icons in /koreader/icons"
 
@@ -3362,13 +3350,13 @@ msgstr "Main menu"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings. Label in the navigation tabs and Quick Settings buttons. Label in the library navigation bar.
-#: nav_button_model.lua:16 navbar.lua:260 navbar_settings.lua:180
+#: nav_button_model.lua:16 navbar.lua:264 navbar_settings.lua:169
 msgid "Manga"
 msgstr "Manga"
 
 #. Type: dialog
 #. Context: Dialog text in the library navigation bar.
-#: navbar.lua:1261
+#: navbar.lua:1265
 msgid "Manga folder not found: "
 msgstr "Manga folder not found: "
 
@@ -3398,15 +3386,21 @@ msgstr "Maximum 5 buttons allowed"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings. Dialog text in the Home layout and widget settings.
-#: home_settings.lua:1296 home_settings.lua:1362 navbar_settings.lua:292
+#: home_settings.lua:1296 home_settings.lua:1362 navbar_settings.lua:281
 msgid "Maximum 7 tabs allowed"
 msgstr "Maximum 7 tabs allowed"
 
 #. Type: dialog
 #. Context: Dialog text in the Quick Settings button settings.
-#: menu_settings.lua:291
+#: menu_settings.lua:292
 msgid "Maximum 9 buttons allowed"
 msgstr "Maximum 9 buttons allowed"
+
+#. Type: setting
+#. Context: Device CPU statistics label for the maximum supported clock speed, in GHz.
+#: about_settings.lua:119
+msgid "Maximum clock"
+msgstr "Maximum clock"
 
 #. Type: setting
 #. Context: Settings label in the Home layout and widget settings.
@@ -3422,7 +3416,7 @@ msgstr "Maximum quote font size"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings. Label in the navigation tabs and Quick Settings buttons. Label in the library navigation bar.
-#: nav_button_model.lua:27 navbar.lua:350 navbar_settings.lua:198
+#: nav_button_model.lua:27 navbar.lua:354 navbar_settings.lua:187
 msgid "Menu"
 msgstr "Menu"
 
@@ -3500,7 +3494,7 @@ msgstr "minutes"
 
 #. Type: setting
 #. Context: Settings label in the Extras and integration settings.
-#: extras_settings.lua:189
+#: extras_settings.lua:202
 msgid "Missing: %1"
 msgstr "Missing: %1"
 
@@ -3524,13 +3518,13 @@ msgstr "Months"
 
 #. Type: setting
 #. Context: Settings label in the library display-mode selector. Label in the book and folder context menu.
-#: context_menu.lua:2867 koreader_layout.lua:84
+#: context_menu.lua:2864 koreader_layout.lua:84
 msgid "More"
 msgstr "More"
 
 #. Type: label
 #. Context: Label in the reading screen.
-#: end_book_data.lua:116
+#: end_book_data.lua:119
 msgid "More by %1"
 msgstr "More by %1"
 
@@ -3542,25 +3536,25 @@ msgstr "More by author"
 
 #. Type: setting
 #. Context: Settings label in the Extras and integration settings. Label in the book collections menu. Label in the book and folder context menu. Also used elsewhere in ZenOS.
-#: collections.lua:428 collections.lua:526 collections.lua:619 context_menu.lua:2608 group_view.lua:583 kindle_virtual_library.lua:283 extras_settings.lua:38 library_settings.lua:763
+#: collections.lua:428 collections.lua:526 collections.lua:619 context_menu.lua:2609 group_view.lua:583 kindle_virtual_library.lua:283 extras_settings.lua:38 library_settings.lua:763
 msgid "Mosaic"
 msgstr "Mosaic"
 
 #. Type: option
 #. Context: Selectable option in the setup guide.
-#: quickstart_pages.lua:661
+#: quickstart_pages.lua:691
 msgid "Mosaic - large cover thumbnails"
 msgstr "Mosaic - large cover thumbnails"
 
 #. Type: button
 #. Context: Button label in the book and folder context menu. Action label in the setup guide.
-#: quickstart_pages.lua:304 context_menu.lua:504 context_menu.lua:713 context_menu.lua:2283
+#: quickstart_pages.lua:304 context_menu.lua:505 context_menu.lua:714 context_menu.lua:2101
 msgid "Move"
 msgstr "Move"
 
 #. Type: dialog
 #. Context: Dialog text in the book and folder context menu.
-#: context_menu.lua:2361
+#: context_menu.lua:2179
 msgid "Move failed."
 msgstr "Move failed."
 
@@ -3572,7 +3566,7 @@ msgstr "Move out of folder"
 
 #. Type: dialog
 #. Context: Dialog text in the book and folder context menu.
-#: context_menu.lua:503
+#: context_menu.lua:504
 msgid "Move selected files?"
 msgstr "Move selected files?"
 
@@ -3584,37 +3578,37 @@ msgstr "Move to folder"
 
 #. Type: title
 #. Context: Title in the book and folder context menu.
-#: context_menu.lua:666 context_menu.lua:2306
+#: context_menu.lua:667 context_menu.lua:2124
 msgid "Move to…"
 msgstr "Move to…"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Help text in the book metadata editor.
-#: metadata_editor.lua:1071 reader_settings.lua:142
+#: metadata_editor.lua:1072 reader_settings.lua:143
 msgid "Name"
 msgstr "Name"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: interface_settings.lua:98 interface_settings.lua:133 navbar_settings.lua:1509
+#: interface_settings.lua:100 interface_settings.lua:134 navbar_settings.lua:1498
 msgid "Navbar"
 msgstr "Navbar"
 
 #. Type: title
 #. Context: Title in the navigation bar settings.
-#: navbar_settings.lua:1602
+#: navbar_settings.lua:1591
 msgid "Navbar icon size"
 msgstr "Navbar icon size"
 
 #. Type: title
 #. Context: Title in the navigation bar settings.
-#: navbar_settings.lua:1553
+#: navbar_settings.lua:1542
 msgid "Navbar label size"
 msgstr "Navbar label size"
 
 #. Type: title
 #. Context: Title in the setup guide.
-#: quickstart_pages.lua:678
+#: quickstart_pages.lua:708
 msgid "Navbar Tabs"
 msgstr "Navbar Tabs"
 
@@ -3656,7 +3650,7 @@ msgstr "Networks with WEP encryption are not supported."
 
 #. Type: status
 #. Context: Status message in the book library. Label in the book metadata editor. Label in the book and folder context menu. Also used elsewhere in ZenOS.
-#: metadata_editor.lua:608 browser_list_item_layout.lua:467 context_menu.lua:2436 zen_renderer.lua:824 strip_common.lua:532
+#: metadata_editor.lua:609 browser_list_item_layout.lua:467 context_menu.lua:2454 zen_renderer.lua:828 strip_common.lua:532
 msgid "New"
 msgstr "New"
 
@@ -3668,19 +3662,19 @@ msgstr "New collection"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:959
+#: reader_settings.lua:960
 msgid "New custom theme"
 msgstr "New custom theme"
 
 #. Type: title
 #. Context: Title in the Launcher button and page settings. Label in the book and folder context menu.
-#: context_menu.lua:2270 app_launcher_settings.lua:275
+#: context_menu.lua:2382 app_launcher_settings.lua:275
 msgid "New folder"
 msgstr "New folder"
 
 #. Type: message
 #. Context: Message in the Library appearance and behavior settings.
-#: library_settings.lua:1250
+#: library_settings.lua:1253
 msgid "New includes unread books and books modified since they were last opened."
 msgstr "New includes unread books and books modified since they were last opened."
 
@@ -3692,25 +3686,25 @@ msgstr "New quote"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings. Label in the navigation tabs and Quick Settings buttons. Label in the library navigation bar.
-#: nav_button_model.lua:17 navbar.lua:265 navbar_settings.lua:181
+#: nav_button_model.lua:17 navbar.lua:269 navbar_settings.lua:170
 msgid "News"
 msgstr "News"
 
 #. Type: dialog
 #. Context: Dialog text in the library navigation bar.
-#: navbar.lua:1332
+#: navbar.lua:1336
 msgid "News folder not found: "
 msgstr "News folder not found: "
 
 #. Type: setting
 #. Context: Settings label in the bug report form. Label in the setup guide. Label in the library navigation bar.
-#: quickstart_screen.lua:489 navbar.lua:345 zen_bugreporter.lua:243
+#: quickstart_screen.lua:515 navbar.lua:349 zen_bugreporter.lua:243
 msgid "Next"
 msgstr "Next"
 
 #. Type: label
 #. Context: Label in the reading screen.
-#: end_book_data.lua:29
+#: end_book_data.lua:32
 msgid "Next file"
 msgstr "Next file"
 
@@ -3722,13 +3716,13 @@ msgstr "Next in series"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings. Label in the navigation tabs and Quick Settings buttons.
-#: nav_button_model.lua:26 navbar_settings.lua:197
+#: nav_button_model.lua:26 navbar_settings.lua:186
 msgid "Next page"
 msgstr "Next page"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel.
-#: quick_settings.lua:604
+#: quick_settings.lua:607
 msgid "Night"
 msgstr "Night"
 
@@ -3806,7 +3800,7 @@ msgstr "No archive folder is set. Set one now?"
 
 #. Type: message
 #. Context: Message in the Interface appearance settings.
-#: interface_settings.lua:316
+#: interface_settings.lua:363
 msgid "No background image selected."
 msgstr "No background image selected."
 
@@ -3830,7 +3824,7 @@ msgstr "No books found in the selected folder"
 
 #. Type: title
 #. Context: Title in the reading screen.
-#: end_book.lua:421 end_book_data.lua:249
+#: end_book.lua:467 end_book_data.lua:252
 msgid "No books to show."
 msgstr "No books to show."
 
@@ -3878,19 +3872,19 @@ msgstr "No description."
 
 #. Type: message
 #. Context: Message in the reading screen.
-#: end_book_data.lua:285
+#: end_book_data.lua:288
 msgid "No highlights in this book."
 msgstr "No highlights in this book."
 
 #. Type: dialog
 #. Context: Dialog text in the Launcher button and page settings. Dialog text in the Quick Settings button settings. Dialog text in the navigation bar settings.
-#: app_launcher_settings.lua:416 menu_settings.lua:437 navbar_settings.lua:494
+#: app_launcher_settings.lua:416 menu_settings.lua:438 navbar_settings.lua:483
 msgid "No KOReader submenus found"
 msgstr "No KOReader submenus found"
 
 #. Type: dialog
 #. Context: Dialog text in the Launcher button and page settings. Dialog text in the Quick Settings button settings. Dialog text in the navigation bar settings.
-#: app_launcher_settings.lua:314 app_launcher_settings.lua:384 menu_settings.lua:414 navbar_settings.lua:472
+#: app_launcher_settings.lua:314 app_launcher_settings.lua:384 menu_settings.lua:415 navbar_settings.lua:461
 msgid "No launchable plugin menus found"
 msgstr "No launchable plugin menus found"
 
@@ -3926,7 +3920,7 @@ msgstr "No quote available."
 
 #. Type: dialog
 #. Context: Dialog text in the reading screen.
-#: opening_banner.lua:620 opening_banner.lua:710
+#: opening_banner.lua:623 opening_banner.lua:713
 msgid "No reader engine for this file or invalid file."
 msgstr "No reader engine for this file or invalid file."
 
@@ -3980,13 +3974,13 @@ msgstr "None"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:170
+#: library_settings.lua:171
 msgid "None (folder name only)"
 msgstr "None (folder name only)"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:259
+#: library_settings.lua:260
 msgid "Normal"
 msgstr "Normal"
 
@@ -3998,13 +3992,13 @@ msgstr "Not enough Home space: %1/%2 units used; this widget needs %3."
 
 #. Type: message
 #. Context: Message in the end-of-book screen settings. Message in the Home layout and widget settings.
-#: end_book_settings.lua:243 home_settings.lua:562
+#: end_book_settings.lua:244 home_settings.lua:562
 msgid "Not enough space: %1/%2 units used; this widget needs %3."
 msgstr "Not enough space: %1/%2 units used; this widget needs %3."
 
 #. Type: setting
 #. Context: Settings label in the book metadata provider settings. Label in the book metadata editor.
-#: metadata_editor.lua:40 metadata_settings.lua:12
+#: metadata_editor.lua:41 metadata_settings.lua:12
 msgid "Not set"
 msgstr "Not set"
 
@@ -4016,7 +4010,7 @@ msgstr "Note"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Settings label in the Quick Settings button settings. Settings label in the Home layout and widget settings. Also used elsewhere in ZenOS.
-#: app_launcher_settings.lua:161 menu_settings.lua:794 home_settings.lua:1443 navbar_settings.lua:347
+#: app_launcher_settings.lua:161 menu_settings.lua:795 home_settings.lua:1443 navbar_settings.lua:336
 msgid "Nothing"
 msgstr "Nothing"
 
@@ -4028,19 +4022,19 @@ msgstr "Notion"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel.
-#: quick_settings.lua:800
+#: quick_settings.lua:798
 msgid "NotionSync"
 msgstr "NotionSync"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:467
+#: reader_settings.lua:468
 msgid "of"
 msgstr "of"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings. Label in the book library. Label in the ZenOS interface. Also used elsewhere in ZenOS.
-#: status_bar.lua:383 incognito_mode.lua:248 bluetooth_switcher.lua:253 network_switcher.lua:935 network_switcher.lua:953 network_switcher.lua:1022 reader_top_status_bar.lua:207 library_settings.lua:909 home_settings.lua:589 home_settings.lua:600
+#: status_bar.lua:384 incognito_mode.lua:248 bluetooth_switcher.lua:253 network_switcher.lua:935 network_switcher.lua:953 network_switcher.lua:1022 reader_top_status_bar.lua:205 library_settings.lua:909 home_settings.lua:589 home_settings.lua:600
 msgid "Off"
 msgstr "Off"
 
@@ -4052,7 +4046,7 @@ msgstr "OK"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:64
+#: reader_settings.lua:65
 msgid "Olive"
 msgstr "Olive"
 
@@ -4064,7 +4058,7 @@ msgstr "On"
 
 #. Type: status
 #. Context: Status message in the book library. Label in the navigation tabs and Quick Settings buttons. Label in the book and folder context menu.
-#: nav_button_model.lua:34 browser_list_item_layout.lua:475 context_menu.lua:683 context_menu.lua:1186 context_menu.lua:2523 context_menu.lua:2783
+#: nav_button_model.lua:34 browser_list_item_layout.lua:475 context_menu.lua:684 context_menu.lua:1187 context_menu.lua:2541 context_menu.lua:2784
 msgid "On hold"
 msgstr "On hold"
 
@@ -4076,7 +4070,7 @@ msgstr "On Home refresh"
 
 #. Type: label
 #. Context: Label in the book metadata editor.
-#: metadata_editor.lua:1104
+#: metadata_editor.lua:1105
 msgid "One per line"
 msgstr "One per line"
 
@@ -4094,31 +4088,31 @@ msgstr "Only show while reading"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Label in the ZenOS interface.
-#: color_wheel_widget.lua:493 interface_settings.lua:401 interface_settings.lua:411
+#: color_wheel_widget.lua:509 interface_settings.lua:448 interface_settings.lua:458
 msgid "Opacity"
 msgstr "Opacity"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:205
+#: library_settings.lua:206
 msgid "Opaque background"
 msgstr "Opaque background"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:821 menu_settings.lua:111
+#: quick_settings.lua:819 menu_settings.lua:111
 msgid "OPDS"
 msgstr "OPDS"
 
 #. Type: button
 #. Context: Button label in the book library. Label in the Wi-Fi network menu and connection dialogs. Dialog text in the reading screen.
-#: home_page.lua:2467 network_switcher.lua:624 opening_banner.lua:547
+#: home_page.lua:2466 network_switcher.lua:624 opening_banner.lua:550
 msgid "Open"
 msgstr "Open"
 
-#. Type: setting
+#. Type: title
 #. Context: Title in the gesture and shortcut action menu. Settings label in the Launcher button and page settings. Settings label in the navigation bar settings.
-#: dispatch_action.lua:396 dispatch_action.lua:398 dispatch_action.lua:542 app_launcher_settings.lua:544 app_launcher_settings.lua:600 navbar_settings.lua:1146 navbar_settings.lua:1148
+#: dispatch_action.lua:396 dispatch_action.lua:398 dispatch_action.lua:542 app_launcher_settings.lua:544 app_launcher_settings.lua:600 navbar_settings.lua:1135 navbar_settings.lua:1137
 msgid "Open folder"
 msgstr "Open folder"
 
@@ -4148,19 +4142,19 @@ msgstr "Open next file"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:1263
+#: navbar_settings.lua:1252
 msgid "Open QuickRSS"
 msgstr "Open QuickRSS"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:1232
+#: navbar_settings.lua:1221
 msgid "Open Rakuyomi"
 msgstr "Open Rakuyomi"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:1274
+#: navbar_settings.lua:1263
 msgid "Open RSS Reader"
 msgstr "Open RSS Reader"
 
@@ -4172,13 +4166,13 @@ msgstr "Open settings"
 
 #. Type: dialog
 #. Context: Dialog text in the book library. Dialog text in the reading screen.
-#: home_page.lua:2466 opening_banner.lua:546
+#: home_page.lua:2465 opening_banner.lua:549
 msgid "Open this file?"
 msgstr "Open this file?"
 
 #. Type: message
 #. Context: Message in the book metadata editor.
-#: metadata_editor.lua:692
+#: metadata_editor.lua:693
 msgid "Open with…"
 msgstr "Open with…"
 
@@ -4188,21 +4182,27 @@ msgstr "Open with…"
 msgid "Open Zen UI Settings → Library → Metadata to configure providers."
 msgstr "Open Zen UI Settings → Library → Metadata to configure providers."
 
+#. Type: button
+#. Context: Opens the installed ZenPM plugin from Extras settings.
+#: zenpm_installer.lua:408 zen_settings.lua:60
+msgid "Open ZenPM"
+msgstr "Open ZenPM"
+
 #. Type: label
 #. Context: Label in the reading screen.
-#: opening_banner.lua:471
+#: opening_banner.lua:472
 msgid "Opening"
 msgstr "Opening"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:61
+#: reader_settings.lua:62
 msgid "Orange"
 msgstr "Orange"
 
 #. Type: title
 #. Context: Title in the ZenOS interface. Label in the book and folder context menu. Label in the library groups for authors, series, and tags. Also used elsewhere in ZenOS.
-#: tbr_index.lua:942 tbr_index.lua:950 context_menu.lua:2663 context_menu.lua:2723 group_view.lua:637 group_view.lua:682 group_view.lua:924 app_launcher_settings.lua:63 app_launcher_settings.lua:1077 home_settings.lua:1153 navbar_settings.lua:1288
+#: tbr_index.lua:939 tbr_index.lua:947 context_menu.lua:2664 context_menu.lua:2724 group_view.lua:637 group_view.lua:682 group_view.lua:924 app_launcher_settings.lua:63 app_launcher_settings.lua:1077 home_settings.lua:1153 navbar_settings.lua:1277
 msgid "Order"
 msgstr "Order"
 
@@ -4220,9 +4220,15 @@ msgstr "Outline"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:1659
+#: navbar_settings.lua:1641 navbar_settings.lua:1655 navbar_settings.lua:1674
 msgid "Outline color"
 msgstr "Outline color"
+
+#. Type: setting
+#. Context: Settings label in the navigation bar settings.
+#: interface_settings.lua:116 navbar_settings.lua:1661
+msgid "Outlined"
+msgstr "Outlined"
 
 #. Type: setting
 #. Context: Settings label in the Home layout and widget settings.
@@ -4232,19 +4238,19 @@ msgstr "Outlined boxes"
 
 #. Type: option
 #. Context: Selectable option in the book and folder context menu.
-#: context_menu.lua:523
+#: context_menu.lua:524
 msgid "overwrite existing files"
 msgstr "overwrite existing files"
 
 #. Type: message
 #. Context: Message in the ZenOS interface.
-#: utils.lua:356
+#: utils.lua:357
 msgid "p."
 msgstr "p."
 
 #. Type: format
 #. Context: Formatted text in the ZenOS interface. Formatted text in the book details dialog.
-#: touch_menu_panel.lua:198 book_details.lua:143
+#: touch_menu_panel.lua:200 book_details.lua:143
 msgid "Page %1 of %2"
 msgstr "Page %1 of %2"
 
@@ -4256,7 +4262,7 @@ msgstr "Page %s"
 
 #. Type: title
 #. Context: Title in the setup guide.
-#: quickstart_pages.lua:795 quickstart_pages.lua:910
+#: quickstart_pages.lua:825 quickstart_pages.lua:943
 msgid "Page Browser"
 msgstr "Page Browser"
 
@@ -4274,7 +4280,7 @@ msgstr "Page number format"
 
 #. Type: action
 #. Context: Action label in the online book catalog browser.
-#: opds.lua:2019
+#: opds.lua:2013
 msgid "Page stream"
 msgstr "Page stream"
 
@@ -4285,16 +4291,16 @@ msgid "Page x / y"
 msgstr "Page x / y"
 
 #. Type: unit
+#. Context: Measurement or duration unit in the ZenOS interface. Measurement or duration unit in the book and folder context menu. Measurement or duration unit in the reading statistics page. Also used elsewhere in ZenOS.
+#: utils.lua:357 context_menu.lua:1606 stats_page.lua:430 reading_goals.lua:102 reading_goals.lua:281 book_details_page.lua:227
+msgid "pages"
+msgstr "pages"
+
+#. Type: unit
 #. Context: Measurement or duration unit in the reading goal settings and Home widget. Measurement or duration unit in the reading statistics page. Measurement or duration unit in the Launcher button and page settings. Also used elsewhere in ZenOS.
 #: reading_goals.lua:132 stats_page.lua:76 stats_page.lua:914 stats_page.lua:923 stats_page.lua:931 stats_page.lua:1353 stats_page.lua:1434 app_launcher_settings.lua:82 library_settings.lua:613 library_settings.lua:966 stats_settings.lua:75
 msgid "Pages"
 msgstr "Pages"
-
-#. Type: unit
-#. Context: Measurement or duration unit in the ZenOS interface. Measurement or duration unit in the book and folder context menu. Measurement or duration unit in the reading statistics page. Also used elsewhere in ZenOS.
-#: utils.lua:356 context_menu.lua:1605 stats_page.lua:430 reading_goals.lua:102 reading_goals.lua:281 book_details_page.lua:227
-msgid "pages"
-msgstr "pages"
 
 #. Type: label
 #. Context: Label in the reading statistics page.
@@ -4310,7 +4316,7 @@ msgstr "Pages this week"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Label in the reading statistics page. Label in the Home page and its widgets. Also used elsewhere in ZenOS.
-#: stats_page.lua:906 stats_triplet.lua:64 app_launcher_settings.lua:80 home_settings.lua:2242 book_details_page.lua:209
+#: stats_page.lua:906 stats_triplet.lua:64 book_details_page.lua:209 app_launcher_settings.lua:80 home_settings.lua:2242
 msgid "Pages today"
 msgstr "Pages today"
 
@@ -4352,7 +4358,7 @@ msgstr "Password cannot be empty."
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:2054 context_menu.lua:2090
+#: context_menu.lua:2055 context_menu.lua:2091
 msgid "Paste"
 msgstr "Paste"
 
@@ -4374,39 +4380,39 @@ msgstr "Per page"
 msgid "Percent"
 msgstr "Percent"
 
-#. Type: label
-#. Context: Label in the reading statistics page.
-#: stats_page.lua:65
-msgid "Personal Records"
-msgstr "Personal Records"
-
 #. Type: setting
 #. Context: Settings label in the reading statistics settings.
 #: stats_settings.lua:32
 msgid "Personal records"
 msgstr "Personal records"
 
+#. Type: label
+#. Context: Label in the reading statistics page.
+#: stats_page.lua:65
+msgid "Personal Records"
+msgstr "Personal Records"
+
 #. Type: message
 #. Context: Message in the Extras and integration settings.
-#: extras_settings.lua:256
+#: extras_settings.lua:270
 msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
 msgstr "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
 
 #. Type: message
 #. Context: Message in the incompatible-plugin warnings.
-#: incompatible_plugins_check.lua:187
+#: incompatible_plugins_check.lua:188
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
 msgstr "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Label in the navigation tabs and Quick Settings buttons. Settings label in the Launcher button and page settings. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:150 quick_settings.lua:1190 app_launcher_settings.lua:850 menu_settings.lua:483 menu_settings.lua:781 menu_settings.lua:848 home_settings.lua:1496 navbar_settings.lua:340 navbar_settings.lua:520 navbar_settings.lua:792
+#: nav_button_model.lua:150 quick_settings.lua:1199 app_launcher_settings.lua:850 menu_settings.lua:484 menu_settings.lua:782 menu_settings.lua:849 home_settings.lua:1496 navbar_settings.lua:329 navbar_settings.lua:509 navbar_settings.lua:781
 msgid "Plugin"
 msgstr "Plugin"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:1232
+#: library_settings.lua:1235
 msgid "Plugin actions"
 msgstr "Plugin actions"
 
@@ -4418,7 +4424,7 @@ msgstr "Plugin management"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Settings label in the Quick Settings button settings. Settings label in the navigation bar settings.
-#: app_launcher_settings.lua:577 menu_settings.lua:731 navbar_settings.lua:1430
+#: app_launcher_settings.lua:577 menu_settings.lua:732 navbar_settings.lua:1419
 msgid "Plugin Menu"
 msgstr "Plugin Menu"
 
@@ -4436,7 +4442,7 @@ msgstr "Portrait mosaic mode"
 
 #. Type: description
 #. Context: Help text in the book metadata editor.
-#: metadata_editor.lua:1072
+#: metadata_editor.lua:1073
 msgid "Position"
 msgstr "Position"
 
@@ -4448,25 +4454,25 @@ msgstr "Prefer large covers"
 
 #. Type: title
 #. Context: Title in the device schedules and sleep-screen settings. Title in the Reader appearance and behavior settings. Title in the Home layout and widget settings.
-#: global_settings.lua:299 reader_settings.lua:1108 home_settings.lua:2048 home_settings.lua:2126
+#: global_settings.lua:299 reader_settings.lua:1109 home_settings.lua:2048 home_settings.lua:2126
 msgid "Preset name"
 msgstr "Preset name"
 
 #. Type: setting
 #. Context: Settings label in the device schedules and sleep-screen settings. Settings label in the Home layout and widget settings.
-#: global_settings.lua:808 home_settings.lua:2680
+#: global_settings.lua:808 home_settings.lua:2681
 msgid "Presets"
 msgstr "Presets"
 
 #. Type: label
 #. Context: Label in the setup guide. Label in the library navigation bar.
-#: quickstart_screen.lua:464 navbar.lua:340
+#: quickstart_screen.lua:490 navbar.lua:344
 msgid "Prev"
 msgstr "Prev"
 
 #. Type: setting
 #. Context: Settings label in the end-of-book screen settings.
-#: end_book_settings.lua:279
+#: end_book_settings.lua:280
 msgid "Preview"
 msgstr "Preview"
 
@@ -4484,25 +4490,25 @@ msgstr "Previous charge, total"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings. Label in the navigation tabs and Quick Settings buttons.
-#: nav_button_model.lua:25 navbar_settings.lua:196
+#: nav_button_model.lua:25 navbar_settings.lua:185
 msgid "Previous page"
 msgstr "Previous page"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Library appearance and behavior settings. Settings label in the Home layout and widget settings.
-#: quick_settings.lua:1061 library_settings.lua:967 home_settings.lua:1025
+#: quick_settings.lua:1060 library_settings.lua:967 home_settings.lua:1025
 msgid "Progress"
 msgstr "Progress"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:224
+#: reader_settings.lua:225
 msgid "Progress %"
 msgstr "Progress %"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Label in the bottom reading status bar.
-#: reader_footer.lua:79 app_launcher_settings.lua:83
+#: reader_footer.lua:80 app_launcher_settings.lua:83
 msgid "Progress bar"
 msgstr "Progress bar"
 
@@ -4514,49 +4520,49 @@ msgstr "Progress labels"
 
 #. Type: dialog
 #. Context: Dialog text in the incompatible-plugin warnings.
-#: incompatible_plugins_check.lua:186
+#: incompatible_plugins_check.lua:187
 msgid "Project: Title is not compatible with ZenOS."
 msgstr "Project: Title is not compatible with ZenOS."
 
 #. Type: label
 #. Context: Label in the book metadata editor.
-#: metadata_editor.lua:51 metadata_editor.lua:511
+#: metadata_editor.lua:52 metadata_editor.lua:512
 msgid "Publisher"
 msgstr "Publisher"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:67
+#: reader_settings.lua:68
 msgid "Purple"
 msgstr "Purple"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel.
-#: quick_settings.lua:1052
+#: quick_settings.lua:1051
 msgid "Puzzle"
 msgstr "Puzzle"
 
 #. Type: title
 #. Context: Title in the setup guide.
-#: quickstart_pages.lua:708 quickstart_pages.lua:908
+#: quickstart_pages.lua:738 quickstart_pages.lua:941
 msgid "Quick Settings"
 msgstr "Quick Settings"
 
 #. Type: dialog
 #. Context: Dialog text in the Quick Settings panel.
-#: quick_settings.lua:473
+#: quick_settings.lua:476
 msgid "Quick settings button is unavailable"
 msgstr "Quick settings button is unavailable"
 
 #. Type: button
 #. Context: Button label in the Quick Settings button settings. Settings label in the Quick Settings panel.
-#: quick_settings.lua:738 menu_settings.lua:104
+#: quick_settings.lua:736 menu_settings.lua:104
 msgid "QuickRSS"
 msgstr "QuickRSS"
 
 #. Type: dialog
 #. Context: Dialog text in the library navigation bar. Dialog text in the Quick Settings panel.
-#: navbar.lua:1359 quick_settings.lua:749
+#: navbar.lua:1363 quick_settings.lua:747
 msgid "QuickRSS plugin is not installed."
 msgstr "QuickRSS plugin is not installed."
 
@@ -4603,8 +4609,14 @@ msgid "Rakuyomi plugin is not installed."
 msgstr "Rakuyomi plugin is not installed."
 
 #. Type: setting
+#. Context: Settings menu showing total RAM, with used, available, and total memory details.
+#: about_settings.lua:87
+msgid "RAM"
+msgstr "RAM"
+
+#. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: reader_settings.lua:218 status_bar_settings.lua:31
+#: reader_settings.lua:219 status_bar_settings.lua:31
 msgid "RAM usage"
 msgstr "RAM usage"
 
@@ -4616,19 +4628,19 @@ msgstr "Range"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:962
+#: end_book_settings.lua:7 library_settings.lua:962
 msgid "Rating"
 msgstr "Rating"
 
 #. Type: button
 #. Context: Button label in the online book catalog browser.
-#: opds.lua:1975
+#: opds.lua:1976
 msgid "Read now"
 msgstr "Read now"
 
 #. Type: title
 #. Context: Title in the book and folder context menu. Action label in the setup guide. Settings label in the Library appearance and behavior settings.
-#: quickstart_pages.lua:306 context_menu.lua:699 context_menu.lua:737 context_menu.lua:2421 context_menu.lua:2517 library_settings.lua:613
+#: quickstart_pages.lua:306 context_menu.lua:700 context_menu.lua:738 context_menu.lua:2439 context_menu.lua:2535 library_settings.lua:613
 msgid "Read status"
 msgstr "Read status"
 
@@ -4652,13 +4664,13 @@ msgstr "Read: %s"
 
 #. Type: title
 #. Context: Title in the setup guide. Label in the ZenOS interface. Settings label in the main Zen Settings menu. Also used elsewhere in ZenOS.
-#: quickstart_pages.lua:773 action_filter.lua:72 zen_settings.lua:78 global_settings.lua:899 home_settings.lua:1527
+#: quickstart_pages.lua:803 action_filter.lua:72 zen_settings.lua:78 global_settings.lua:899 home_settings.lua:1527
 msgid "Reader"
 msgstr "Reader"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Settings label in the Quick Settings button settings.
-#: app_launcher_settings.lua:862 menu_settings.lua:826
+#: app_launcher_settings.lua:862 menu_settings.lua:827
 msgid "Reader action"
 msgstr "Reader action"
 
@@ -4670,27 +4682,27 @@ msgstr "Reader menu"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1001
+#: reader_settings.lua:1002
 msgid "Reader themes"
 msgstr "Reader themes"
 
 #. Type: status
 #. Context: Status message in the book library. Label in the navigation tabs and Quick Settings buttons. Label in the book and folder context menu. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:32 browser_list_item_layout.lua:481 context_menu.lua:681 context_menu.lua:1184 context_menu.lua:2521 context_menu.lua:2781 stats_page.lua:952
+#: nav_button_model.lua:32 browser_list_item_layout.lua:481 context_menu.lua:682 context_menu.lua:1185 context_menu.lua:2539 context_menu.lua:2782 stats_page.lua:952
 msgid "Reading"
 msgstr "Reading"
-
-#. Type: setting
-#. Context: Settings label in the reading statistics settings.
-#: stats_settings.lua:37
-msgid "Reading calendar"
-msgstr "Reading calendar"
 
 #. Type: label
 #. Context: Label in the reading statistics page.
 #: stats_page.lua:70
 msgid "Reading Calendar"
 msgstr "Reading Calendar"
+
+#. Type: setting
+#. Context: Settings label in the reading statistics settings.
+#: stats_settings.lua:37
+msgid "Reading calendar"
+msgstr "Reading calendar"
 
 #. Type: title
 #. Context: Title in the reading goal settings and Home widget. Label in the reading statistics page. Settings label in the reading statistics settings.
@@ -4716,17 +4728,17 @@ msgstr "Reading statistics"
 msgid "Reading stats"
 msgstr "Reading stats"
 
-#. Type: label
-#. Context: Label in the reading statistics page.
-#: stats_page.lua:68
-msgid "Reading Trend"
-msgstr "Reading Trend"
-
 #. Type: setting
 #. Context: Settings label in the reading statistics settings.
 #: stats_settings.lua:35
 msgid "Reading trend"
 msgstr "Reading trend"
+
+#. Type: label
+#. Context: Label in the reading statistics page.
+#: stats_page.lua:68
+msgid "Reading Trend"
+msgstr "Reading Trend"
 
 #. Type: setting
 #. Context: Settings label in the Home layout and widget settings. Label in the navigation tabs and Quick Settings buttons.
@@ -4742,13 +4754,13 @@ msgstr "Recent filters"
 
 #. Type: setting
 #. Context: Settings label in the Home layout and widget settings. Label in the book and folder context menu. Label in the library groups for authors, series, and tags.
-#: context_menu.lua:2632 group_view.lua:868 home_settings.lua:954 home_settings.lua:992
+#: context_menu.lua:2633 group_view.lua:868 home_settings.lua:954 home_settings.lua:992
 msgid "Recently read"
 msgstr "Recently read"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings. Settings label in the Reader appearance and behavior settings.
-#: library_settings.lua:319 reader_settings.lua:60
+#: library_settings.lua:319 reader_settings.lua:61
 msgid "Red"
 msgstr "Red"
 
@@ -4760,7 +4772,7 @@ msgstr "Reflowable documents (epub, fb2, txt…)"
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:2119 context_menu.lua:2536
+#: context_menu.lua:2213
 msgid "Refresh"
 msgstr "Refresh"
 
@@ -4776,15 +4788,21 @@ msgstr "regular"
 msgid "Release metadata is invalid or incomplete."
 msgstr "Release metadata is invalid or incomplete."
 
+#. Type: setting
+#. Context: Device statistics label for remaining free storage space. Launcher book details label for estimated reading time left to finish the book. Book details label for estimated reading time left to finish the book.
+#: book_details_page.lua:207 book_details.lua:416 book_details.lua:436 about_settings.lua:82
+msgid "Remaining"
+msgstr "Remaining"
+
 #. Type: button
 #. Context: Button label in the book and folder context menu. Label in the Launcher recent-books page. Button label in the Library appearance and behavior settings. Also used elsewhere in ZenOS.
-#: context_menu.lua:2890 book_switcher_page.lua:401 library_settings.lua:858 home_settings.lua:1652
+#: context_menu.lua:2887 book_switcher_page.lua:401 library_settings.lua:858 home_settings.lua:1652
 msgid "Remove"
 msgstr "Remove"
 
 #. Type: label
 #. Context: Label in the online book catalog browser.
-#: opds.lua:1775
+#: opds.lua:1776
 msgid "Remove default"
 msgstr "Remove default"
 
@@ -4796,13 +4814,13 @@ msgstr "Remove from archive"
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:2381
+#: context_menu.lua:2399
 msgid "Remove from collection"
 msgstr "Remove from collection"
 
 #. Type: label
 #. Context: Label in the book and folder context menu. Label in the book library.
-#: context_menu.lua:2883 history.lua:301
+#: context_menu.lua:2880 history.lua:301
 msgid "Remove from history"
 msgstr "Remove from history"
 
@@ -4820,7 +4838,7 @@ msgstr "Remove this book from archive?"
 
 #. Type: dialog
 #. Context: Dialog text in the book and folder context menu.
-#: context_menu.lua:2889
+#: context_menu.lua:2886
 msgid "Remove this book from history?"
 msgstr "Remove this book from history?"
 
@@ -4832,13 +4850,13 @@ msgstr "Remove this folder from additional home folders?"
 
 #. Type: setting
 #. Context: Settings label in the Home layout and widget settings. Label in the book collections menu. Label in the book and folder context menu.
-#: collections.lua:364 context_menu.lua:2257 home_settings.lua:2058 home_settings.lua:2183
+#: collections.lua:364 context_menu.lua:2369 home_settings.lua:2058 home_settings.lua:2183
 msgid "Rename"
 msgstr "Rename"
 
 #. Type: error
 #. Context: Error message in the book metadata editor.
-#: metadata_editor.lua:951 metadata_editor.lua:1133
+#: metadata_editor.lua:952 metadata_editor.lua:1133
 msgid "Renaming the file failed."
 msgstr "Renaming the file failed."
 
@@ -4856,9 +4874,15 @@ msgstr "Require hold to toggle buttons"
 
 #. Type: button
 #. Context: Button label in the battery statistics menu. Button label in the Interface appearance settings. Button label in the Quick Settings button settings. Also used elsewhere in ZenOS.
-#: battery_stats_menu.lua:57 interface_settings.lua:259 menu_settings.lua:1345 reader_settings.lua:113 home_settings.lua:1799
+#: battery_stats_menu.lua:57 interface_settings.lua:306 menu_settings.lua:1346 reader_settings.lua:114 home_settings.lua:1799
 msgid "Reset"
 msgstr "Reset"
+
+#. Type: setting
+#. Context: Interface accent color settings.
+#: interface_settings.lua:182
+msgid "Reset accent color"
+msgstr "Reset accent color"
 
 #. Type: setting
 #. Context: Settings label in the battery statistics menu.
@@ -4868,19 +4892,19 @@ msgstr "Reset battery log"
 
 #. Type: dialog
 #. Context: Dialog text in the Quick Settings button settings. Dialog text in the Home layout and widget settings.
-#: menu_settings.lua:1344 home_settings.lua:1798
+#: menu_settings.lua:1345 home_settings.lua:1798
 msgid "Reset Controls to defaults?"
 msgstr "Reset Controls to defaults?"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings.
-#: interface_settings.lua:253
+#: interface_settings.lua:300
 msgid "Reset font"
 msgstr "Reset font"
 
 #. Type: dialog
 #. Context: Dialog text in the Interface appearance settings.
-#: interface_settings.lua:258
+#: interface_settings.lua:305
 msgid "Reset font family and size to default?"
 msgstr "Reset font family and size to default?"
 
@@ -4892,31 +4916,31 @@ msgstr "Reset to default"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings. Settings label in the Home layout and widget settings.
-#: menu_settings.lua:1338 home_settings.lua:1792
+#: menu_settings.lua:1339 home_settings.lua:1792
 msgid "Reset to defaults"
 msgstr "Reset to defaults"
 
 #. Type: button
 #. Context: Button label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:691 quick_settings.lua:695 menu_settings.lua:97
+#: quick_settings.lua:689 quick_settings.lua:693 menu_settings.lua:97
 msgid "Restart"
 msgstr "Restart"
 
 #. Type: button
 #. Context: Button label in the book reading-status menu. Label in the reading screen.
-#: end_book_data.lua:30 book_status.lua:214
+#: end_book_data.lua:33 book_status.lua:214
 msgid "Restart Book"
 msgstr "Restart Book"
 
 #. Type: setting
 #. Context: Settings label in the Extras and integration settings.
-#: extras_settings.lua:237
+#: extras_settings.lua:251
 msgid "Restart KOReader to apply the updated active pack"
 msgstr "Restart KOReader to apply the updated active pack"
 
 #. Type: button
 #. Context: Button label in the incompatible-plugin warnings. Button label in the bug report form. Button label in the settings change confirmation dialogs. Also used elsewhere in ZenOS.
-#: incompatible_plugins_check.lua:295 zen_bugreporter.lua:190 zen_settings_apply.lua:88 zenpm_installer.lua:385 global_settings.lua:47
+#: incompatible_plugins_check.lua:296 zen_bugreporter.lua:190 zen_settings_apply.lua:89 zenpm_installer.lua:385 global_settings.lua:47
 msgid "Restart now"
 msgstr "Restart now"
 
@@ -4928,7 +4952,7 @@ msgstr "Restarting"
 
 #. Type: button
 #. Context: Button label in the book metadata editor.
-#: metadata_editor.lua:718 metadata_editor.lua:1227
+#: metadata_editor.lua:719 metadata_editor.lua:1228
 msgid "Restore"
 msgstr "Restore"
 
@@ -4940,19 +4964,19 @@ msgstr "Restore KOReader's default draggable modal behavior."
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1368
+#: reader_settings.lua:1369
 msgid "Restore library location on exit"
 msgstr "Restore library location on exit"
 
 #. Type: message
 #. Context: Message in the book metadata editor.
-#: metadata_editor.lua:1224
+#: metadata_editor.lua:1225
 msgid "Restore the previous metadata and discard your unsaved changes?"
 msgstr "Restore the previous metadata and discard your unsaved changes?"
 
 #. Type: message
 #. Context: Message in the book metadata editor.
-#: metadata_editor.lua:1225
+#: metadata_editor.lua:1226
 msgid "Restore the previous metadata for this book?"
 msgstr "Restore the previous metadata for this book?"
 
@@ -4962,15 +4986,21 @@ msgstr "Restore the previous metadata for this book?"
 msgid "Restoring %1…"
 msgstr "Restoring %1…"
 
+#. Type: message
+#. Context: Shown while returning to the Kindle interface after exiting KOReader.
+#: kindle_exit_message.lua:21
+msgid "Restoring Kindle GUI…"
+msgstr "Restoring Kindle GUI…"
+
 #. Type: error
 #. Context: Error message in the book metadata editor.
-#: metadata_editor.lua:1217
+#: metadata_editor.lua:1218
 msgid "Restoring metadata failed."
 msgstr "Restoring metadata failed."
 
 #. Type: action
 #. Context: Action label in the online book catalog browser.
-#: opds.lua:2034
+#: opds.lua:2028
 msgid "Resume from page"
 msgstr "Resume from page"
 
@@ -4994,13 +5024,13 @@ msgstr "Right"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: interface_settings.lua:137 reader_settings.lua:503 status_bar_settings.lua:328
+#: interface_settings.lua:138 reader_settings.lua:504 status_bar_settings.lua:328
 msgid "Right items"
 msgstr "Right items"
 
 #. Type: title
 #. Context: Title in the Quick Settings button settings. Settings label in the Quick Settings panel.
-#: quick_settings.lua:666 menu_settings.lua:94 menu_settings.lua:660 menu_settings.lua:662 menu_settings.lua:1202
+#: quick_settings.lua:664 menu_settings.lua:94 menu_settings.lua:661 menu_settings.lua:663 menu_settings.lua:1203
 msgid "Rotate"
 msgstr "Rotate"
 
@@ -5024,13 +5054,13 @@ msgstr "Rows"
 
 #. Type: dialog
 #. Context: Dialog text in the library navigation bar.
-#: navbar.lua:1345
+#: navbar.lua:1349
 msgid "RSS Reader plugin is not installed."
 msgstr "RSS Reader plugin is not installed."
 
 #. Type: setting
 #. Context: Settings label in the device schedules and sleep-screen settings. Label in the book metadata editor. Settings label in the Reader appearance and behavior settings. Also used elsewhere in ZenOS.
-#: metadata_editor.lua:661 metadata_editor.lua:926 metadata_editor.lua:1044 metadata_editor.lua:1241 global_settings.lua:308 reader_settings.lua:1117 home_settings.lua:2136 metadata_settings.lua:43
+#: metadata_editor.lua:662 metadata_editor.lua:927 metadata_editor.lua:1045 metadata_editor.lua:1242 global_settings.lua:308 reader_settings.lua:1118 home_settings.lua:2136 metadata_settings.lua:43
 msgid "Save"
 msgstr "Save"
 
@@ -5042,7 +5072,7 @@ msgstr "Save current home page as preset"
 
 #. Type: setting
 #. Context: Settings label in the device schedules and sleep-screen settings. Settings label in the Reader appearance and behavior settings.
-#: global_settings.lua:293 reader_settings.lua:1102
+#: global_settings.lua:293 reader_settings.lua:1103
 msgid "Save current settings as preset"
 msgstr "Save current settings as preset"
 
@@ -5072,7 +5102,7 @@ msgstr "Saved"
 
 #. Type: error
 #. Context: Error message in the book metadata editor.
-#: metadata_editor.lua:1197
+#: metadata_editor.lua:1198
 msgid "Saving metadata failed."
 msgstr "Saving metadata failed."
 
@@ -5108,25 +5138,25 @@ msgstr "Screen on time"
 
 #. Type: title
 #. Context: Title in the Quick Settings button settings. Settings label in the Quick Settings panel.
-#: quick_settings.lua:1126 menu_settings.lua:126 menu_settings.lua:678
+#: quick_settings.lua:1125 menu_settings.lua:127 menu_settings.lua:679
 msgid "Screenshot"
 msgstr "Screenshot"
 
 #. Type: title
 #. Context: Title in the screenshot countdown and save notification.
-#: countdown_screenshot.lua:169
+#: countdown_screenshot.lua:170
 msgid "Screenshot saved to:"
 msgstr "Screenshot saved to:"
 
 #. Type: title
 #. Context: Title in the Quick Settings panel. Title in the Quick Settings button settings.
-#: quick_settings.lua:484 menu_settings.lua:261
+#: quick_settings.lua:487 menu_settings.lua:262
 msgid "Screenshot timer"
 msgstr "Screenshot timer"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:676 menu_settings.lua:1205
+#: menu_settings.lua:677 menu_settings.lua:1206
 msgid "Screenshot: %1 s"
 msgstr "Screenshot: %1 s"
 
@@ -5138,13 +5168,13 @@ msgstr "Scroll bar"
 
 #. Type: title
 #. Context: Title in the online book catalog browser. Label in the navigation tabs and Quick Settings buttons. Selectable option in the setup guide. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:21 quickstart_pages.lua:691 collections.lua:650 metadata_editor.lua:968 navbar.lua:320 navbar.lua:325 search.lua:109 opds.lua:1635 opds.lua:1828 opds.lua:1832 native_menu.lua:9 quick_settings.lua:731 quick_settings.lua:771 page_browser.lua:2812 navbar_settings.lua:192
+#: nav_button_model.lua:21 quickstart_pages.lua:721 collections.lua:650 metadata_editor.lua:968 navbar.lua:324 navbar.lua:329 search.lua:109 opds.lua:1636 opds.lua:1829 opds.lua:1833 native_menu.lua:9 quick_settings.lua:729 quick_settings.lua:769 page_browser.lua:2806 navbar_settings.lua:181
 msgid "Search"
 msgstr "Search"
 
 #. Type: title
 #. Context: Title in the reader page browser.
-#: page_browser.lua:2796
+#: page_browser.lua:2790
 msgid "Search Book"
 msgstr "Search Book"
 
@@ -5162,7 +5192,7 @@ msgstr "Search metadata"
 
 #. Type: title
 #. Context: Title in the online book catalog browser.
-#: opds.lua:1822
+#: opds.lua:1823
 msgid "Search results"
 msgstr "Search results"
 
@@ -5198,13 +5228,13 @@ msgstr "Security"
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:2102
+#: context_menu.lua:2196
 msgid "Select"
 msgstr "Select"
 
 #. Type: label
 #. Context: Label in the ZenOS interface.
-#: zen_icon_picker.lua:71
+#: zen_icon_picker.lua:72
 msgid "Select icon"
 msgstr "Select icon"
 
@@ -5216,19 +5246,19 @@ msgstr "Selected edition"
 
 #. Type: label
 #. Context: Label in the screenshot countdown and save notification.
-#: countdown_screenshot.lua:143
+#: countdown_screenshot.lua:144
 msgid "Send with LocalSend"
 msgstr "Send with LocalSend"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Settings label in the library status bar settings.
-#: reader_settings.lua:465 reader_settings.lua:622 status_bar_settings.lua:336 status_bar_settings.lua:339
+#: reader_settings.lua:466 reader_settings.lua:623 status_bar_settings.lua:336 status_bar_settings.lua:339
 msgid "Separator"
 msgstr "Separator"
 
 #. Type: title
 #. Context: Title in the gesture and shortcut action menu. Label in the navigation tabs and Quick Settings buttons. Selectable option in the setup guide. Also used elsewhere in ZenOS.
-#: dispatch_action.lua:512 nav_button_model.lua:10 quickstart_pages.lua:689 metadata_editor.lua:48 metadata_editor.lua:508 metadata_editor.lua:1069 context_menu.lua:2631 group_view.lua:1372 group_view.lua:1421 navbar.lua:295 end_book_data.lua:25 end_book_settings.lua:13 library_settings.lua:197 library_settings.lua:612 library_settings.lua:959 home_settings.lua:826 home_settings.lua:1071 navbar_settings.lua:187
+#: dispatch_action.lua:512 nav_button_model.lua:10 quickstart_pages.lua:719 metadata_editor.lua:49 metadata_editor.lua:509 metadata_editor.lua:1070 context_menu.lua:2632 group_view.lua:1372 group_view.lua:1421 navbar.lua:299 end_book_data.lua:28 end_book_settings.lua:13 library_settings.lua:198 library_settings.lua:612 library_settings.lua:959 home_settings.lua:826 home_settings.lua:1071 navbar_settings.lua:176
 msgid "Series"
 msgstr "Series"
 
@@ -5246,7 +5276,7 @@ msgstr "Series number"
 
 #. Type: error
 #. Context: Error message in the book metadata editor.
-#: metadata_editor.lua:1057 metadata_editor.lua:1180 metadata_editor.lua:36
+#: metadata_editor.lua:1058 metadata_editor.lua:1181 metadata_editor.lua:36
 msgid "Series position must be a number."
 msgstr "Series position must be a number."
 
@@ -5258,7 +5288,7 @@ msgstr "Session pages"
 
 #. Type: setting
 #. Context: Settings label in the settings value selection dialogs. Label in the ZenOS interface. Settings label in the Launcher button and page settings. Also used elsewhere in ZenOS.
-#: color_wheel_widget.lua:399 zen_settings_utils.lua:643 app_launcher_settings.lua:195 end_book_settings.lua:115 menu_settings.lua:975 menu_settings.lua:1091 reader_settings.lua:158 reader_settings.lua:276 reader_settings.lua:789 home_settings.lua:1204 navbar_settings.lua:872 navbar_settings.lua:1002 navbar_settings.lua:1073 navbar_settings.lua:1209 status_bar_settings.lua:278 status_bar_settings.lua:374
+#: color_wheel_widget.lua:400 app_launcher_settings.lua:195 end_book_settings.lua:115 menu_settings.lua:976 menu_settings.lua:1092 reader_settings.lua:159 reader_settings.lua:277 reader_settings.lua:790 home_settings.lua:1204 navbar_settings.lua:861 navbar_settings.lua:991 navbar_settings.lua:1062 navbar_settings.lua:1198 status_bar_settings.lua:278 status_bar_settings.lua:374
 msgid "Set"
 msgstr "Set"
 
@@ -5288,19 +5318,19 @@ msgstr "Set archive folder"
 
 #. Type: label
 #. Context: Label in the online book catalog browser.
-#: opds.lua:1776
+#: opds.lua:1777
 msgid "Set as default"
 msgstr "Set as default"
 
 #. Type: action
 #. Context: Action label in the online book catalog browser.
-#: opds.lua:1604
+#: opds.lua:1605
 msgid "Set file types to sync"
 msgstr "Set file types to sync"
 
 #. Type: title
 #. Context: Title in the ZenOS interface. Title in the book and folder context menu.
-#: folder_cover_picker.lua:464 context_menu.lua:1987 context_menu.lua:2132
+#: folder_cover_picker.lua:465 context_menu.lua:1988 context_menu.lua:2226
 msgid "Set folder cover"
 msgstr "Set folder cover"
 
@@ -5312,25 +5342,25 @@ msgstr "Set home folder"
 
 #. Type: action
 #. Context: Action label in the online book catalog browser.
-#: opds.lua:1600
+#: opds.lua:1601
 msgid "Set max number of files to sync"
 msgstr "Set max number of files to sync"
 
 #. Type: action
 #. Context: Action label in the online book catalog browser.
-#: opds.lua:1602
+#: opds.lua:1603
 msgid "Set sync folder"
 msgstr "Set sync folder"
 
 #. Type: title
 #. Context: Title in the Zen Settings menu. Menu entry in the KOReader menus and Launcher menu selector. Settings label in the Quick Settings panel. Also used elsewhere in ZenOS.
-#: native_menu.lua:10 quick_settings.lua:864 battery_stats_menu.lua:93 zen_settings_page.lua:197 zen_settings_page.lua:222 zen_settings_page.lua:279 zen_settings_page.lua:858 zen_settings_page.lua:1042 menu_settings.lua:67 menu_settings.lua:1085
+#: native_menu.lua:10 quick_settings.lua:1159 battery_stats_menu.lua:93 zen_settings_page.lua:198 zen_settings_page.lua:223 zen_settings_page.lua:280 zen_settings_page.lua:863 zen_settings_page.lua:1047 menu_settings.lua:67 menu_settings.lua:1086
 msgid "Settings"
 msgstr "Settings"
 
 #. Type: title
 #. Context: Title in the setup guide.
-#: quickstart_pages.lua:802
+#: quickstart_pages.lua:832
 msgid "Settings & Updates"
 msgstr "Settings & Updates"
 
@@ -5342,19 +5372,19 @@ msgstr "Setup Guide"
 
 #. Type: message
 #. Context: Message in the Reader appearance and behavior settings.
-#: reader_settings.lua:1251
+#: reader_settings.lua:1252
 msgid "Show a button for the Assistant plugin, if installed."
 msgstr "Show a button for the Assistant plugin, if installed."
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1250
+#: reader_settings.lua:1251
 msgid "Show AI assistant"
 msgstr "Show AI assistant"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:1291
+#: library_settings.lua:1294
 msgid "Show all files from subfolders"
 msgstr "Show all files from subfolders"
 
@@ -5378,7 +5408,7 @@ msgstr "Show badges"
 
 #. Type: option
 #. Context: Selectable option in the setup guide.
-#: quickstart_pages.lua:728
+#: quickstart_pages.lua:758
 msgid "Show Book cover"
 msgstr "Show Book cover"
 
@@ -5390,13 +5420,13 @@ msgstr "Show book titles"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the Reader appearance and behavior settings. Settings label in the Home layout and widget settings. Also used elsewhere in ZenOS.
-#: interface_settings.lua:136 reader_settings.lua:628 home_settings.lua:888 status_bar_settings.lua:296
+#: interface_settings.lua:137 reader_settings.lua:629 home_settings.lua:888 status_bar_settings.lua:296
 msgid "Show bottom border"
 msgstr "Show bottom border"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:1250
+#: menu_settings.lua:1251
 msgid "Show brightness slider"
 msgstr "Show brightness slider"
 
@@ -5408,7 +5438,7 @@ msgstr "Show favorite badge"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:236
+#: library_settings.lua:237
 msgid "Show folder name"
 msgstr "Show folder name"
 
@@ -5432,19 +5462,19 @@ msgstr "Show hidden files"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:1300
+#: menu_settings.lua:1301
 msgid "Show Home in Controls"
 msgstr "Show Home in Controls"
 
 #. Type: setting
 #. Context: Settings label in the end-of-book screen settings. Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: end_book_settings.lua:99 interface_settings.lua:124 navbar_settings.lua:1576
+#: end_book_settings.lua:99 interface_settings.lua:125 navbar_settings.lua:1565
 msgid "Show icons"
 msgstr "Show icons"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:187
+#: library_settings.lua:188
 msgid "Show item count"
 msgstr "Show item count"
 
@@ -5456,25 +5486,25 @@ msgstr "Show item underline"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1246
+#: reader_settings.lua:1247
 msgid "Show KOAssistant"
 msgstr "Show KOAssistant"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Settings label in the Interface appearance settings. Settings label in the Quick Settings button settings. Also used elsewhere in ZenOS.
-#: app_launcher_settings.lua:1064 interface_settings.lua:119 menu_settings.lua:1242 navbar_settings.lua:1524
+#: app_launcher_settings.lua:1064 interface_settings.lua:120 menu_settings.lua:1243 navbar_settings.lua:1513
 msgid "Show labels"
 msgstr "Show labels"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:1309
+#: menu_settings.lua:1310
 msgid "Show Launcher in Controls"
 msgstr "Show Launcher in Controls"
 
 #. Type: message
 #. Context: Message in the Library appearance and behavior settings.
-#: library_settings.lua:1270
+#: library_settings.lua:1273
 msgid "Show modified books as New until they are opened or their read status is changed."
 msgstr "Show modified books as New until they are opened or their read status is changed."
 
@@ -5486,13 +5516,13 @@ msgstr "Show new banner"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1254
+#: reader_settings.lua:1255
 msgid "Show other items"
 msgstr "Show other items"
 
 #. Type: message
 #. Context: Message in the Reader appearance and behavior settings.
-#: reader_settings.lua:1255
+#: reader_settings.lua:1256
 msgid "Show other KOReader quick lookup options alongside Zen buttons."
 msgstr "Show other KOReader quick lookup options alongside Zen buttons."
 
@@ -5522,7 +5552,7 @@ msgstr "Show reading progress"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:351
+#: reader_settings.lua:352
 msgid "Show separator"
 msgstr "Show separator"
 
@@ -5534,7 +5564,7 @@ msgstr "Show series number on covers"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:179
+#: library_settings.lua:180
 msgid "Show spine lines"
 msgstr "Show spine lines"
 
@@ -5552,49 +5582,49 @@ msgstr "Show title below cover (mosaic)"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: interface_settings.lua:108 navbar_settings.lua:1681
+#: interface_settings.lua:110 navbar_settings.lua:1689
 msgid "Show top border"
 msgstr "Show top border"
 
 #. Type: setting
 #. Context: Settings label in the Home layout and widget settings.
-#: home_settings.lua:2684
+#: home_settings.lua:2685
 msgid "Show top status bar"
 msgstr "Show top status bar"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:1261
+#: menu_settings.lua:1262
 msgid "Show warmth slider"
 msgstr "Show warmth slider"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1231
+#: reader_settings.lua:1232
 msgid "Show Wikipedia"
 msgstr "Show Wikipedia"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1245
+#: reader_settings.lua:1246
 msgid "Show X-Ray"
 msgstr "Show X-Ray"
 
 #. Type: option
 #. Context: Selectable option in the setup guide.
-#: quickstart_pages.lua:730
+#: quickstart_pages.lua:760
 msgid "Show Zen icon - black background"
 msgstr "Show Zen icon - black background"
 
 #. Type: option
 #. Context: Selectable option in the setup guide.
-#: quickstart_pages.lua:729
+#: quickstart_pages.lua:759
 msgid "Show Zen icon - white background"
 msgstr "Show Zen icon - white background"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:1318
+#: menu_settings.lua:1319
 msgid "Show Zen Settings in Controls"
 msgstr "Show Zen Settings in Controls"
 
@@ -5612,7 +5642,7 @@ msgstr "Single tap to open context menu"
 
 #. Type: setting
 #. Context: Settings label in the bug report form. Selectable option in the setup guide.
-#: quickstart_pages.lua:840 zen_bugreporter.lua:299
+#: quickstart_pages.lua:873 zen_bugreporter.lua:299
 msgid "Skip"
 msgstr "Skip"
 
@@ -5630,25 +5660,25 @@ msgstr "Skip 20 pages"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the General settings. Settings label in the device schedules and sleep-screen settings. Also used elsewhere in ZenOS.
-#: quick_settings.lua:717 general_settings.lua:66 global_settings.lua:797 menu_settings.lua:99
+#: quick_settings.lua:715 general_settings.lua:66 global_settings.lua:797 menu_settings.lua:99
 msgid "Sleep"
 msgstr "Sleep"
 
 #. Type: title
 #. Context: Title in the setup guide.
-#: quickstart_pages.lua:723
+#: quickstart_pages.lua:753
 msgid "Sleep Screen"
 msgstr "Sleep Screen"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:117
+#: menu_settings.lua:118
 msgid "Slide Puzzle"
 msgstr "Slide Puzzle"
 
 #. Type: label
 #. Context: Label in the book collections menu. Label in the book and folder context menu.
-#: collections.lua:463 collections.lua:555 context_menu.lua:1158
+#: collections.lua:463 collections.lua:555 context_menu.lua:1159
 msgid "Sort"
 msgstr "Sort"
 
@@ -5672,13 +5702,13 @@ msgstr "Sort by"
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:2700
+#: context_menu.lua:2701
 msgid "Sort folder"
 msgstr "Sort folder"
 
 #. Type: title
 #. Context: Title in the book and folder context menu.
-#: context_menu.lua:2751
+#: context_menu.lua:2752
 msgid "Sort folder by"
 msgstr "Sort folder by"
 
@@ -5690,13 +5720,13 @@ msgstr "Sort languages"
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:2641
+#: context_menu.lua:2642
 msgid "Sort library"
 msgstr "Sort library"
 
 #. Type: title
 #. Context: Title in the book and folder context menu.
-#: context_menu.lua:2681
+#: context_menu.lua:2682
 msgid "Sort library by"
 msgstr "Sort library by"
 
@@ -5720,7 +5750,7 @@ msgstr "Sources"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Settings label in the Quick Settings button settings. Settings label in the Home layout and widget settings. Also used elsewhere in ZenOS.
-#: app_launcher_settings.lua:551 app_launcher_settings.lua:607 menu_settings.lua:726 home_settings.lua:1074 home_settings.lua:1106 home_settings.lua:1463 navbar_settings.lua:1420
+#: app_launcher_settings.lua:551 app_launcher_settings.lua:607 menu_settings.lua:727 home_settings.lua:1074 home_settings.lua:1106 home_settings.lua:1463 navbar_settings.lua:1409
 msgid "Specific tag"
 msgstr "Specific tag"
 
@@ -5732,7 +5762,7 @@ msgstr "Stable"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:161
+#: library_settings.lua:162
 msgid "Stack"
 msgstr "Stack"
 
@@ -5756,7 +5786,7 @@ msgstr "Stat slot "
 
 #. Type: title
 #. Context: Title in the book reading-status menu. Label in the reading screen. Settings label in the end-of-book screen settings.
-#: end_book.lua:385 book_status.lua:200 end_book_settings.lua:102
+#: end_book.lua:431 book_status.lua:200 end_book_settings.lua:102
 msgid "Statistics"
 msgstr "Statistics"
 
@@ -5766,9 +5796,9 @@ msgstr "Statistics"
 msgid "Statistics calendar is unavailable"
 msgstr "Statistics calendar is unavailable"
 
-#. Type: setting
+#. Type: title
 #. Context: Title in the gesture and shortcut action menu. Label in the navigation tabs and Quick Settings buttons. Selectable option in the setup guide. Also used elsewhere in ZenOS.
-#: dispatch_action.lua:524 nav_button_model.lua:23 quickstart_pages.lua:692 navbar.lua:330 zen_settings.lua:61 stats_settings.lua:277 stats_settings.lua:301 stats_settings.lua:330 navbar_settings.lua:194
+#: dispatch_action.lua:524 nav_button_model.lua:23 quickstart_pages.lua:722 navbar.lua:334 zen_settings.lua:61 stats_settings.lua:277 stats_settings.lua:301 stats_settings.lua:330 navbar_settings.lua:183
 msgid "Stats"
 msgstr "Stats"
 
@@ -5786,13 +5816,13 @@ msgstr "Stats font size"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:123
+#: menu_settings.lua:124
 msgid "Stats: Calendar"
 msgstr "Stats: Calendar"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:122
+#: menu_settings.lua:123
 msgid "Stats: Progress"
 msgstr "Stats: Progress"
 
@@ -5804,15 +5834,9 @@ msgstr "Status"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the library status bar settings.
-#: interface_settings.lua:135 status_bar_settings.lua:238
+#: interface_settings.lua:136 status_bar_settings.lua:238
 msgid "Status bar"
 msgstr "Status bar"
-
-#. Type: menu
-#. Context: Menu entry in the bottom reading status bar.
-#: reader_footer.lua:158
-msgid "Status bar items"
-msgstr "Status bar items"
 
 #. Type: description
 #. Context: Help text in the bug report form.
@@ -5821,20 +5845,26 @@ msgid "Steps to reproduce, expected vs. actual behavior"
 msgstr "Steps to reproduce, expected vs. actual behavior"
 
 #. Type: setting
+#. Context: Settings menu showing total device storage, with remaining, used, and total storage details.
+#: about_settings.lua:76
+msgid "Storage"
+msgstr "Storage"
+
+#. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:813 menu_settings.lua:110
+#: quick_settings.lua:811 menu_settings.lua:110
 msgid "Streak"
 msgstr "Streak"
 
 #. Type: action
 #. Context: Action label in the online book catalog browser.
-#: opds.lua:2026
+#: opds.lua:2020
 msgid "Stream from page"
 msgstr "Stream from page"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: interface_settings.lua:100 interface_settings.lua:104 navbar_settings.lua:1518
+#: interface_settings.lua:102 interface_settings.lua:106 navbar_settings.lua:1507
 msgid "Styling"
 msgstr "Styling"
 
@@ -5864,13 +5894,13 @@ msgstr "Sunday"
 
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:709
+#: quickstart_pages.lua:739
 msgid "Swipe down from the top to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
 msgstr "Swipe down from the top to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
 
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:796
+#: quickstart_pages.lua:826
 msgid "Swipe up from the bottom while reading to open the Page Browser.\n\nSkim through pages or skip chapters, browse the table of contents, manage bookmarks, adjust fonts and more."
 msgstr "Swipe up from the bottom while reading to open the Page Browser.\n\nSkim through pages or skip chapters, browse the table of contents, manage bookmarks, adjust fonts and more."
 
@@ -5882,39 +5912,45 @@ msgstr "Swipe up to open the Page Browser"
 
 #. Type: button
 #. Context: Button label in the online book catalog browser. Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: opds.lua:1757 quick_settings.lua:1087 menu_settings.lua:125
+#: opds.lua:1758 quick_settings.lua:1086 menu_settings.lua:126
 msgid "Sync"
 msgstr "Sync"
 
 #. Type: action
 #. Context: Action label in the online book catalog browser.
-#: opds.lua:1586
+#: opds.lua:1587
 msgid "Sync all catalogs"
 msgstr "Sync all catalogs"
 
 #. Type: setting
 #. Context: Settings label in the Home layout and widget settings. Settings label in the navigation bar settings.
-#: home_settings.lua:1456 navbar_settings.lua:1405
+#: home_settings.lua:1456 navbar_settings.lua:1394
 msgid "Tab"
 msgstr "Tab"
 
-#. Type: setting
+#. Type: title
 #. Context: Title in the gesture and shortcut action menu. Label in the guided reading-screen tour. Label in the reading screen. Also used elsewhere in ZenOS.
-#: dispatch_action.lua:488 reader_tour.lua:81 zen_toc_widget.lua:466 reader_settings.lua:1360
+#: dispatch_action.lua:488 reader_tour.lua:81 zen_toc_widget.lua:466 reader_settings.lua:1361
 msgid "Table of contents"
 msgstr "Table of contents"
 
 #. Type: title
 #. Context: Title in the Home layout and widget settings. Settings label in the Interface appearance settings. Title in the navigation bar settings.
-#: interface_settings.lua:99 home_settings.lua:1519 home_settings.lua:1529 home_settings.lua:1617 home_settings.lua:1775 navbar_settings.lua:1442 navbar_settings.lua:1513
+#: interface_settings.lua:101 home_settings.lua:1519 home_settings.lua:1529 home_settings.lua:1617 home_settings.lua:1775 navbar_settings.lua:1431 navbar_settings.lua:1502
 msgid "Tabs"
 msgstr "Tabs"
 
 #. Type: setting
 #. Context: Settings label in the Launcher button and page settings. Label in the navigation tabs and Quick Settings buttons. Settings label in the Quick Settings button settings. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:143 app_launcher_settings.lua:779 menu_settings.lua:787 menu_settings.lua:891 navbar_settings.lua:331 navbar_settings.lua:752
+#: nav_button_model.lua:143 app_launcher_settings.lua:779 menu_settings.lua:788 menu_settings.lua:892 navbar_settings.lua:320 navbar_settings.lua:741
 msgid "Tag"
 msgstr "Tag"
+
+#. Type: title
+#. Context: Title in the gesture and shortcut action menu. Label in the navigation tabs and Quick Settings buttons. Label in the library groups for authors, series, and tags. Also used elsewhere in ZenOS.
+#: dispatch_action.lua:518 nav_button_model.lua:12 nav_button_model.lua:140 group_view.lua:607 group_view.lua:1372 group_view.lua:1419 navbar.lua:309 library_settings.lua:613 library_settings.lua:960 home_settings.lua:1071 navbar_settings.lua:179
+msgid "Tags"
+msgstr "Tags"
 
 #. Type: label
 #. Context: Label in the library groups for authors, series, and tags.
@@ -5923,26 +5959,20 @@ msgid "tags"
 msgstr "tags"
 
 #. Type: title
-#. Context: Title in the gesture and shortcut action menu. Label in the navigation tabs and Quick Settings buttons. Label in the library groups for authors, series, and tags. Also used elsewhere in ZenOS.
-#: dispatch_action.lua:518 nav_button_model.lua:12 nav_button_model.lua:140 group_view.lua:607 group_view.lua:1372 group_view.lua:1419 navbar.lua:305 library_settings.lua:613 library_settings.lua:960 home_settings.lua:1071 navbar_settings.lua:190
-msgid "Tags"
-msgstr "Tags"
-
-#. Type: title
 #. Context: Title in the Quick Settings button settings. Settings label in the Quick Settings panel.
-#: quick_settings.lua:916 menu_settings.lua:114 menu_settings.lua:668 menu_settings.lua:670
+#: quick_settings.lua:903 menu_settings.lua:114 menu_settings.lua:669 menu_settings.lua:671
 msgid "Tailscale"
 msgstr "Tailscale"
 
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:673
+#: quickstart_pages.lua:703
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "Tap and hold any book or folder in your library to reveal details."
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:882 reader_settings.lua:885
+#: reader_settings.lua:883 reader_settings.lua:886
 msgid "Text color"
 msgstr "Text color"
 
@@ -5954,7 +5984,7 @@ msgstr "Text styles"
 
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:813
+#: quickstart_pages.lua:843
 msgid "The best interface is the one you forget is there.\nNow go get lost in a good book."
 msgstr "The best interface is the one you forget is there.\nNow go get lost in a good book."
 
@@ -5966,7 +5996,7 @@ msgstr "The cover image could not be saved."
 
 #. Type: message
 #. Context: Message in the setup guide.
-#: quickstart_pages.lua:797
+#: quickstart_pages.lua:827
 msgid "The default KOReader reader menu is inside the Aa icon."
 msgstr "The default KOReader reader menu is inside the Aa icon."
 
@@ -6002,19 +6032,19 @@ msgstr "The KOReader metadata override could not be saved."
 
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:835
+#: quickstart_pages.lua:868
 msgid "The place for all your books %1"
 msgstr "The place for all your books %1"
 
 #. Type: title
 #. Context: Title in the Reader appearance and behavior settings.
-#: reader_settings.lua:890 reader_settings.lua:896 reader_settings.lua:904
+#: reader_settings.lua:891 reader_settings.lua:897 reader_settings.lua:905
 msgid "Theme font"
 msgstr "Theme font"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:865 reader_settings.lua:868
+#: reader_settings.lua:866 reader_settings.lua:869
 msgid "Theme name"
 msgstr "Theme name"
 
@@ -6026,7 +6056,7 @@ msgstr "This book is already in the archive."
 
 #. Type: dialog
 #. Context: Dialog text in the settings change confirmation dialogs.
-#: zen_settings_apply.lua:87
+#: zen_settings_apply.lua:88
 msgid "This change requires a restart to take effect."
 msgstr "This change requires a restart to take effect."
 
@@ -6060,21 +6090,21 @@ msgstr "This is Zen Settings. ZenOS settings/updates and common KOReader setting
 msgid "This metadata provider needs an API credential. Open settings?"
 msgstr "This metadata provider needs an API credential. Open settings?"
 
-#. Type: setting
-#. Context: Settings label in the reading statistics settings.
-#: stats_settings.lua:29
-msgid "This month"
-msgstr "This month"
-
 #. Type: label
 #. Context: Label in the reading statistics page.
 #: stats_page.lua:62
 msgid "This Month"
 msgstr "This Month"
 
+#. Type: setting
+#. Context: Settings label in the reading statistics settings.
+#: stats_settings.lua:29
+msgid "This month"
+msgstr "This month"
+
 #. Type: dialog
 #. Context: Dialog text in the Library appearance and behavior settings.
-#: library_settings.lua:1305
+#: library_settings.lua:1308
 msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
 msgstr "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
 
@@ -6090,27 +6120,27 @@ msgstr "This week"
 msgid "This Week"
 msgstr "This Week"
 
-#. Type: label
-#. Context: Label in the reading statistics page.
-#: stats_page.lua:63
-msgid "This Year"
-msgstr "This Year"
-
 #. Type: setting
 #. Context: Settings label in the reading statistics settings.
 #: stats_settings.lua:30
 msgid "This year"
 msgstr "This year"
 
+#. Type: label
+#. Context: Label in the reading statistics page.
+#: stats_page.lua:63
+msgid "This Year"
+msgstr "This Year"
+
 #. Type: title
 #. Context: Title in the Home layout and widget settings. Selectable option in the reading goal settings and Home widget. Label in the reading statistics page. Also used elsewhere in ZenOS.
-#: reading_goals.lua:138 stats_page.lua:1354 stats_page.lua:1434 reader_settings.lua:210 stats_settings.lua:81 home_settings.lua:754 home_settings.lua:770 home_settings.lua:772 home_settings.lua:774 status_bar_settings.lua:34
+#: reading_goals.lua:138 stats_page.lua:1354 stats_page.lua:1434 reader_settings.lua:211 stats_settings.lua:81 home_settings.lua:754 home_settings.lua:770 home_settings.lua:772 home_settings.lua:774 status_bar_settings.lua:34
 msgid "Time"
 msgstr "Time"
 
 #. Type: title
 #. Context: Title in the setup guide.
-#: quickstart_pages.lua:749
+#: quickstart_pages.lua:779
 msgid "Time Format"
 msgstr "Time Format"
 
@@ -6164,7 +6194,7 @@ msgstr "Time today"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1298
+#: reader_settings.lua:1299
 msgid "Time until chapter end"
 msgstr "Time until chapter end"
 
@@ -6200,37 +6230,37 @@ msgstr "Timeout"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:1313 menu_settings.lua:255
+#: quick_settings.lua:1322 menu_settings.lua:256
 msgid "Timer: %1 s"
 msgstr "Timer: %1 s"
 
 #. Type: title
 #. Context: Title in the book metadata editor. Label in the book and folder context menu. Label in the library groups for authors, series, and tags. Also used elsewhere in ZenOS.
-#: metadata_editor.lua:46 metadata_editor.lua:506 context_menu.lua:2627 group_view.lua:665 group_view.lua:865 metadata_editor.lua:963 app_launcher_settings.lua:840 app_launcher_settings.lua:844 library_settings.lua:612 home_settings.lua:824
+#: metadata_editor.lua:47 metadata_editor.lua:507 context_menu.lua:2628 group_view.lua:665 group_view.lua:865 metadata_editor.lua:963 app_launcher_settings.lua:840 app_launcher_settings.lua:844 library_settings.lua:612 home_settings.lua:824
 msgid "Title"
 msgstr "Title"
 
 #. Type: label
 #. Context: Label in the book library. Label in the book and folder context menu. Label in the library groups for authors, series, and tags.
-#: add_sort_title_natural.lua:31 context_menu.lua:2628 group_view.lua:666 group_view.lua:866
+#: add_sort_title_natural.lua:31 context_menu.lua:2629 group_view.lua:666 group_view.lua:866
 msgid "Title natural"
 msgstr "Title natural"
 
 #. Type: setting
 #. Context: Settings label in the end-of-book screen settings. Label in the navigation tabs and Quick Settings buttons. Selectable option in the setup guide. Also used elsewhere in ZenOS.
-#: nav_button_model.lua:8 nav_button_model.lua:33 quickstart_pages.lua:690 browser_list_item_layout.lua:469 context_menu.lua:682 context_menu.lua:1185 context_menu.lua:2522 context_menu.lua:2782 group_view.lua:1353 group_view.lua:1630 navbar.lua:310 end_book_data.lua:26 end_book_settings.lua:14 home_settings.lua:953 home_settings.lua:993 home_settings.lua:1070 navbar_settings.lua:191
+#: nav_button_model.lua:8 nav_button_model.lua:33 quickstart_pages.lua:720 browser_list_item_layout.lua:469 context_menu.lua:683 context_menu.lua:1186 context_menu.lua:2540 context_menu.lua:2783 group_view.lua:1353 group_view.lua:1630 navbar.lua:314 end_book_data.lua:29 end_book_settings.lua:14 home_settings.lua:953 home_settings.lua:993 home_settings.lua:1070 navbar_settings.lua:180
 msgid "To Be Read"
 msgstr "To Be Read"
 
 #. Type: title
 #. Context: Title in the reading statistics page. Settings label in the reading statistics settings. Label in the Launcher book details page.
-#: stats_page.lua:60 stats_settings.lua:27 book_details_page.lua:225
+#: stats_page.lua:60 book_details_page.lua:225 stats_settings.lua:27
 msgid "Today"
 msgstr "Today"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:1324 menu_settings.lua:239
+#: quick_settings.lua:1333 menu_settings.lua:240
 msgid "Toggle Wi-Fi with Tailscale"
 msgstr "Toggle Wi-Fi with Tailscale"
 
@@ -6248,19 +6278,19 @@ msgstr "Tools"
 
 #. Type: title
 #. Context: Title in the Reader appearance and behavior settings.
-#: reader_settings.lua:559
+#: reader_settings.lua:560
 msgid "Top bar font"
 msgstr "Top bar font"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Settings label in the Home layout and widget settings.
-#: reader_settings.lua:484 home_settings.lua:1014
+#: reader_settings.lua:485 home_settings.lua:1014
 msgid "Top status bar"
 msgstr "Top status bar"
 
 #. Type: setting
 #. Context: Device statistics label for total storage capacity or installed RAM. Reading statistics label for daily totals of reading time and pages. Reader status bar setting choosing whether the total page count covers the book or the current chapter.
-#: stats_page.lua:558 about_settings.lua:31 reader_settings.lua:471
+#: stats_page.lua:558 about_settings.lua:31 reader_settings.lua:472
 msgid "Total"
 msgstr "Total"
 
@@ -6272,7 +6302,7 @@ msgstr "Total books"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Label in the reading statistics page. Settings label in the Home layout and widget settings.
-#: stats_page.lua:938 reader_settings.lua:226 home_settings.lua:593
+#: stats_page.lua:938 reader_settings.lua:227 home_settings.lua:593
 msgid "Total pages"
 msgstr "Total pages"
 
@@ -6296,13 +6326,13 @@ msgstr "Tracked samples"
 
 #. Type: setting
 #. Context: Settings label in the Library appearance and behavior settings.
-#: library_settings.lua:1269
+#: library_settings.lua:1272
 msgid "Treat file updates as New"
 msgstr "Treat file updates as New"
 
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:717
+#: quickstart_pages.lua:747
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 
@@ -6338,25 +6368,25 @@ msgstr "Unavailable"
 
 #. Type: setting
 #. Context: Settings label in the Extras and integration settings.
-#: extras_settings.lua:228
+#: extras_settings.lua:242
 msgid "Unavailable pack: %1"
 msgstr "Unavailable pack: %1"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings. Settings label in the navigation bar settings.
-#: interface_settings.lua:112 navbar_settings.lua:1625
+#: interface_settings.lua:114 navbar_settings.lua:1614
 msgid "Underline"
 msgstr "Underline"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:1637
+#: navbar_settings.lua:1629
 msgid "Underline above icon"
 msgstr "Underline above icon"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
-#: menu_settings.lua:1272
+#: menu_settings.lua:1273
 msgid "Unified brightness/warmth slider"
 msgstr "Unified brightness/warmth slider"
 
@@ -6366,17 +6396,17 @@ msgstr "Unified brightness/warmth slider"
 msgid "Uniform covers"
 msgstr "Uniform covers"
 
-#. Type: title
-#. Context: Title in the ZenOS interface.
-#: cover_utils.lua:239
-msgid "Unknown"
-msgstr "Unknown"
-
 #. Type: setting
 #. Context: Settings label in the ZenOS update screens.
 #: zen_updater.lua:236
 msgid "unknown"
 msgstr "unknown"
+
+#. Type: title
+#. Context: Title in the ZenOS interface.
+#: cover_utils.lua:239
+msgid "Unknown"
+msgstr "Unknown"
 
 #. Type: message
 #. Context: Message in the ZenOS interface.
@@ -6384,27 +6414,27 @@ msgstr "unknown"
 msgid "Unknown Author"
 msgstr "Unknown Author"
 
-#. Type: dialog
-#. Context: Dialog text in the book library. Error message in the book metadata editor. Dialog text in the reading screen.
-#: metadata_editor.lua:1316 kindle_virtual_library.lua:355 lookup_plugin_items.lua:8
-msgid "Unknown error"
-msgstr "Unknown error"
-
 #. Type: subtitle
 #. Context: Subtitle in the ZenOS update screens.
 #: zen_updater.lua:1402
 msgid "unknown error"
 msgstr "unknown error"
 
+#. Type: dialog
+#. Context: Dialog text in the book library. Error message in the book metadata editor. Dialog text in the reading screen.
+#: metadata_editor.lua:1317 kindle_virtual_library.lua:355 lookup_plugin_items.lua:8
+msgid "Unknown error"
+msgstr "Unknown error"
+
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings. Settings label in the Home layout and widget settings.
-#: reader_settings.lua:1146 home_settings.lua:2168
+#: reader_settings.lua:1147 home_settings.lua:2168
 msgid "Unnamed preset"
 msgstr "Unnamed preset"
 
 #. Type: label
 #. Context: Label in the navigation tabs and Quick Settings buttons. Label in the book and folder context menu.
-#: nav_button_model.lua:31 context_menu.lua:680 context_menu.lua:1183 context_menu.lua:2436 context_menu.lua:2780
+#: nav_button_model.lua:31 context_menu.lua:681 context_menu.lua:1184 context_menu.lua:2454 context_menu.lua:2781
 msgid "Unread"
 msgstr "Unread"
 
@@ -6566,7 +6596,7 @@ msgstr "Usage"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:682 menu_settings.lua:95
+#: quick_settings.lua:680 menu_settings.lua:95
 msgid "USB"
 msgstr "USB"
 
@@ -6583,20 +6613,26 @@ msgid "Use a token limited to read:catalog. It is stored locally as plain text a
 msgstr "Use a token limited to read:catalog. It is stored locally as plain text and is never logged."
 
 #. Type: setting
+#. Context: Navbar active-tab styling toggle. When enabled, uses the interface accent instead of the saved custom highlight colors.
+#: navbar_settings.lua:1678
+msgid "Use accent color"
+msgstr "Use accent color"
+
+#. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:640
+#: reader_settings.lua:641
 msgid "Use border as progress bar"
 msgstr "Use border as progress bar"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:1133
+#: navbar_settings.lua:1122
 msgid "Use current folder"
 msgstr "Use current folder"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:582 reader_settings.lua:1473
+#: reader_settings.lua:583 reader_settings.lua:1474
 msgid "Use default font"
 msgstr "Use default font"
 
@@ -6608,13 +6644,13 @@ msgstr "Use default style"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:1121
+#: navbar_settings.lua:1110
 msgid "Use home folder"
 msgstr "Use home folder"
 
 #. Type: setting
 #. Context: Settings label in the navigation bar settings.
-#: navbar_settings.lua:1127
+#: navbar_settings.lua:1116
 msgid "Use last folder"
 msgstr "Use last folder"
 
@@ -6623,6 +6659,12 @@ msgstr "Use last folder"
 #: global_settings.lua:381
 msgid "Use Zen Search in the file browser and reader. Disable to use KOReader's default search."
 msgstr "Use Zen Search in the file browser and reader. Disable to use KOReader's default search."
+
+#. Type: setting
+#. Context: Device statistics label for storage space or RAM currently in use.
+#: about_settings.lua:29
+msgid "Used"
+msgstr "Used"
 
 #. Type: setting
 #. Context: Settings label in the battery statistics menu.
@@ -6644,31 +6686,31 @@ msgstr "Value"
 
 #. Type: label
 #. Context: Label in the screenshot countdown and save notification.
-#: countdown_screenshot.lua:111
+#: countdown_screenshot.lua:112
 msgid "View"
 msgstr "View"
 
 #. Type: label
 #. Context: Label in the book and folder context menu.
-#: context_menu.lua:1742
+#: context_menu.lua:1743
 msgid "Virtual folder"
 msgstr "Virtual folder"
 
 #. Type: label
 #. Context: Label in the reader page browser.
-#: page_browser.lua:1145
+#: page_browser.lua:1146
 msgid "Vocabulary builder"
 msgstr "Vocabulary builder"
 
 #. Type: setting
 #. Context: Settings label in the Interface appearance settings.
-#: interface_settings.lua:331 interface_settings.lua:411
+#: interface_settings.lua:378 interface_settings.lua:458
 msgid "Wallpaper"
 msgstr "Wallpaper"
 
 #. Type: setting
 #. Context: Settings label in the device schedules and sleep-screen settings. Label in the ZenOS interface.
-#: brightness_slider.lua:44 warmth_slider.lua:47 global_settings.lua:643 global_settings.lua:663 global_settings.lua:710 global_settings.lua:723 global_settings.lua:766 global_settings.lua:779
+#: brightness_slider.lua:45 warmth_slider.lua:48 global_settings.lua:643 global_settings.lua:663 global_settings.lua:710 global_settings.lua:723 global_settings.lua:766 global_settings.lua:779
 msgid "Warmth"
 msgstr "Warmth"
 
@@ -6686,13 +6728,13 @@ msgstr "Weekly"
 
 #. Type: title
 #. Context: Title in the setup guide.
-#: quickstart_pages.lua:651
+#: quickstart_pages.lua:681
 msgid "Welcome to ZenOS"
 msgstr "Welcome to ZenOS"
 
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:724
+#: quickstart_pages.lua:754
 msgid "What should your device show when it goes to sleep?"
 msgstr "What should your device show when it goes to sleep?"
 
@@ -6704,7 +6746,7 @@ msgstr "What's changed"
 
 #. Type: label
 #. Context: Label in the ZenOS interface.
-#: main.lua:156 zen_screen.lua:303
+#: main.lua:156 zen_screen.lua:304
 msgid "What's New"
 msgstr "What's New"
 
@@ -6716,7 +6758,7 @@ msgstr "When disabled, widget is read only and does not respond to taps, holds, 
 
 #. Type: message
 #. Context: Message in the Extras and integration settings.
-#: extras_settings.lua:164
+#: extras_settings.lua:177
 msgid "When enabled, loose icons or a selected ZenOS icon pack override supported icons. Missing icons fall back to ZenOS, then KOReader."
 msgstr "When enabled, loose icons or a selected ZenOS icon pack override supported icons. Missing icons fall back to ZenOS, then KOReader."
 
@@ -6734,7 +6776,7 @@ msgstr "When enabled, tap the same book twice in rapid succession to open it. Ke
 
 #. Type: description
 #. Context: Help text in the setup guide.
-#: quickstart_pages.lua:750
+#: quickstart_pages.lua:780
 msgid "Which time format do you prefer?"
 msgstr "Which time format do you prefer?"
 
@@ -6758,7 +6800,7 @@ msgstr "White"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the General settings. Settings label in the Quick Settings button settings. Also used elsewhere in ZenOS.
-#: quick_settings.lua:584 quick_settings.lua:586 general_settings.lua:17 menu_settings.lua:86 reader_settings.lua:215 status_bar_settings.lua:29
+#: quick_settings.lua:587 quick_settings.lua:589 general_settings.lua:17 menu_settings.lua:86 reader_settings.lua:216 status_bar_settings.lua:29
 msgid "Wi-Fi"
 msgstr "Wi-Fi"
 
@@ -6806,13 +6848,13 @@ msgstr "Wi-Fi networks"
 
 #. Type: action
 #. Context: Action label in the reading statistics page. Label in the book and folder context menu.
-#: context_menu.lua:2918 stats_page.lua:1457
+#: context_menu.lua:2915 stats_page.lua:1457
 msgid "Widget settings"
 msgstr "Widget settings"
 
 #. Type: title
 #. Context: Title in the reading statistics settings. Settings label in the end-of-book screen settings. Settings label in the Home layout and widget settings.
-#: end_book_settings.lua:268 stats_settings.lua:212 stats_settings.lua:278 stats_settings.lua:302 stats_settings.lua:334 home_settings.lua:1529 home_settings.lua:2000 home_settings.lua:2635 home_settings.lua:2651 home_settings.lua:2664
+#: end_book_settings.lua:269 stats_settings.lua:212 stats_settings.lua:278 stats_settings.lua:302 stats_settings.lua:334 home_settings.lua:1529 home_settings.lua:2000 home_settings.lua:2636 home_settings.lua:2652 home_settings.lua:2665
 msgid "Widgets"
 msgstr "Widgets"
 
@@ -6830,7 +6872,7 @@ msgstr "Yearly"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:62
+#: reader_settings.lua:63
 msgid "Yellow"
 msgstr "Yellow"
 
@@ -6842,25 +6884,25 @@ msgstr "Yes"
 
 #. Type: dialog
 #. Context: Dialog text in the book metadata editor.
-#: metadata_editor.lua:1040
+#: metadata_editor.lua:1041
 msgid "You have unsaved changes."
 msgstr "You have unsaved changes."
 
 #. Type: dialog
 #. Context: Dialog text in the book metadata editor.
-#: metadata_editor.lua:1237
+#: metadata_editor.lua:1238
 msgid "You have unsaved metadata changes."
 msgstr "You have unsaved metadata changes."
 
 #. Type: title
 #. Context: Title in the setup guide.
-#: quickstart_pages.lua:810
+#: quickstart_pages.lua:840
 msgid "You're All Set"
 msgstr "You're All Set"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel.
-#: quick_settings.lua:763
+#: quick_settings.lua:761
 msgid "Z-Lib"
 msgstr "Z-Lib"
 
@@ -6872,7 +6914,7 @@ msgstr "Z-Library"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel.
-#: quick_settings.lua:968
+#: quick_settings.lua:967
 msgid "Zen"
 msgstr "Zen"
 
@@ -6884,27 +6926,27 @@ msgstr "Zen end of book"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1225
+#: reader_settings.lua:1226
 msgid "Zen highlight menu"
 msgstr "Zen highlight menu"
 
 #. Type: setting
 #. Context: Settings label in the device schedules and sleep-screen settings. Settings label in the Interface appearance settings.
-#: global_settings.lua:972 interface_settings.lua:276
+#: global_settings.lua:972 interface_settings.lua:323
 msgid "Zen Keyboard"
 msgstr "Zen Keyboard"
-
-#. Type: title
-#. Context: Title in the setup guide.
-#: quickstart_pages.lua:715 quickstart_pages.lua:904
-msgid "Zen Mode"
-msgstr "Zen Mode"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings button settings.
 #: menu_settings.lua:91
 msgid "Zen mode"
 msgstr "Zen mode"
+
+#. Type: title
+#. Context: Title in the setup guide.
+#: quickstart_pages.lua:745 quickstart_pages.lua:937
+msgid "Zen Mode"
+msgstr "Zen Mode"
 
 #. Type: message
 #. Context: Message in the guided menu tour.
@@ -6932,31 +6974,31 @@ msgstr "Zen OPDS"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1350
+#: reader_settings.lua:1351
 msgid "Zen page browser"
 msgstr "Zen page browser"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1022
+#: reader_settings.lua:1023
 msgid "Zen Presets"
 msgstr "Zen Presets"
 
 #. Type: setting
 #. Context: Settings label in the Reader appearance and behavior settings.
-#: reader_settings.lua:1224
+#: reader_settings.lua:1225
 msgid "Zen quick lookup"
 msgstr "Zen quick lookup"
 
 #. Type: setting
 #. Context: Settings label in the device schedules and sleep-screen settings. Settings label in the Interface appearance settings.
-#: global_settings.lua:380 interface_settings.lua:437
+#: global_settings.lua:380 interface_settings.lua:484
 msgid "Zen Search"
 msgstr "Zen Search"
 
 #. Type: setting
 #. Context: Settings label in the Quick Settings panel. Settings label in the Quick Settings button settings.
-#: quick_settings.lua:950 menu_settings.lua:115
+#: quick_settings.lua:937 menu_settings.lua:115
 msgid "ZenFM"
 msgstr "ZenFM"
 
@@ -6968,7 +7010,7 @@ msgstr "ZenOS"
 
 #. Type: option
 #. Context: Selectable option in the setup guide.
-#: quickstart_pages.lua:778
+#: quickstart_pages.lua:808
 msgid "ZenOS defaults"
 msgstr "ZenOS defaults"
 
@@ -6980,13 +7022,13 @@ msgstr "ZenOS is up to date."
 
 #. Type: dialog
 #. Context: Dialog text in the gesture and shortcut action menu. Dialog text in the library navigation bar.
-#: dispatch_action.lua:150 navbar.lua:1279 navbar.lua:1293
+#: dispatch_action.lua:150 navbar.lua:1283 navbar.lua:1297
 msgid "ZenOS: folder not found: "
 msgstr "ZenOS: folder not found: "
 
 #. Type: dialog
 #. Context: Dialog text in the gesture and shortcut action menu. Message in the library navigation bar.
-#: dispatch_action.lua:171 navbar.lua:1280 navbar.lua:1294
+#: dispatch_action.lua:171 navbar.lua:1284 navbar.lua:1298
 msgid "ZenOS: no folder set for this action."
 msgstr "ZenOS: no folder set for this action."
 
@@ -7040,7 +7082,7 @@ msgstr "ZenOS: Toggle Zen Mode"
 
 #. Type: title
 #. Context: Title in the ZenPM installation screens.
-#: zenpm_installer.lua:309
+#: quick_settings.lua:955 zenpm_installer.lua:309 menu_settings.lua:116
 msgid "ZenPM"
 msgstr "ZenPM"
 
@@ -7049,57 +7091,3 @@ msgstr "ZenPM"
 #: zenpm_installer.lua:381
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM has been installed. Restart KOReader to use it."
-
-#. Type: setting
-#. Context: CPU clock speed in gigahertz; %1 is a number or a minimum-to-maximum range.
-#: about_settings.lua:22 about_settings.lua:110
-msgid "%1 GHz"
-msgstr "%1 GHz"
-
-#. Type: setting
-#. Context: Settings menu showing maximum CPU clock speed, with processor, core count, and clock details.
-#: about_settings.lua:98 about_settings.lua:113
-msgid "CPU"
-msgstr "CPU"
-
-#. Type: setting
-#. Context: Device CPU statistics label for the number of processor cores.
-#: about_settings.lua:115
-msgid "Cores"
-msgstr "Cores"
-
-#. Type: setting
-#. Context: Device CPU statistics label for the current clock speed or speed range, in GHz.
-#: about_settings.lua:117
-msgid "Current clock"
-msgstr "Current clock"
-
-#. Type: setting
-#. Context: Settings menu showing total device storage, with remaining, used, and total storage details.
-#: about_settings.lua:76
-msgid "Storage"
-msgstr "Storage"
-
-#. Type: setting
-#. Context: Device CPU statistics label for the maximum supported clock speed, in GHz.
-#: about_settings.lua:119
-msgid "Maximum clock"
-msgstr "Maximum clock"
-
-#. Type: setting
-#. Context: Settings menu showing total RAM, with used, available, and total memory details.
-#: about_settings.lua:87
-msgid "RAM"
-msgstr "RAM"
-
-#. Type: setting
-#. Context: Device statistics label for remaining free storage space. Launcher book details label for estimated reading time left to finish the book. Book details label for estimated reading time left to finish the book.
-#: about_settings.lua:82 book_details_page.lua:207 book_details.lua:416 book_details.lua:436
-msgid "Remaining"
-msgstr "Remaining"
-
-#. Type: setting
-#. Context: Device statistics label for storage space or RAM currently in use.
-#: about_settings.lua:29
-msgid "Used"
-msgstr "Used"

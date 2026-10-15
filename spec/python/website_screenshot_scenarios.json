@@ -114,6 +114,150 @@
     ]
   },
   {
+    "id": "icons_solar",
+    "group": "menus",
+    "session": "solar_icons",
+    "action": "menu_tab",
+    "tab": "quicksettings",
+    "navbar": "icon_pack_tabs",
+    "accent_color": "#A8D5BA",
+    "docs": [
+      "docs/icon-packs.md"
+    ]
+  },
+  {
+    "id": "icons_mono",
+    "group": "menus",
+    "session": "mono_icons",
+    "action": "menu_tab",
+    "tab": "quicksettings",
+    "navbar": "icon_pack_tabs",
+    "accent_color": "#2456D6",
+    "docs": [
+      "docs/icon-packs.md"
+    ]
+  },
+  {
+    "id": "icons_gradient",
+    "group": "menus",
+    "session": "gradient_icons",
+    "action": "menu_tab",
+    "tab": "quicksettings",
+    "navbar": "icon_pack_tabs",
+    "accent_color": "#7638C8",
+    "docs": [
+      "docs/icon-packs.md"
+    ]
+  },
+  {
+    "id": "icons_fluent",
+    "group": "menus",
+    "session": "fluent_icons",
+    "action": "menu_tab",
+    "tab": "quicksettings",
+    "navbar": "icon_pack_tabs",
+    "accent_color": "#AACDE8",
+    "docs": [
+      "docs/icon-packs.md"
+    ]
+  },
+  {
+    "id": "launcher_solar",
+    "group": "menus",
+    "session": "solar_icons",
+    "action": "menu_tab",
+    "tab": "app_launcher",
+    "navbar": "icon_pack_tabs",
+    "accent_color": "#A8D5BA",
+    "docs": [
+      "docs/launcher.md",
+      "docs/icon-packs.md"
+    ]
+  },
+  {
+    "id": "launcher_mono",
+    "group": "menus",
+    "session": "mono_icons",
+    "action": "menu_tab",
+    "tab": "app_launcher",
+    "navbar": "icon_pack_tabs",
+    "accent_color": "#2456D6",
+    "docs": [
+      "docs/launcher.md",
+      "docs/icon-packs.md"
+    ]
+  },
+  {
+    "id": "launcher_gradient",
+    "group": "menus",
+    "session": "gradient_icons",
+    "action": "menu_tab",
+    "tab": "app_launcher",
+    "navbar": "icon_pack_tabs",
+    "accent_color": "#7638C8",
+    "docs": [
+      "docs/launcher.md",
+      "docs/icon-packs.md"
+    ]
+  },
+  {
+    "id": "launcher_fluent",
+    "group": "menus",
+    "session": "fluent_icons",
+    "action": "menu_tab",
+    "tab": "app_launcher",
+    "navbar": "icon_pack_tabs",
+    "accent_color": "#AACDE8",
+    "docs": [
+      "docs/launcher.md",
+      "docs/icon-packs.md"
+    ]
+  },
+  {
+    "id": "navbar_underline_above",
+    "group": "library",
+    "session": "solar_navbar",
+    "action": "navbar",
+    "navbar": "navbar_underline_above",
+    "accent_color": "#007F73",
+    "docs": [
+      "docs/navbar.md"
+    ]
+  },
+  {
+    "id": "navbar_underline_below",
+    "group": "library",
+    "session": "solar_navbar",
+    "action": "navbar",
+    "navbar": "navbar_underline_below",
+    "accent_color": "#007F73",
+    "docs": [
+      "docs/navbar.md"
+    ]
+  },
+  {
+    "id": "navbar_filled",
+    "group": "library",
+    "session": "solar_navbar",
+    "action": "navbar",
+    "navbar": "navbar_filled",
+    "accent_color": "#007F73",
+    "docs": [
+      "docs/navbar.md"
+    ]
+  },
+  {
+    "id": "navbar_outlined",
+    "group": "library",
+    "session": "solar_navbar",
+    "action": "navbar",
+    "navbar": "navbar_outlined",
+    "accent_color": "#007F73",
+    "docs": [
+      "docs/navbar.md"
+    ]
+  },
+  {
     "id": "quicksettings_minimal",
     "group": "menus",
     "session": "general",

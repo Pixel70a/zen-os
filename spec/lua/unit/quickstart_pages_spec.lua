@@ -2,6 +2,7 @@ describe("Quickstart pages", function()
     local original_modules
     local original_settings
     local reader_apply_result
+    local color_screen, saved_configs, navbar_refreshes, home_rebuilds
 
     local module_names = {
         "bookinfomanager",
@@ -10,6 +11,8 @@ describe("Quickstart pages", function()
         "common/plugin_root",
         "common/quickstart/quickstart_pages",
         "common/reader_defaults",
+        "common/shared_state",
+        "common/ui/accent",
         "common/zen_logger",
         "config/manager",
         "config/preset_store",
@@ -17,6 +20,7 @@ describe("Quickstart pages", function()
         "device",
         "gettext",
         "modules/settings/zen_settings_apply",
+        "ui/uimanager",
     }
 
     before_each(function()
@@ -25,6 +29,8 @@ describe("Quickstart pages", function()
             original_modules[name] = package.loaded[name]
         end
         original_settings = G_reader_settings
+        color_screen = false
+        saved_configs, navbar_refreshes, home_rebuilds = {}, 0, 0
 
         ZenSpec.replace("bookinfomanager", {})
         ZenSpec.replace("common/cover_utils", {})
@@ -42,15 +48,30 @@ describe("Quickstart pages", function()
         ZenSpec.replace("common/zen_logger", {
             new = function() return { warn = function() end } end,
         })
-        ZenSpec.replace("config/manager", { save = function() end })
+        ZenSpec.replace("config/manager", {
+            save = function(config) saved_configs[#saved_configs + 1] = config end,
+        })
         ZenSpec.replace("config/preset_store", {})
         ZenSpec.replace("config/screensaver_presets", {
             get = function() return {} end,
         })
-        ZenSpec.replace("device", {})
+        ZenSpec.replace("device", {
+            screen = { isColorScreen = function() return color_screen end },
+        })
+        ZenSpec.unload("common/ui/accent")
+        ZenSpec.replace("common/shared_state", {
+            get = function()
+                return { rebuildActive = function() home_rebuilds = home_rebuilds + 1 end }
+            end,
+        })
+        ZenSpec.replace("ui/uimanager", {
+            setDirty = function() end,
+        })
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("modules/settings/zen_settings_apply", {
             apply_feature_toggle = function() end,
+            refresh_navbar_on_menu_close = function() navbar_refreshes = navbar_refreshes + 1 end,
+            defer_until_settings_close = function(_key, callback) callback() end,
         })
         ZenSpec.unload("common/quickstart/quickstart_pages")
         _G.G_reader_settings = ZenSpec.memorySettings()
@@ -161,5 +182,71 @@ describe("Quickstart pages", function()
         end
 
         assert.is_true(found)
+    end)
+
+    it("adds the accent page after Library View only on color screens", function()
+        assert.is_nil(install_page("Accent color", false))
+        color_screen = true
+
+        local pages = install_pages()
+        assert.are.equal("Library View", pages[2].title)
+        assert.are.equal("Accent color", pages[3].title)
+    end)
+
+    it("does not add accent setup after updates on monochrome or color screens", function()
+        local pages_mod = require("common/quickstart/quickstart_pages")
+
+        assert.are.same({}, pages_mod.build_update_pages("4.2.0"))
+        color_screen = true
+        assert.are.same({}, pages_mod.build_update_pages("4.2.0"))
+        assert.are.same({}, pages_mod.build_update_pages("4.2.1"))
+    end)
+
+    it("preserves version-specific update pages without adding accent setup", function()
+        color_screen = true
+        local pages_mod = require("common/quickstart/quickstart_pages")
+        local feature_page = { title = "What's new" }
+        pages_mod.UPDATE_PAGES["4.2.0-beta1"] = { feature_page }
+        local pages = pages_mod.build_update_pages("4.2.0-beta1")
+
+        assert.are.equal(feature_page, pages[1])
+        assert.are.equal(1, #pages)
+        assert.are.equal(1, #pages_mod.UPDATE_PAGES["4.2.0-beta1"])
+    end)
+
+    it("keeps the saved accent until the embedded picker applies a selection", function()
+        color_screen = true
+        local config = { accent_enabled = false, accent_color = "#AABBCC", accent_opacity = 65 }
+        local page = require("common/quickstart/quickstart_pages").build_accent_page({ config = config })
+
+        assert.are.equal("#AABBCC", page.color_picker.hex)
+        assert.are.equal(65, page.color_picker.opacity)
+        assert.is_nil(page.on_button)
+        assert.is_nil(page.button_text)
+        assert.are.equal("Choose an accent color for buttons, sliders, and navigation.", page.description)
+
+        assert.is_false(config.accent_enabled)
+        assert.are.equal("#AABBCC", config.accent_color)
+        assert.are.equal(0, #saved_configs)
+        assert.are.equal(0, navbar_refreshes)
+    end)
+
+    it("saves and enables the chosen accent and refreshes navigation and Home", function()
+        color_screen = true
+        local config = { accent_enabled = false, accent_color = "#000000", accent_opacity = 100 }
+        local page = require("common/quickstart/quickstart_pages").build_accent_page({ config = config })
+
+        assert.are.equal("#3399FF", page.color_picker.hex)
+        assert.are.equal(0, #saved_configs)
+        page.color_picker.callback("#0088FF", 75)
+
+        assert.is_true(config.accent_enabled)
+        assert.are.equal("#0088FF", config.accent_color)
+        assert.are.equal(75, config.accent_opacity)
+        assert.are.equal("#0088FF", page.color_picker.hex)
+        assert.are.equal(75, page.color_picker.opacity)
+        assert.are.same({ config }, saved_configs)
+        assert.are.equal(1, navbar_refreshes)
+        assert.are.equal(1, home_rebuilds)
     end)
 end)

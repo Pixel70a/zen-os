@@ -3,10 +3,24 @@ return function()
     local IconButton = require("ui/widget/iconbutton")
     local BD = require("ui/bidi")
     local Feedback = require("common/ui/button_feedback")
+    local Device = require("device")
     local Geom = require("ui/geometry")
     local UIManager = require("ui/uimanager")
     if Button._zen_feedback_patched then return end
     Button._zen_feedback_patched = true
+
+    local Screen = Device.screen
+    local orig_refresh_ui = Screen.refreshUIImp
+    function Screen:refreshUIImp(x, y, w, h, dither)
+        if self.mech_refresh and self.waveform_full and not self.night_mode then
+            -- AUTO can flash the rectangular refresh region around rounded feedback.
+            if Device.isSunxi and Device:isSunxi() then
+                return self:mech_refresh(false, false, self.waveform_full, x, y, w, h, false)
+            end
+            return self:mech_refresh(false, self.waveform_full, x, y, w, h, false)
+        end
+        return orig_refresh_ui(self, x, y, w, h, dither)
+    end
 
     function Button:_doFeedbackHighlight()
         if self.enabled == false or self.allow_flash == false then return end
@@ -17,18 +31,21 @@ return function()
             x = dimen.x, y = dimen.y, w = dimen.w, h = dimen.h,
         }
             or Feedback.paddedRegion(dimen)
-        Feedback.invert(self._zen_feedback_region)
-        UIManager:setDirty(nil, "fast", self._zen_feedback_region)
+        self._zen_feedback_pixels = Feedback.highlight(self._zen_feedback_region)
+        UIManager:setDirty(nil, Feedback.getRefreshMode(), self._zen_feedback_region)
     end
 
     function Button:_undoFeedbackHighlight(is_translucent)
         local region = self._zen_feedback_region
         if not region then return end
         self._zen_feedback_region = nil
+        local saved = self._zen_feedback_pixels
+        self._zen_feedback_pixels = nil
         if self.vsync then
+            if saved then saved.bb:free() end
             UIManager:widgetRepaint(self, self.dimen.x, self.dimen.y)
         else
-            Feedback.invert(region)
+            Feedback.restore(region, saved)
         end
         UIManager:setDirty(is_translucent and self.show_parent or nil,
             "ui", region)
@@ -38,7 +55,8 @@ return function()
     function Button:paintTo(...)
         orig_paint_to(self, ...)
         if self.vsync and self._zen_feedback_region then
-            Feedback.invert(self._zen_feedback_region)
+            if self._zen_feedback_pixels then self._zen_feedback_pixels.bb:free() end
+            self._zen_feedback_pixels = Feedback.highlight(self._zen_feedback_region)
         end
     end
 

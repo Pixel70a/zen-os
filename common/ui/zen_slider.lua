@@ -23,6 +23,7 @@
 --   slider:hitTest(pos)          -- true if pos intersects slider rect
 
 local Blitbuffer = require("ffi/blitbuffer")
+local Accent     = require("common/ui/accent")
 local Device     = require("device")
 local Geom       = require("ui/geometry")
 local Math       = require("optmath")
@@ -35,6 +36,7 @@ local Screen     = Device.screen
 
 local function paintPill(bb, px, py, pw, ph, color)
     if pw <= 0 or ph <= 0 then return end
+    local paint = Blitbuffer.isColor8(color) and bb.paintRect or bb.paintRectRGB32
     local r = math.min(pw, ph) / 2.0
     for row = 0, ph - 1 do
         local dy    = (row + 0.5) - ph * 0.5
@@ -44,16 +46,17 @@ local function paintPill(bb, px, py, pw, ph, color)
         end
         local rw = pw - 2 * inset
         if rw > 0 then
-            bb:paintRect(px + inset, py + row, rw, 1, color)
+            paint(bb, px + inset, py + row, rw, 1, color)
         end
     end
 end
 
 local function paintCircle(bb, cx, cy, r, color)
+    local paint = Blitbuffer.isColor8(color) and bb.paintRect or bb.paintRectRGB32
     for row = -r, r do
         local half = math.floor(math.sqrt(r * r - row * row) + 0.5)
         if half > 0 then
-            bb:paintRect(cx - half, cy + row, half * 2, 1, color)
+            paint(bb, cx - half, cy + row, half * 2, 1, color)
         end
     end
 end
@@ -70,9 +73,9 @@ function ZenSlider:new(o)
     obj.track_height  = obj.track_height  or Screen:scaleBySize(1)   -- very thin rail
     obj.fill_height   = obj.fill_height   or Screen:scaleBySize(6)   -- thicker filled bar
     obj.knob_radius   = obj.knob_radius   or Screen:scaleBySize(16.5)
-    obj.fill_color    = obj.fill_color    or Blitbuffer.COLOR_BLACK
-    obj.track_color   = obj.track_color   or obj.fill_color          -- same color: no flash on repaint
-    obj.knob_color    = obj.knob_color    or Blitbuffer.COLOR_BLACK
+    obj.fill_color    = obj.fill_color    or Accent.color()
+    obj.track_color   = obj.track_color   or obj.fill_color -- Avoid black-to-color rail trails on e-ink.
+    obj.knob_color    = obj.knob_color    or Accent.color()
     obj.knob_bg_color = obj.knob_bg_color or Blitbuffer.COLOR_WHITE
     local knob_d  = obj.knob_radius * 2
     obj.height    = knob_d + Screen:scaleBySize(6)
@@ -121,18 +124,14 @@ function ZenSlider:setValue(v)
                   math.min(self.value_max, Math.round(v)))
 end
 
---- Update value from an absolute screen X; fires on_change if value changed.
---- During drag, also fires on_change when value is unchanged (e.g. to erase
---- the knob on first contact).
-function ZenSlider:applyPosition(abs_x)
-    self._prev_knob_abs_x = self:_knobAbsX()
+--- Update value from an absolute screen X; force_redraw repaints the whole slider.
+function ZenSlider:applyPosition(abs_x, force_redraw)
+    self._prev_knob_abs_x = not force_redraw and self:_knobAbsX() or nil
     local local_x = abs_x - (self.dimen and self.dimen.x or 0)
     local new_val = self:_xToValue(local_x)
-    if new_val ~= self._value then
+    if new_val ~= self._value or force_redraw then
         self._value = new_val
         if self.on_change then self.on_change(new_val) end
-    elseif self._dragging and self.on_change then
-        self.on_change(new_val)
     end
 end
 
@@ -253,7 +252,7 @@ function ZenSlider:handlePan(ges)
     if self.on_drag_start then self.on_drag_start() end
     self._dragging = true
     self.hide_knob = true
-    self:applyPosition(ges.pos.x)
+    self:applyPosition(ges.pos.x, true)
     return true
 end
 

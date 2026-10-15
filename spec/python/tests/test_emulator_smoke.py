@@ -7,8 +7,9 @@ import time
 from pathlib import Path
 
 import pytest
+from PIL import Image, ImageChops
 
-from zen_driver import ZenDriver, launch, update_or_compare_golden, wait_for_socket
+from zen_driver import ZenDriver, launch, stop, update_or_compare_golden, wait_for_socket
 from fixtures import stage_epub_library
 
 
@@ -675,12 +676,14 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             ]
             assert driver.command("settings_page_select", label="Interface")["ok"] is True
             interface_labels = driver.command("settings_page_state")["settings"]["labels"]
-            assert interface_labels[:4] == ["Controls", "Launcher", "Navbar", "Status bar"]
-            assert interface_labels[4].startswith("Font:")
-            assert interface_labels[5:] == [
-                "Zen Keyboard", "Wallpaper", "Custom icons", "Blur menu background", "Zen Search",
+            assert interface_labels[:5] == [
+                "Controls", "Launcher", "Navbar", "Status bar", "Accent color",
             ]
-            assert driver.command("settings_page_select", label=interface_labels[4])["ok"] is True
+            assert interface_labels[5].startswith("Font:")
+            assert interface_labels[6:] == [
+                "Wallpaper", "Custom icons", "Blur menu background", "Zen mode",
+            ]
+            assert driver.command("settings_page_select", label=interface_labels[5])["ok"] is True
             font_labels = driver.command("settings_page_state")["settings"]["labels"]
             assert font_labels[0].startswith("Font size:")
             assert font_labels[1].startswith("Font:")
@@ -968,6 +971,45 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()
+
+
+@pytest.mark.parametrize("tab_id", ["quicksettings", "app_launcher"])
+def test_panel_minute_refresh_updates_only_the_clock(tab_id: str) -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-panel-clock-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        library.mkdir()
+        socket_path = root / "driver.sock"
+        process = launch(runtime, ko_home, socket_path, library, zen_config_source="""return {
+  updater = { update_auto_check = false },
+  features = { status_bar = true, app_launcher = true },
+  quick_settings = { show_buttons = { launcher = false } },
+  status_bar = { left_order = { "time" }, center_order = {}, right_order = {} },
+}
+""")
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            assert driver.command("configure_showcase", timestamp=1720000000)["ok"]
+            before = driver.command("menu_tab_layout", tab_id=tab_id)
+            assert before["active_tab"] == tab_id
+            before_path, after_path = root / "before.png", root / "after.png"
+            driver.screenshot(before_path)
+
+            assert driver.command("configure_showcase", timestamp=1720000060)["ok"]
+            assert driver.command("refresh_clock")["ok"]
+            after = driver.command("menu_tab_layout")
+            assert after["active_tab"] == tab_id
+            assert after["visible_texts"] != before["visible_texts"]
+            driver.screenshot(after_path)
+            with Image.open(before_path) as first, Image.open(after_path) as second:
+                bounds = ImageChops.difference(first.convert("RGB"), second.convert("RGB")).getbbox()
+                assert bounds is not None
+                assert bounds[2] < first.width // 2 and bounds[3] < first.height // 3, bounds
+        finally:
+            stop(process)
 
 
 def test_settings_page_keeps_enabled_status_bar_at_top() -> None:

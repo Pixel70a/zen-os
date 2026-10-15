@@ -75,6 +75,7 @@ describe("Kindle launcher installation", function()
         package.loaded["config/manager"] = original_config
         os.remove(destination)
         os.remove(destination .. ".zenos-tmp")
+        os.remove(root .. "/ZenKOReader.sh")
         os.remove(root .. "/kindle-launcher/ZenReader.sh")
         lfs.rmdir(root .. "/ZenPM/state")
         lfs.rmdir(root .. "/ZenPM")
@@ -98,6 +99,47 @@ describe("Kindle launcher installation", function()
         write(destination, "#!/bin/sh\n# Version: 1.0.0\necho old\n")
         assert.is_true(Launcher.install(root, destination))
         assert.are.equal(bundled, read(destination))
+    end)
+
+    it("updates a previously installed launcher when the bundle is newer", function()
+        write(root .. "/kindle-launcher/ZenReader.sh", "#!/bin/sh\n# Version: 1.1.0\n")
+        assert.is_true(Launcher.install(root, destination))
+        config = { _meta = { kindle_launcher_added = saved } }
+        recorded, saved = nil, nil
+        ZenSpec.unload("common/kindle_launcher")
+        Launcher = require("common/kindle_launcher")
+
+        local bundled = "#!/bin/sh\n# Version: 1.2.0\necho updated\n"
+        write(root .. "/kindle-launcher/ZenReader.sh", bundled)
+        assert.is_true(Launcher.install(root, destination))
+        assert.are.equal(bundled, read(destination))
+        assert.are.equal("1.2.0", recorded[3])
+        assert.is_nil(saved)
+    end)
+
+    it("leaves registered launchers alone at the bundled version or newer", function()
+        config._meta.kindle_launcher_added = true
+        write(root .. "/kindle-launcher/ZenReader.sh", "#!/bin/sh\n# Version: 1.1.0\n")
+        for _i, installed_version in ipairs({ "1.1.0", "1.2.0" }) do
+            local current = "#!/bin/sh\n# Version: " .. installed_version .. "\necho customized\n"
+            write(destination, current)
+            assert.is_true(Launcher.install(root, destination))
+            assert.are.equal(current, read(destination))
+            assert.is_nil(recorded)
+            assert.is_nil(saved)
+        end
+    end)
+
+    it("skips installation when ZenKOReader.sh is already present", function()
+        write(root .. "/kindle-launcher/ZenReader.sh", "#!/bin/sh\n# Version: 1.1.0\n")
+        local legacy = "#!/bin/sh\necho legacy\n"
+        write(root .. "/ZenKOReader.sh", legacy)
+
+        assert.is_true(Launcher.install(root, destination))
+        assert.is_nil(lfs.attributes(destination, "mode"))
+        assert.are.equal(legacy, read(root .. "/ZenKOReader.sh"))
+        assert.is_nil(recorded)
+        assert.is_nil(saved)
     end)
 
     it("does not reinstall or register a removed launcher after restarting", function()

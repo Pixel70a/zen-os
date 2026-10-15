@@ -409,5 +409,12 @@ return {
         "Fix reader settings not loading when starting with last file",
         "Fix Airplane Mode control active state",
         "Bug fixes"
-    }
+    },
+    ["4.2.0"] = {
+        "Add accent color (Interface > Accent color)",
+        "Better support for icon packs",
+        "Scale opening banner and badge font",
+        "Bug fixes"
+    },
+
 }

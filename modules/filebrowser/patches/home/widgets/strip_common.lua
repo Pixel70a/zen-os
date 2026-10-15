@@ -311,7 +311,7 @@ local function apply_strip_cover_decorations(frame, book, config, show_badges)
         WidgetResources.free(_cached_fav_mark)
         _cached_fav_mark = TextWidget:new{
             text    = "\u{2606}",
-            face    = Font:getFace("cfont", math.max(6, math.floor(size * 0.45))),
+            face    = Font:getFace("cfont", utils.getBadgeFontSize(config, size, 0.45, 6)),
             fgcolor = is_dark and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK,
             padding = 0,
         }
@@ -415,7 +415,7 @@ local function apply_strip_cover_decorations(frame, book, config, show_badges)
                 paintCheck(bb, icon_x + math.floor((icon_w-sq)/2),
                                icon_y + math.floor((icon_h-sq)/2), sq, sq, badge_fg)
             elseif do_tbr or do_pause then
-                local fs = math.max(7, math.floor(base_sz * 0.40))
+                local fs = utils.getBadgeFontSize(config, base_sz, 0.40, 7)
                 local icon = do_tbr and "\u{F0150}" or "\u{F03E4}"
                 if not _cached_pause_tw or _cached_pause_icon ~= icon
                         or _cached_pause_fs ~= fs or _cached_pause_dark ~= is_dark then
@@ -434,7 +434,7 @@ local function apply_strip_cover_decorations(frame, book, config, show_badges)
                 _cached_pause_tw:paintTo(bb, bdg_x + math.floor((bw-tsz.w)/2), bdg_y + math.floor((rect_h-tsz.h)/2))
             else
                 local pct_str = math.floor(100 * pct) .. "%"
-                local fs = math.max(7, math.floor(base_sz * 0.24))
+                local fs = utils.getBadgeFontSize(config, base_sz, 0.24, 7)
                 if not _cached_pct_tw or _cached_pct_str ~= pct_str or _cached_pct_fs ~= fs or _cached_pct_dark ~= is_dark then
                     WidgetResources.free(_cached_pct_tw)
                     _cached_pct_tw   = TextWidget:new{ text=pct_str, face=Font:getFace("cfont",fs), bold=true, fgcolor=badge_fg, padding=0 }
@@ -451,7 +451,7 @@ local function apply_strip_cover_decorations(frame, book, config, show_badges)
         local pages = tonumber(book.stable_pages) or tonumber(book.pages)
         if show_pages and pages and pages > 0 then
             local page_str = utils.formatPageCount(pages)
-            local fs = math.max(7, math.floor(base_sz * 0.24))
+            local fs = utils.getBadgeFontSize(config, base_sz, 0.24, 7)
             if not _cached_pages_tw or _cached_pages_str ~= page_str or _cached_pages_fs ~= fs or _cached_pages_dark ~= is_dark then
                 WidgetResources.free(_cached_pages_tw)
                 _cached_pages_tw   = TextWidget:new{ text=page_str, face=Font:getFace("cfont",fs), bold=true, fgcolor=badge_fg, padding=0 }
@@ -482,7 +482,7 @@ local function apply_strip_cover_decorations(frame, book, config, show_badges)
                     idx_str = "#" .. string.format("%.1f", series_idx)
                 end
                 local r    = math.floor(base_sz / 2)
-                local fs   = math.max(7, math.floor(base_sz * 0.26))
+                local fs   = utils.getBadgeFontSize(config, base_sz, 0.26, 7)
                 if not _cached_series_tw or _cached_series_idx ~= series_idx or _cached_series_fs ~= fs or _cached_series_dark ~= is_dark then
                     WidgetResources.free(_cached_series_tw)
                     local inner_w = math.floor(r * 1.30)
@@ -526,16 +526,11 @@ local function apply_strip_cover_decorations(frame, book, config, show_badges)
         if show_new and is_new then
             local span = math.floor(base_sz * 2.5)
             local band_thick = math.floor(span * 0.35)
-            local font_size = math.max(6, math.floor(base_sz * 0.25))
+            local font_size = utils.getBadgeFontSize(config, base_sz, 0.25, 6)
             CornerBanner.paint(
                 bb, x, x + d.w, y, d.h,
                 span, band_thick, _("New"), font_size, badge_col, badge_fg
             )
-            if border > 0 then
-                local border_color = self.bordercolor or Blitbuffer.COLOR_BLACK
-                bb:paintRect(x, y, d.w, border, border_color)
-                bb:paintRect(x + d.w - border, y, border, d.h, border_color)
-            end
         end
     end
 end
@@ -1353,12 +1348,13 @@ function M.build_strip(ctx, source_key)
         end
         local dimen = repaint_widget.dimen
         local shift = tonumber(visual_shift) or 0
-        if dimen and shift ~= 0 then
+        if dimen then
+            local border = cover_common.BORDER_SIZE -- Cover frames extend past their layout slots.
             dimen = Geom:new{
-                x = dimen.x,
-                y = dimen.y + math.min(0, shift),
-                w = dimen.w,
-                h = dimen.h + math.abs(shift),
+                x = dimen.x - border,
+                y = dimen.y + math.min(0, shift) - border,
+                w = dimen.w + border * 2,
+                h = dimen.h + math.abs(shift) + border * 2,
             }
         end
         ctx.refreshStrip(dimen)

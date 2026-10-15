@@ -8,6 +8,7 @@ local function apply_navbar()
     local Geom = require("ui/geometry")
     local GestureRange = require("ui/gesturerange")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
+    local HorizontalSpan = require("ui/widget/horizontalspan")
     local IconWidget = require("ui/widget/iconwidget")
     local InputContainer = require("ui/widget/container/inputcontainer")
     local LineWidget = require("ui/widget/linewidget")
@@ -137,10 +138,12 @@ local function apply_navbar()
         manga_folder = "",
         news_action = "quickrss",
         news_folder = "",
-        colored = false,
-        active_tab_color = {0x33, 0x99, 0xFF}, -- blue
+        active_tab_color = {0, 0, 0},
+        active_tab_use_accent = true,
         active_tab_underline = true,
         active_tab_filled = false,
+        active_tab_outlined = false,
+        outlined_color = {0x4F, 0x6F, 0x8F},
         filled_outline_color = {0xFF, 0xFF, 0xFF},
         filled_background_color = {0x4F, 0x6F, 0x8F},
         filled_background_opacity = 60,
@@ -269,7 +272,7 @@ local function apply_navbar()
         {
             id = "continue",
             label = _("Continue"),
-            icon = "book.opened",
+            icon = utils.resolveIcon(_icons_dir, "tab_continue") or utils.resolveLocalIcon(_icons_dir, "tab_continue"),
         },
         {
             id = "history",
@@ -279,7 +282,7 @@ local function apply_navbar()
         {
             id = "favorites",
             label = _("Favorites"),
-            icon = "star.empty",
+            icon = utils.resolveIcon(_icons_dir, "tab_favorites") or utils.resolveLocalIcon(_icons_dir, "tab_favorites"),
         },
         {
             id = "collections",
@@ -1866,18 +1869,23 @@ local function apply_navbar()
     end
 
     local function createTabWidget(tab, label_max_w, is_active, font_size, is_focused)
+        local Accent = require("common/ui/accent")
         local styled = is_active and tab.dim ~= true
         local filled = styled and config.active_tab_filled == true
-        local use_color = styled and config.active_tab_underline and config.colored and Screen:isColorScreen()
+        local outlined = styled and config.active_tab_outlined == true and not filled
+        local use_color = styled and not outlined and config.active_tab_underline and Screen:isColorScreen()
         local active_color
         local fill_color
         if filled then
             local c = config.filled_outline_color
             active_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
-            c = config.filled_background_color
+            c = Accent.navbarColor(zen_plugin.config, "filled_background_color", config_default.filled_background_color)
+            fill_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
+        elseif outlined then
+            local c = Accent.navbarColor(zen_plugin.config, "outlined_color", config_default.outlined_color)
             fill_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
         elseif use_color then
-            local c = config.active_tab_color
+            local c = Accent.navbarColor(zen_plugin.config, "active_tab_color", config_default.active_tab_color)
             if c and type(c) == "table" then
                 active_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
             end
@@ -1890,7 +1898,7 @@ local function apply_navbar()
         if show_icon then
             local icon_path = tab.icon:sub(1, 1) == "/" and tab.icon
                 or utils.resolveIcon(_icons_dir, tab.icon)
-            if active_color then
+            if filled then
                 icon = ColorIconWidget:new{
                     icon   = icon_path and nil or tab.icon,
                     file   = icon_path or nil,
@@ -1909,52 +1917,12 @@ local function apply_navbar()
                     dim = tab.dim == true,
                 }
             end
-            if config.active_tab_filled then
-                local h_pad = math.floor(navbar_icon_size / 5 + 0.5)
-                local v_pad = math.floor(navbar_icon_size / 8 + 0.5)
-                icon = require("ui/widget/container/framecontainer"):new{
-                    background = fill_color,
-                    bordersize = 0,
-                    padding = 0,
-                    margin = 0,
-                    padding_left = h_pad,
-                    padding_right = h_pad,
-                    padding_top = v_pad,
-                    padding_bottom = v_pad,
-                    radius = math.floor((navbar_icon_size + v_pad * 2) / 4 + 0.5),
-                    icon,
-                }
-                local opacity = math.max(0, math.min(100,
-                    tonumber(config.filled_background_opacity) or 60))
-                if filled then
-                    local paint = icon.paintTo
-                    local color = fill_color
-                    if opacity < 100 then
-                        color = color:getColorRGB32()
-                        color.alpha = math.floor(opacity * 255 / 100 + 0.5)
-                    end
-                    function icon:paintTo(bb, x, y)
-                        local background = Screen.night_mode and color:invert() or color
-                        if opacity > 0 and opacity < 100 then
-                            local size = self:getSize()
-                            local fill = Blitbuffer.new(size.w, size.h, Blitbuffer.TYPE_BBRGB32)
-                            fill:paintRectRGB32(0, 0, size.w, size.h, Blitbuffer.ColorRGB32(0, 0, 0, 0))
-                            fill:paintRoundedRectRGB32(0, 0, size.w, size.h, background, self.radius)
-                            bb:alphablitFrom(fill, x, y, 0, 0, size.w, size.h)
-                            fill:free()
-                        end
-                        self.background = opacity == 100 and background or nil
-                        paint(self, bb, x, y)
-                        self.background = fill_color
-                    end
-                end
-            end
         end
 
-        local size = font_size or navbar_font_size_steps[1]
-        local label_face = library_font.getFace(size)
+        local label_size = font_size or navbar_font_size_steps[1]
+        local label_face = library_font.getFace(label_size)
         local label
-        local label_color = filled and not show_icon and fill_color or not filled and active_color
+        local label_color = active_color or outlined and not show_icon and fill_color
         if label_color then
             label = ColorTextWidget:new{
                 text = tab.label,
@@ -1971,33 +1939,24 @@ local function apply_navbar()
             }
         end
 
-        local show_underline = styled and config.active_tab_underline and not filled
+        local show_underline = styled and config.active_tab_underline and not filled and not outlined
         local underline
         if show_underline then
             local underline_w = show_label and label:getSize().w or icon:getSize().w
             local underline_color = Blitbuffer.COLOR_BLACK
-            if config.colored then
-                local c = config.active_tab_color
-                if c and type(c) == "table" then
-                    underline_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
-                end
+            local c = Accent.navbarColor(zen_plugin.config, "active_tab_color", config_default.active_tab_color)
+            if c and type(c) == "table" then
+                underline_color = Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
             end
-            if config.colored then
-                local Widget = require("ui/widget/widget")
-                local color_line = Widget:new{
-                    dimen = Geom:new{ w = underline_w, h = underline_thickness },
-                }
-                function color_line:paintTo(bb, x, y)
-                    local color = Screen.night_mode and underline_color:invert() or underline_color
-                    bb:paintRectRGB32(x, y, self.dimen.w, self.dimen.h, color)
-                end
-                underline = color_line
-            else
-                underline = LineWidget:new{
-                    dimen = Geom:new{ w = underline_w, h = underline_thickness },
-                    background = underline_color,
-                }
+            local Widget = require("ui/widget/widget")
+            local color_line = Widget:new{
+                dimen = Geom:new{ w = underline_w, h = underline_thickness },
+            }
+            function color_line:paintTo(bb, x, y)
+                local color = Screen.night_mode and underline_color:invert() or underline_color
+                bb:paintRectRGB32(x, y, self.dimen.w, self.dimen.h, color)
             end
+            underline = color_line
         else
             underline = VerticalSpan:new{ width = underline_thickness }
         end
@@ -2015,8 +1974,58 @@ local function apply_navbar()
         if not config.underline_above then
             table.insert(icon_label_children, underline)
         end
+        if show_label and (config.active_tab_filled or config.active_tab_outlined) then
+            table.insert(icon_label_children, HorizontalSpan:new{ width = label_max_w })
+        end
 
         local icon_label_group = VerticalGroup:new(icon_label_children)
+        if config.active_tab_filled or config.active_tab_outlined then
+            local h_pad = math.floor(navbar_icon_size / (show_label and 5 or 3) + 0.5)
+            local v_pad = math.floor(navbar_icon_size / (show_label and 8 or 4) + 0.5)
+            icon_label_group = require("ui/widget/container/framecontainer"):new{
+                background = filled and fill_color or nil,
+                bordersize = 0,
+                padding = 0,
+                margin = 0,
+                padding_left = h_pad,
+                padding_right = h_pad,
+                padding_top = v_pad,
+                padding_bottom = v_pad,
+                radius = math.floor((navbar_icon_size + v_pad * 2) / 4 + 0.5),
+                icon_label_group,
+            }
+            local opacity = math.max(0, math.min(100,
+                tonumber(config.filled_background_opacity) or 60))
+            if filled and config.active_tab_use_accent ~= false
+                    and zen_plugin.config.accent_enabled ~= false and Accent.isSupported() then
+                opacity = 100 -- navbarColor already applies the accent opacity.
+            end
+            if filled or outlined then
+                local paint = icon_label_group.paintTo
+                local color = fill_color
+                if filled and opacity < 100 then
+                    color = color:getColorRGB32()
+                    color.alpha = math.floor(opacity * 255 / 100 + 0.5)
+                end
+                function icon_label_group:paintTo(bb, x, y)
+                    local background = Screen.night_mode and color:invert() or color
+                    if outlined then
+                        local size = self:getSize()
+                        bb:paintBorderRGB32(x, y, size.w, size.h, Screen:scaleBySize(2), background, self.radius)
+                    elseif opacity > 0 and opacity < 100 then
+                        local size = self:getSize()
+                        local fill = Blitbuffer.new(size.w, size.h, Blitbuffer.TYPE_BBRGB32)
+                        fill:paintRectRGB32(0, 0, size.w, size.h, Blitbuffer.ColorRGB32(0, 0, 0, 0))
+                        fill:paintRoundedRectRGB32(0, 0, size.w, size.h, background, self.radius)
+                        bb:alphablitFrom(fill, x, y, 0, 0, size.w, size.h)
+                        fill:free()
+                    end
+                    self.background = filled and opacity == 100 and background or nil
+                    paint(self, bb, x, y)
+                    self.background = filled and fill_color or nil
+                end
+            end
+        end
 
         local v_pad = show_label and navbar_v_padding or navbar_v_padding * 2
 
@@ -2043,7 +2052,6 @@ local function apply_navbar()
 
     -- === Build the full navbar ===
 
-    local HorizontalSpan = require("ui/widget/horizontalspan")
     local navbar_h_padding = Screen:scaleBySize(10)
 
     local navbar_max_tabs = 7
@@ -2188,6 +2196,9 @@ local function apply_navbar()
         local inner_w = screen_w - navbar_h_padding * 2
         local num_tabs = #visible_tabs
         local label_max_w = math.floor(inner_w / num_tabs) - Screen:scaleBySize(4)
+        if config.active_tab_filled or config.active_tab_outlined then
+            label_max_w = label_max_w - 2 * math.floor(navbar_icon_size / 5 + 0.5)
+        end
 
         -- Compute one font size that fits all labels so every tab uses the same size
         local tab_labels = {}

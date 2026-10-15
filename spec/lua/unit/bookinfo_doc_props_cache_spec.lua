@@ -3,13 +3,13 @@ describe("book info document property cache", function()
     local module_names = {
         "apps/filemanager/filemanagerbookinfo",
         "apps/filemanager/filemanagerutil",
-        "datastorage",
+        "common/docprops_cache",
         "docsettings",
         "document/document",
         "document/documentregistry",
         "libs/libkoreader-lfs",
-        "lua-ljsqlite3/init",
         "rapidjson",
+        "ui/widget/booklist",
     }
     local originals = {}
 
@@ -20,27 +20,22 @@ describe("book info document property cache", function()
         ZenSpec.replace("libs/libkoreader-lfs", {
             attributes = function() return { size = 123, modification = 456 } end,
         })
-        ZenSpec.replace("lua-ljsqlite3/init", {
-            open = function()
-                return {
-                    exec = function() end,
+        ZenSpec.replace("common/docprops_cache", {
+            withDB = function(callback)
+                return callback({
                     prepare = function()
                         return {
                             bind = function() end,
                             step = function() return { "cached" } end,
-                            clearbind = function(self) return self end,
-                            reset = function(self) return self end,
+                            close = function() end,
                         }
                     end,
-                }
+                })
             end,
         })
         ZenSpec.replace("rapidjson", {
             decode = function() return { title = "The Egg" } end,
             encode = function() return "cached" end,
-        })
-        ZenSpec.replace("datastorage", {
-            getSettingsDir = function() return "/settings" end,
         })
         ZenSpec.replace("document/documentregistry", {
             known_providers = {},

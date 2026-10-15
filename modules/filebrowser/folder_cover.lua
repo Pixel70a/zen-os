@@ -921,7 +921,6 @@ function M.paintDecorations(item, bb, config, x, y)
 
     local count = item._zen_folder_count
     if folder.show_item_count == false or not count then return end
-    local BlitbufferUI = require("ffi/blitbuffer")
     local Font = require("ui/font")
     local TextWidget = require("ui/widget/textwidget")
     local utils = require("common/utils")
@@ -929,14 +928,10 @@ function M.paintDecorations(item, bb, config, x, y)
     local size = math.floor(math.max(ScreenUI:scaleBySize(20),
         math.floor(frame.dimen.w * 0.14)) * utils.getBadgeScale(config))
     local radius = math.floor(size / 2)
-    local badge = config.browser_cover_badges or {}
     local color = utils.getBadgeColor(config)
-    local raw_color = badge.badge_color
-    local is_dark = raw_color == nil or (type(raw_color) == "table"
-        and raw_color[1] == 0 and raw_color[2] == 0 and raw_color[3] == 0)
-    local foreground = is_dark and BlitbufferUI.COLOR_WHITE or BlitbufferUI.COLOR_BLACK
+    local foreground = utils.getBadgeTextColor(config)
     local text = tostring(count)
-    local font_size = math.max(7, math.floor(size * 0.26))
+    local font_size = utils.getBadgeFontSize(config, size, 0.26, 7)
     local cached = item._zen_folder_count_badge
     if cached and (cached.text ~= text or cached.size ~= font_size
             or cached.color ~= foreground) then

@@ -32,6 +32,11 @@ local SHOWCASE_NAVBARS = {
         show_icons = true,
         show_labels = false,
     },
+    icon_pack_tabs = {
+        tab_order = { "books", "authors", "tags", "history", "favorites", "series", "home" },
+        show_icons = true,
+        show_labels = false,
+    },
     regular = {
         tab_order = { "books", "authors", "series", "stats", "to_be_read", "home" },
         show_icons = true,
@@ -71,14 +76,30 @@ local SHOWCASE_NAVBARS = {
     },
 }
 
-local function showcase_navbar_state()
+for _i, style in ipairs({
+    { "underline_above", false }, { "underline_below", true }, { "filled", true }, { "outlined", false },
+}) do
+    SHOWCASE_NAVBARS["navbar_" .. style[1]] = {
+        tab_order = SHOWCASE_NAVBARS.icon_pack_tabs.tab_order,
+        show_icons = true,
+        show_labels = style[2],
+        active_tab_use_accent = true,
+        active_tab_underline = style[1] == "underline_above" or style[1] == "underline_below",
+        underline_above = style[1] == "underline_above",
+        active_tab_filled = style[1] == "filled",
+        active_tab_outlined = style[1] == "outlined",
+        filled_background_opacity = 100,
+    }
+end
+
+local function showcase_navbar_state(mode)
     local zen_plugin = get_zen_plugin()
     local navbar = zen_plugin and zen_plugin.config and zen_plugin.config.navbar or {}
-    return {
-        tab_order = navbar.tab_order,
-        show_icons = navbar.show_icons,
-        show_labels = navbar.show_labels,
-    }
+    local state = {}
+    for key in pairs(SHOWCASE_NAVBARS[mode] or SHOWCASE_NAVBARS.default) do
+        state[key] = navbar[key]
+    end
+    return state
 end
 
 local function configure_showcase_navbar(mode)
@@ -108,8 +129,9 @@ local function configure_showcase_navbar(mode)
         navbar.show_tabs.tags = false
         navbar.show_tabs.ct_showcase_folder = false
     end
-    navbar.show_icons = preset.show_icons
-    navbar.show_labels = preset.show_labels
+    for key, value in pairs(preset) do
+        if key ~= "tab_order" then navbar[key] = value end
+    end
     local reinject = rawget(_G, "__ZEN_UI_REINJECT_FM_NAVBAR")
     if type(reinject) == "function" then reinject() end
     UIManager:setDirty(nil, "ui")
@@ -385,9 +407,11 @@ end
 
 local function filemanager_status_y()
     local FileManager = require("apps/filemanager/filemanager")
-    local title_group = FileManager.instance and FileManager.instance.title_bar
-        and FileManager.instance.title_bar.title_group
-    return widget_y(title_group and title_group[2])
+    local title_bar = FileManager.instance and FileManager.instance.title_bar
+    local title_group = title_bar and title_bar.title_group
+    if not (title_group and title_group[2]) then return 0 end
+    -- OverlapGroup does not track its painted origin.
+    return widget_y(title_bar) + widget_height(title_group[1])
 end
 
 local function focus_position(widget, target)
@@ -1868,7 +1892,7 @@ function Driver:handleCommand(command)
     end
     if kind == "showcase_navbar" and type(params.mode) == "string" then
         local ok, err = configure_showcase_navbar(params.mode)
-        return { ok = ok == true, error = err, navbar = showcase_navbar_state() }
+        return { ok = ok == true, error = err, navbar = showcase_navbar_state(params.mode) }
     end
     if kind == "showcase_home" then
         local ok, err = showcase_home(params.preset, params.simple)
@@ -2435,6 +2459,7 @@ function Driver:handleCommand(command)
         local bar = touch_menu and touch_menu.bar
         local group = bar and bar.bar_icon_group
         local tabs = {}
+        local tab_icons = {}
         local group_positions = {}
         local tab_segments = {}
         local group_offset = 0
@@ -2453,6 +2478,7 @@ function Driver:handleCommand(command)
         end
         for tab_index, tab in ipairs(menu.tab_item_table or {}) do
             tabs[tab_index] = tab.id
+            tab_icons[tab.id] = tab.icon
         end
         local feedback_repaints = 0
         if type(params.tab_id) == "string" then
@@ -2480,14 +2506,23 @@ function Driver:handleCommand(command)
         local visible_texts = {}
         if touch_menu then collect_texts(touch_menu, visible_texts, {}, 0) end
         local button_ids = {}
+        local button_icons = {}
         local refs = touch_menu and touch_menu._zen_panel_refs
         for _i, button in ipairs(refs and refs.buttons or {}) do
-            button_ids[#button_ids + 1] = button.id
+            if button.id then
+                button_ids[#button_ids + 1] = button.id
+                local icon = find_descendant(button.widget, function(widget)
+                    return type(widget.file) == "string"
+                end)
+                button_icons[button.id] = icon and icon.file
+            end
         end
         local empty_segment = bar and bar.bar_sep and bar.bar_sep.empty_segments
             and bar.bar_sep.empty_segments[1]
         local solid_separator_positions = {}
         local icon_seps = bar and bar.icon_seps or {}
+        local plugin = get_zen_plugin()
+        local custom_icons = plugin and plugin.config and plugin.config.custom_icons or {}
         for group_index, widget in ipairs(group or {}) do
             for _i, sep in ipairs(icon_seps) do
                 if widget == sep and sep.style == "solid" then
@@ -2499,12 +2534,15 @@ function Driver:handleCommand(command)
         return {
             ok = touch_menu ~= nil,
             tabs = tabs,
+            tab_icons = tab_icons,
             group_positions = group_positions,
             tab_segments = tab_segments,
             active_tab = active_tab,
             feedback_repaints = feedback_repaints,
             visible_texts = visible_texts,
             button_ids = button_ids,
+            button_icons = button_icons,
+            invert_custom_icons = custom_icons.invert_with_dark_mode ~= false,
             unified_slider = refs and refs.fl_progress ~= nil
                 and refs.fl_progress == refs.nl_progress or false,
             empty_segment = empty_segment,
@@ -2870,7 +2908,13 @@ function Driver:handleCommand(command)
             local label = item._zen_display_text or item.text or ""
             if label == params.label or index == params.index then
                 local callback = kind == "settings_page_hold" and page.onMenuHold or page.onMenuSelect
-                local ok_select, err = pcall(callback, page, item)
+                local pos
+                if params.control then
+                    local bounds = item._zen_settings_control_bounds
+                    if not bounds then return { ok = false, error = "settings control unavailable" } end
+                    pos = { x = (bounds.left + bounds.right) / 2 }
+                end
+                local ok_select, err = pcall(callback, page, item, pos)
                 return { ok = ok_select, error = ok_select and nil or tostring(err) }
             end
         end

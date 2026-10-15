@@ -31,15 +31,18 @@ describe("app launcher plugin menu host", function()
             },
         }
 
+        local refresh_func = function() return item_table end
         local host = MenuHost.show{
             title = "Wallabag",
             item_table = item_table,
+            refresh_func = refresh_func,
             back_visible = false,
         }
 
         assert.is_true(host.shown)
         assert.are.equal("Wallabag", shown_opts.title)
         assert.are.equal(item_table, shown_opts.item_table)
+        assert.are.equal(refresh_func, shown_opts.refresh_func)
         assert.is_false(shown_opts.allow_arrange)
         assert.is_true(shown_opts.hide_footer_cancel)
         assert.is_true(shown_opts.menu_mode)

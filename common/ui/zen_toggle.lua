@@ -21,6 +21,7 @@
 --   toggle:handleEvent(e)         -- always false (WidgetContainer compat)
 
 local Blitbuffer = require("ffi/blitbuffer")
+local Accent     = require("common/ui/accent")
 local Device     = require("device")
 local Geom       = require("ui/geometry")
 local Screen     = Device.screen
@@ -31,6 +32,7 @@ local Screen     = Device.screen
 
 local function paintPill(bb, px, py, pw, ph, color)
     if pw <= 0 or ph <= 0 then return end
+    local paint = Blitbuffer.isColor8(color) and bb.paintRect or bb.paintRectRGB32
     local r = math.min(pw, ph) / 2.0
     for row = 0, ph - 1 do
         local dy    = (row + 0.5) - ph * 0.5
@@ -40,7 +42,7 @@ local function paintPill(bb, px, py, pw, ph, color)
         end
         local rw = pw - 2 * inset
         if rw > 0 then
-            bb:paintRect(px + inset, py + row, rw, 1, color)
+            paint(bb, px + inset, py + row, rw, 1, color)
         end
     end
 end
@@ -65,7 +67,7 @@ function ZenToggle:new(o)
     local obj   = setmetatable(o or {}, self)
     obj.height  = obj.height or Screen:scaleBySize(28)
     obj.width   = obj.width  or Screen:scaleBySize(56)
-    obj._border = Screen:scaleBySize(2)  -- border width for OFF state
+    obj._border = Screen:scaleBySize(2)  -- border width
     obj._pad    = Screen:scaleBySize(3)  -- gap between knob edge and pill edge
     obj._knob_r = math.max(1, math.floor(obj.height / 2) - obj._pad)
     obj._value  = obj.value and true or false
@@ -117,9 +119,9 @@ function ZenToggle:paintTo(bb, x, y)
     local is_on = self.value_func and self.value_func() or self._value
 
     if is_on then
-        -- ON: solid black pill, white knob on the right
         paintPill(bb, x, y, w, h, Blitbuffer.COLOR_BLACK)
-        paintCircle(bb, x + w - pad - kr, cy, kr, Blitbuffer.COLOR_WHITE)
+        paintPill(bb, x + bw, y + bw, w - 2 * bw, h - 2 * bw, Accent.color())
+        paintCircle(bb, x + w - pad - kr, cy, kr, Accent.foreground())
     else
         -- OFF: black-bordered pill (white interior), black knob on the left
         -- Offset by bw so the visual gap from the inner wall matches ON-state gap

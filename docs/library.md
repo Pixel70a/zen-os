@@ -51,7 +51,7 @@ Paths below start at **Zen Settings > Library**.
 | Appearance > Layout > List > Hide list borders | Hides borders in list display modes. |
 | Appearance > Layout > Show item underline | Shows or hides the underline between browser items. |
 | Appearance > Covers > Badges > Badge size | Sets badge size to compact, normal, large, or extra large. |
-| Appearance > Covers > Badges > Badge color | Sets the badge color from presets or custom RGB values. |
+| Appearance > Covers > Badges > Badge color | Sets a custom badge color from presets or the color wheel. Custom colors take priority over the Interface accent; Default follows the accent on color screens. |
 | Appearance > Covers > Badges > Show page count | Shows page count badges on covers. |
 | Appearance > Covers > Badges > Show series number on covers | Shows series position badges on covers. |
 | Appearance > Covers > Badges > Show favorite badge | Shows a favorite badge on favorite books. |

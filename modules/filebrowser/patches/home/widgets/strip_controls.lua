@@ -1,4 +1,5 @@
 local Background = require("common/ui/background")
+local Accent = require("common/ui/accent")
 local Blitbuffer = require("ffi/blitbuffer")
 local ButtonModel = require("common/nav_button_model")
 local CenterContainer = require("ui/widget/container/centercontainer")
@@ -202,7 +203,7 @@ function M.build(opts)
                 height = inner_height,
                 padding = 0,
                 bordersize = 0,
-                background = active and Blitbuffer.COLOR_BLACK
+                background = active and Accent.color()
                     or Background.tile_bg(Blitbuffer.COLOR_WHITE),
                 CenterContainer:new{
                     dimen = Geom:new{ w = cell_width, h = inner_height },
@@ -213,7 +214,7 @@ function M.build(opts)
                         padding = 0,
                         max_width = math.max(1, cell_width - side_padding * 2),
                         truncate_with_ellipsis = true,
-                        fgcolor = active and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK,
+                        fgcolor = active and Accent.foreground() or Blitbuffer.COLOR_BLACK,
                     },
                 },
             }
@@ -234,20 +235,31 @@ function M.build(opts)
                 left = index == 1 and edge_hit_padding or 0,
                 right = index == #entries and edge_hit_padding or 0,
             })
+        local target
         if type(opts.prepare_focus) == "function" then
-            local target = {
+            target = {
                 key = "strip-control:" .. tostring(entry.id),
                 subrow = 0,
                 col = index,
                 width = cell_width,
                 height = inner_height,
-                focus_color = active and Blitbuffer.COLOR_WHITE
+                focus_color = active and Accent.foreground()
                     or Blitbuffer.COLOR_BLACK,
                 activate = activate,
                 context = context,
             }
             widget = opts.prepare_focus(target, widget)
             targets[#targets + 1] = target
+        end
+        if active then
+            local paint = content.paintTo
+            content.paintTo = function(self, bb, x, y)
+                -- Cached controls survive night-mode toggles.
+                self.background = Accent.color()
+                self[1][1].fgcolor = Accent.foreground()
+                if target then target.focus_color = self[1][1].fgcolor end
+                return paint(self, bb, x, y)
+            end
         end
         row[#row + 1] = widget
         if index < #entries then

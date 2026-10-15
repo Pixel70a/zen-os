@@ -403,6 +403,20 @@ function M.prompt_install(plugin)
 end
 
 function M.build_item(plugin)
+    if require("pluginloader"):getPluginInstance("zenpm") then
+        return {
+            text = _("Open ZenPM"),
+            callback = function()
+                require("common/settings_transition").close()
+                local UIManager = require("ui/uimanager")
+                UIManager:nextTick(function()
+                    UIManager:broadcastEvent(require("ui/event"):new("OpenZenPM"))
+                end)
+            end,
+        }
+    end
+    local Device = require("device")
+    if (Device.isAndroid and Device:isAndroid()) or not M.detect_assets() then return end
     return {
         text = _("Install ZenPM"),
         help_text = _("Download and install the Zen Package Manager for this device."),

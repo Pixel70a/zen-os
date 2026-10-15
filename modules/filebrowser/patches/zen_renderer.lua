@@ -192,6 +192,8 @@ local function apply_zen_renderer()
         return height
     end
 
+    local paint_new_banner
+
     function ZenMosaicItem:init()
         self.filepath = self.entry.file or self.entry.path
         self.ges_events = {
@@ -504,6 +506,14 @@ local function apply_zen_renderer()
         local frame = CoverWidget.make_cover_widget(book, target_w, target_h, {
             border = border,
             uniform = uniform,
+            -- Paint the banner before the shared border and corner masks.
+            decorate = function(cover_frame)
+                local orig_paintTo = cover_frame.paintTo
+                cover_frame.paintTo = function(frame_self, bb, x, y)
+                    orig_paintTo(frame_self, bb, x, y)
+                    paint_new_banner(self, bb, plugin_config(), frame_self)
+                end
+            end,
         })
         if build_measure then
             local cover_widget_ms = (now() - cover_widget_started_at) * 1000
@@ -606,11 +616,7 @@ local function apply_zen_renderer()
     local paint_check = utils.paintBadgeCheck
 
     local function badge_colors(config)
-        local badge = config.browser_cover_badges or {}
-        local color = badge.badge_color
-        local is_dark = color == nil or (type(color) == "table"
-            and color[1] == 0 and color[2] == 0 and color[3] == 0)
-        return utils.getBadgeColor(config), is_dark and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
+        return utils.getBadgeColor(config), utils.getBadgeTextColor(config)
     end
 
     local function badge_size(frame, config)
@@ -655,7 +661,7 @@ local function apply_zen_renderer()
         if not frame or not frame.dimen then return end
         local size = badge_size(frame, config)
         local color, foreground = badge_colors(config)
-        local widget = badge_text(item, "_zen_pages_badge", text, math.max(7, math.floor(size * 0.24)), foreground)
+        local widget = badge_text(item, "_zen_pages_badge", text, utils.getBadgeFontSize(config, size, 0.24, 7), foreground)
         local widget_size = widget:getSize()
         local height = math.floor(size * 0.85)
         local width = widget_size.w + 2 * math.floor(size * 0.12)
@@ -674,7 +680,7 @@ local function apply_zen_renderer()
         local size = badge_size(frame, config)
         local radius = math.floor(size / 2)
         local color, foreground = badge_colors(config)
-        local font_size = math.max(7, math.floor(size * 0.26))
+        local font_size = utils.getBadgeFontSize(config, size, 0.26, 7)
         local widget = badge_text(item, "_zen_series_badge", text, font_size, foreground)
         while font_size > 7 and widget:getSize().w > math.floor(radius * 1.3) do
             font_size = font_size - 1
@@ -728,8 +734,7 @@ local function apply_zen_renderer()
         local text = do_tbr and "\u{F0150}"
             or (do_pause and "\u{F03E4}"
                 or (math.floor(100 * item.percent_finished + 0.5) .. "%"))
-        local font_size = (do_tbr or do_pause) and math.max(7, math.floor(size * 0.40))
-            or math.max(7, math.floor(size * 0.24))
+        local font_size = utils.getBadgeFontSize(config, size, (do_tbr or do_pause) and 0.40 or 0.24, 7)
         local widget = badge_text(item, "_zen_progress_badge", text, font_size, foreground)
         local widget_size = widget:getSize()
         widget:paintTo(bb, x + math.floor((width - widget_size.w) / 2),
@@ -751,7 +756,7 @@ local function apply_zen_renderer()
         paint_circle(bb, x, y, radius + 2, foreground)
         paint_circle(bb, x, y, radius, color)
         local widget = badge_text(item, "_zen_favorite_badge", "\u{2606}",
-            math.max(6, math.floor(radius * 2 * 0.45)), foreground)
+            utils.getBadgeFontSize(config, radius * 2, 0.45, 6), foreground)
         local widget_size = widget:getSize()
         widget:paintTo(bb, x - math.ceil(widget_size.w / 2), y - math.ceil(widget_size.h / 2))
     end
@@ -809,10 +814,9 @@ local function apply_zen_renderer()
             math.floor(math.min(painted_width, fill_height) / 2))
     end
 
-    local function paint_new_banner(item, bb, config)
+    paint_new_banner = function(item, bb, config, frame)
         local badge = config.browser_cover_badges or {}
         if badge.show_new_banner ~= true or item._zen_effective_status ~= "new" then return end
-        local frame = item._zen_cover_frame
         if not frame or not frame.dimen then return end
         local CornerBanner = require("common/ui/corner_banner")
         local _ = require("gettext")
@@ -821,7 +825,7 @@ local function apply_zen_renderer()
         local span = math.floor(size * 2.5)
         CornerBanner.paint(bb, frame.dimen.x, frame.dimen.x + frame.dimen.w,
             frame.dimen.y, frame.dimen.h, span, math.floor(span * 0.35),
-            _("New"), math.max(6, math.floor(size * 0.25)), color, foreground)
+            _("New"), utils.getBadgeFontSize(config, size, 0.25, 6), color, foreground)
     end
 
     local function dim_finished_cover(item, bb, config)
@@ -863,7 +867,6 @@ local function apply_zen_renderer()
             paint_progress_badge(self, bb, config)
             if self._zen_page_label then paint_page_badge(self, bb, self._zen_page_label, config) end
             if self._zen_series_label then paint_series_badge(self, bb, self._zen_series_label, config) end
-            paint_new_banner(self, bb, config)
         end
         if self.entry and is_file_manager_select_mode(self.entry.path) then
             local border = math.max(3, Screen:scaleBySize(3))

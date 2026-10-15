@@ -9,6 +9,9 @@ describe("Quickstart menu tour", function()
     local zen_dimen
     local zen_settings_dimen
     local plugin
+    local settings_page
+    local koreader_dimen
+    local settings_open_options
 
     local module_names = {
         "apps/filemanager/filemanager",
@@ -16,6 +19,7 @@ describe("Quickstart menu tour", function()
         "common/quickstart/menu_tour",
         "gettext",
         "ui/uimanager",
+        "modules/settings/zen_settings_page",
     }
 
     local function run_next_scheduled()
@@ -43,6 +47,7 @@ describe("Quickstart menu tour", function()
         shown = {}
         coachmark_specs = {}
         gettext_inputs = {}
+        settings_open_options = nil
 
         ZenSpec.replace("gettext", function(text)
             gettext_inputs[#gettext_inputs + 1] = text
@@ -72,6 +77,7 @@ describe("Quickstart menu tour", function()
         local quicksettings_tab_dimen = { x = 500, y = 10, w = 48, h = 48 }
 
         touch_menu = {
+            closeMenu = function(self) self.closed = true end,
             updateItems = function(self, page)
                 self.updated_page = page
             end,
@@ -122,6 +128,23 @@ describe("Quickstart menu tour", function()
                 self.save_calls = (self.save_calls or 0) + 1
             end,
         }
+        koreader_dimen = { w = 560, h = 64 }
+        local koreader_item = { _zen_settings_root = "koreader" }
+        settings_page = {
+            item_table = { {}, {}, {}, {}, {}, {}, koreader_item, {} },
+            item_group = {{ entry = koreader_item, _underline_container = { dimen = koreader_dimen } }},
+            backToRootMenu = function(self) self.root_resets = (self.root_resets or 0) + 1 end,
+            getPageNumber = function(_self, index) return math.ceil(index / 4) end,
+            updateItems = function(self, selection) self.updated_selection = selection end,
+            closeMenu = function(self) self._closed = true end,
+        }
+        ZenSpec.replace("modules/settings/zen_settings_page", {
+            show = function(owner, opts)
+                assert.are.equal(plugin, owner)
+                settings_open_options = opts
+                return settings_page
+            end,
+        })
         ZenSpec.replace("apps/filemanager/filemanager", { instance = { menu = menu } })
         ZenSpec.unload("common/quickstart/menu_tour")
     end)
@@ -157,6 +180,7 @@ describe("Quickstart menu tour", function()
             "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings.",
             "This does not disable ZenOS—it only shows or hides KOReader’s menus.",
             "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here.",
+            "Adjust KOReader settings here. These tabs were previously located in the top menu",
         }, gettext_inputs)
         assert.are.equal(2, #shown[1].steps)
         assert.are.same({
@@ -170,6 +194,79 @@ describe("Quickstart menu tour", function()
             text = "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here.",
             target = zen_settings_dimen,
         }, shown[1].steps[2])
+    end)
+
+    it("shows Zen Settings first without a Zen control, then opens and highlights KOReader", function()
+        table.remove(touch_menu._zen_panel_refs.buttons, 2)
+        zen_settings_dimen.x, zen_settings_dimen.y = 418, 10
+
+        require("common/quickstart/menu_tour").start(plugin)
+        run_until_shown()
+        assert.are.same({{
+            text = "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here.",
+            target = zen_settings_dimen,
+        }}, shown[1].steps)
+        shown[1].on_complete()
+
+        assert.is_true(touch_menu.closed)
+        assert.are.same({ path = {} }, settings_open_options)
+        assert.are.equal(1, settings_page.root_resets)
+        assert.are.equal(2, settings_page.page)
+        assert.are.equal(1, settings_page.updated_selection)
+        assert.is_true(plugin.config._meta.quickstart_menu_tour_pending)
+        assert.is_nil(plugin.save_calls)
+        run_next_scheduled()
+        assert.are.equal(1, #shown)
+
+        koreader_dimen.x, koreader_dimen.y = 20, 300
+        run_next_scheduled()
+        assert.are.same({{
+            text = "Adjust KOReader settings here. These tabs were previously located in the top menu",
+            target = koreader_dimen,
+        }}, shown[2].steps)
+        shown[2].on_complete()
+        assert.is_false(plugin.config._meta.quickstart_menu_tour_pending)
+        assert.are.equal(1, plugin.save_calls)
+        assert.is_true(settings_page._closed)
+        assert.is_nil(touch_menu.updated_page)
+    end)
+
+    it("closes settings before continuing to the reader tour without a Zen control", function()
+        table.remove(touch_menu._zen_panel_refs.buttons, 2)
+        zen_settings_dimen.x, zen_settings_dimen.y = 418, 10
+        koreader_dimen.x, koreader_dimen.y = 20, 300
+        plugin.config._meta.quickstart_reader_tour_pending = true
+        local starts = 0
+        menu._zen_start_reader_tour = function()
+            assert.is_true(settings_page._closed)
+            starts = starts + 1
+        end
+
+        require("common/quickstart/menu_tour").start(plugin)
+        run_until_shown()
+        shown[1].on_complete()
+        assert.are.equal(0, starts)
+        run_next_scheduled()
+        shown[2].on_complete()
+        assert.are.equal(1, starts)
+    end)
+
+    it("closes settings and keeps the tour pending when the KOReader coachmark is cancelled", function()
+        table.remove(touch_menu._zen_panel_refs.buttons, 2)
+        zen_settings_dimen.x, zen_settings_dimen.y = 418, 10
+        koreader_dimen.x, koreader_dimen.y = 20, 300
+
+        require("common/quickstart/menu_tour").start(plugin)
+        run_until_shown()
+        shown[1].on_complete()
+        run_next_scheduled()
+        shown[2].on_cancel()
+
+        assert.is_true(settings_page._closed)
+        assert.is_true(plugin.config._meta.quickstart_menu_tour_pending)
+        assert.is_nil(plugin.save_calls)
+        assert.are.equal(1, #scheduled)
+        assert.are.equal(0.5, scheduled[1].delay)
     end)
 
     it("clears the pending marker and saves when the coachmark completes", function()

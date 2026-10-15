@@ -30,6 +30,7 @@ local function apply_quick_settings()
     local LibraryNavigation = require("common/library_navigation")
     local ButtonLabelWidth = require("common/ui/button_label_width")
     local ButtonFeedback = require("common/ui/button_feedback")
+    local Accent = require("common/ui/accent")
     local Bluetooth = require("modules/menu/bluetooth/bluetooth")
     local build_brightness_slider = require("modules/menu/patches/brightness_slider")
     local build_warmth_slider = require("modules/menu/patches/warmth_slider")
@@ -94,7 +95,7 @@ local function apply_quick_settings()
     -- ============================================================
 
     local config_default = {
-        button_order = { "wifi", "night", "rotate", "zen", "restart", "sleep" },
+        button_order = { "wifi", "night", "rotate", "restart", "sleep" },
         show_buttons = {
             wifi = true,
             bluetooth = false,
@@ -102,7 +103,7 @@ local function apply_quick_settings()
             frontlight = false,
             gyro = false,
             rotate = true,
-            zen = true,
+            zen = false,
             lockdown = false,
             incognito = false,
             search = false,
@@ -126,6 +127,7 @@ local function apply_quick_settings()
             filebrowser = false,
             tailscale = false,
             zenfm = false,
+            zenpm = false,
             puzzle = false,
             crossword = false,
             connections = false,
@@ -648,11 +650,6 @@ local function apply_quick_settings()
             end,
         },
         gyro = {
-            icon = resolveConfiguredIcon(
-                type(config.gyro_icon) == "string" and config.gyro_icon ~= ""
-                    and config.gyro_icon or "quick_rotate", "quick_rotate"),
-            label = type(config.gyro_label) == "string" and config.gyro_label ~= ""
-                and config.gyro_label or _("Autorotate"),
             visible_func = function() return Device:hasGSensor() end,
             active_func = function()
                 return G_reader_settings:nilOrFalse("input_ignore_gsensor")
@@ -857,12 +854,6 @@ local function apply_quick_settings()
             end,
         },
         zen_settings = {
-            icon = resolveConfiguredIcon(
-                type(config.zen_settings_icon) == "string" and config.zen_settings_icon ~= ""
-                    and config.zen_settings_icon or "zen_ui", "zen_ui"),
-            label = type(config.zen_settings_label) == "string"
-                and config.zen_settings_label ~= ""
-                and config.zen_settings_label or _("Settings"),
             disabled_func = function()
                 local lockdown = zen_plugin.config and zen_plugin.config.lockdown
                 local features = zen_plugin.config and zen_plugin.config.features
@@ -877,11 +868,6 @@ local function apply_quick_settings()
             end,
         },
         launcher = {
-            icon = resolveConfiguredIcon(
-                type(config.launcher_icon) == "string" and config.launcher_icon ~= ""
-                    and config.launcher_icon or "app_launcher", "app_launcher"),
-            label = type(config.launcher_label) == "string" and config.launcher_label ~= ""
-                and config.launcher_label or _("Launcher"),
             callback = function(touch_menu)
                 local open = rawget(_G, "__ZEN_UI_OPEN_APP_LAUNCHER")
                 if type(open) ~= "function" then
@@ -964,8 +950,20 @@ local function apply_quick_settings()
                 return open_quick_setting_settings("zenfm", touch_menu)
             end,
         },
+        zenpm = {
+            icon = utils.resolveLocalIcon(_icons_dir, "zenpm"),
+            label = _("ZenPM"),
+            visible_func = function() return hasPlugin("zenpm") end,
+            callback = function(touch_menu)
+                touch_menu:closeMenu()
+                SettingsTransition.close()
+                UIManager:nextTick(function()
+                    UIManager:broadcastEvent(Event:new("OpenZenPM"))
+                end)
+            end,
+        },
         zen = {
-            icon = utils.resolveLocalIcon(_icons_dir, "quick_zen"),
+            icon = utils.resolveIcon(_icons_dir, "quick_zen"),
             label = _("Zen"),
             active_func = function()
                 local features = zen_plugin.config and zen_plugin.config.features
@@ -1157,6 +1155,16 @@ local function apply_quick_settings()
     local function install_custom_button_defs()
         button_defs.library_home.icon = resolveConfiguredIcon(
             LibraryNavigation.defaultTabIcon(zen_plugin), "library")
+        for id, default_label in pairs({
+            gyro = _("Autorotate"), zen_settings = _("Settings"), launcher = _("Launcher"),
+        }) do
+            local icon = config[id .. "_icon"]
+            local default_icon = config_default[id .. "_icon"]
+            button_defs[id].icon = resolveConfiguredIcon(
+                type(icon) == "string" and icon ~= "" and icon or default_icon, default_icon)
+            local label = config[id .. "_label"]
+            button_defs[id].label = type(label) == "string" and label ~= "" and label or default_label
+        end
         if type(config.custom_buttons) ~= "table" then return end
         for _i, cb in ipairs(config.custom_buttons) do
             if cb.type == "koreader_menu" and type(cb.koreader_menu) == "table" then
@@ -1421,10 +1429,6 @@ local function apply_quick_settings()
         local padding = Screen:scaleBySize(10)
         local inner_width = panel_width - padding * 2
         local powerd = Device:getPowerDevice()
-        local meta = zen_plugin.config and zen_plugin.config._meta
-        local panel_config = type(meta) == "table"
-                and meta.quickstart_menu_tour_pending == true
-            and config_default or config
 
         local refs = {
             buttons = {},
@@ -1439,12 +1443,12 @@ local function apply_quick_settings()
         install_custom_button_defs()
 
         local visible_buttons = {}
-        local hide_reader_actions = panel_config.hide_reader_actions_in_library == true
+        local hide_reader_actions = config.hide_reader_actions_in_library == true
             and touch_menu.item_table and touch_menu.item_table._zen_quick_settings_library == true
-        for _i, id in ipairs(panel_config.button_order) do
-            if panel_config.show_buttons[id] and button_defs[id] then
+        for _i, id in ipairs(config.button_order) do
+            if config.show_buttons[id] and button_defs[id] then
                 local def = button_defs[id]
-                local reader_action = (panel_config.reader_actions or {})[id]
+                local reader_action = (config.reader_actions or {})[id]
                 if reader_action == nil then reader_action = def.reader_action end
                 if (not hide_reader_actions or not reader_action)
                         and (not def.visible_func or def.visible_func()) then
@@ -1473,23 +1477,11 @@ local function apply_quick_settings()
                 icon   = icon_path and nil or icon_name,
                 width  = rendered_icon_size,
                 height = rendered_icon_size,
-                -- alpha=false → BlitBuffer8 (opaque grayscale); invertRect flips
-                -- pixel values so the icon renders white-on-black for active state.
-                alpha  = not active,
+                alpha  = true,
             }
-            if active then
-                -- Force the cached buffer to be populated, then copy it before
-                -- inverting so the shared cache entry is never mutated (otherwise
-                -- invertRect would flip back on every second open).
-                icon:_render()
-                if icon._bb then
-                    local bb_copy = icon._bb:copy()
-                    bb_copy:invertRect(0, 0, bb_copy:getWidth(), bb_copy:getHeight())
-                    icon._bb = bb_copy
-                end
-            end
-            local border = active and 0 or normal_border
-            local bg = active and Blitbuffer.COLOR_BLACK
+            Accent.styleIcon(icon, active)
+            local border = normal_border
+            local bg = active and Accent.color()
                 or disabled and Blitbuffer.COLOR_LIGHT_GRAY
                 or dimmed and Blitbuffer.COLOR_GRAY
                 or Blitbuffer.COLOR_WHITE
@@ -1526,7 +1518,7 @@ local function apply_quick_settings()
                 align = "center",
                 circle,
             }
-            if panel_config.show_labels ~= false then
+            if config.show_labels ~= false then
                 local label_max_width = ButtonLabelWidth.maxWidth(action_cell_width, label_side_padding)
                 group[#group + 1] = VerticalSpan:new{ width = Screen:scaleBySize(2) }
                 group[#group + 1] = TextWidget:new{
@@ -1588,7 +1580,7 @@ local function apply_quick_settings()
         local has_frontlight = Device:hasFrontlight()
         local has_warmth = Device:hasNaturalLight()
         local use_unified = has_frontlight and has_warmth
-            and panel_config.unified_light_slider ~= false
+            and config.unified_light_slider ~= false
         local slider_opts = {
             inner_width     = inner_width,
             slider_width    = slider_width,
@@ -1598,8 +1590,8 @@ local function apply_quick_settings()
             small_btn_size  = small_btn_size,
             powerd          = powerd,
             refs            = refs,
-            show_frontlight = has_frontlight and (use_unified or panel_config.show_frontlight),
-            show_warmth     = has_warmth and (use_unified or panel_config.show_warmth),
+            show_frontlight = has_frontlight and (use_unified or config.show_frontlight),
+            show_warmth     = has_warmth and (use_unified or config.show_warmth),
             unified         = use_unified,
         }
 
@@ -1615,11 +1607,13 @@ local function apply_quick_settings()
         -- ----- Status bar row (reuses status_bar component when that feature is active) -----
 
         local buildStatusRow = get_shared("buildStatusRow")
-        local status_row  = type(buildStatusRow) == "function"
-            and buildStatusRow(panel_width, {
+        local function build_status_row()
+            return type(buildStatusRow) == "function" and buildStatusRow(panel_width, {
                 padding   = Screen:scaleBySize(6),
                 font_name = "x_smallinfofont",
             })
+        end
+        local status_row = build_status_row()
 
         -- ----- Assemble panel -----
 
@@ -1630,6 +1624,7 @@ local function apply_quick_settings()
 
         if status_row then
             table.insert(panel, status_row)
+            refs.status_row = { parent = panel, index = #panel, build = build_status_row }
             table.insert(panel, VerticalSpan:new{ width = Screen:scaleBySize(8) })
         end
 

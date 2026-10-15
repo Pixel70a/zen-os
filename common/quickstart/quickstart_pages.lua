@@ -1,8 +1,7 @@
 -- Quickstart slideshow page definitions.
 -- build_install_pages(ctx): called on first install with { plugin, config }.
--- UPDATE_PAGES: keyed by version string; add a table for each release that
---   has noteworthy changes. Omit a key to silently skip the screen for that
---   release.
+-- build_update_pages(version): returns release pages for an update.
+-- UPDATE_PAGES: static pages keyed by version string.
 -- Each page: { title = string, image = string|nil, description = string }
 -- Interactive pages also have: choice_type, choices, on_apply.
 
@@ -16,6 +15,7 @@ local CoverUtils = require("common/cover_utils")
 local paths = require("common/paths")
 local PresetStore = require("config/preset_store")
 local ReaderDefaults = require("common/reader_defaults")
+local Accent = require("common/ui/accent")
 
 local _plugin_root = require("common/plugin_root") or ""
 
@@ -549,6 +549,36 @@ end
 -- ctx = { plugin = <ZenOS plugin>, config = <config table> }
 -- ---------------------------------------------------------------------------
 
+function M.build_accent_page(ctx)
+    if not Accent.isSupported() then return nil end
+    local config = ctx.config
+    local hex = Accent.hex(config)
+    local picker = {
+        hex = hex == "#000000" and "#3399FF" or hex,
+        opacity = Accent.opacity(config),
+    }
+    picker.callback = function(color, opacity)
+        picker.hex, picker.opacity = color, opacity
+        config.accent_enabled = true
+        config.accent_color = color
+        config.accent_opacity = opacity
+        ConfigManager.save(config)
+        local settings_apply = require("modules/settings/zen_settings_apply")
+        settings_apply.refresh_navbar_on_menu_close()
+        local home = require("common/shared_state").get(ctx.plugin, "home")
+        if home and home.rebuildActive then
+            settings_apply.defer_until_settings_close("home_rebuild", home.rebuildActive)
+        end
+        local UIManager = require("ui/uimanager")
+        UIManager:setDirty("all", require("common/ui/refresh")())
+    end
+    return {
+        title = _("Accent color"),
+        description = _("Choose an accent color for buttons, sliders, and navigation."),
+        color_picker = picker,
+    }
+end
+
 function M.build_install_pages(ctx)
     local config = ctx.config
     local plugin = ctx.plugin
@@ -814,6 +844,9 @@ function M.build_install_pages(ctx)
         },
     }
 
+    local accent_page = M.build_accent_page(ctx)
+    if accent_page then table.insert(pages, 3, accent_page) end
+
     -- Insert home folder page before finale if home_dir has not been customized.
     do
         local current_home = paths.getConfiguredHomeDir()
@@ -937,6 +970,14 @@ M.UPDATE_PAGES = {
     --     { title = "What's New in 0.1.0", image = img("0.1.0/feature.png"), description = "..." },
     -- },
 }
+
+function M.build_update_pages(version)
+    local pages = {}
+    for _i, page in ipairs(M.UPDATE_PAGES[version] or {}) do
+        pages[#pages + 1] = page
+    end
+    return pages
+end
 
 -- Bullet list shown on the post-update splash screen (ZenScreen).
 local ok_cl, changelog = pcall(require, "config/changelog")

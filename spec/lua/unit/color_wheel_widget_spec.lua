@@ -4,6 +4,7 @@ describe("color picker opacity", function()
     local saved_modules
     local saved_settings
     local new_buffer_stub
+    local drag_buffer
     local module_names = {
         "ffi/blitbuffer", "device", "gettext", "ui/font", "ui/geometry", "ui/gesturerange",
         "ui/size", "ui/uimanager", "ui/widget/button", "ui/widget/container/centercontainer",
@@ -82,6 +83,10 @@ describe("color picker opacity", function()
     end)
 
     after_each(function()
+        if drag_buffer then
+            drag_buffer:free()
+            drag_buffer = nil
+        end
         if new_buffer_stub then
             new_buffer_stub:revert()
             new_buffer_stub = nil
@@ -123,6 +128,53 @@ describe("color picker opacity", function()
         picker:onApply()
         assert.are.equal("#0000FF", picked.hex)
         assert.is_nil(picked.opacity)
+        picker:onCloseWidget()
+    end)
+
+    it("embeds the controls without a title or Apply button and only applies changed colors", function()
+        local applied, closes, dirty_owner = 0, 0, nil
+        local parent = {}
+        package.loaded["ui/uimanager"].close = function() closes = closes + 1 end
+        package.loaded["ui/uimanager"].setDirty = function(_self, owner) dirty_owner = owner end
+        local picker = Picker:new{
+            embedded = true, show_parent = parent,
+            dimen = { w = 600, h = 500 }, hex = "#0000FF", opacity = 60,
+            callback = function(hex, opacity)
+                assert.are.equal("#0000FF", hex)
+                assert.are.equal(60, opacity)
+                applied = applied + 1
+            end,
+        }
+
+        assert.are.equal(500, picker.screen_height)
+        assert.are.equal(2, #picker.layout)
+        assert.are.equal(7, #picker[1])
+        assert.are.equal(parent, dirty_owner)
+        picker:onApply()
+        assert.are.equal(0, applied)
+        picker:setHex("#0000FF")
+        picker:onApply()
+        picker:onApply()
+
+        assert.are.equal(1, applied)
+        assert.are.equal(0, closes)
+        picker:onCloseWidget()
+    end)
+
+    it("lets footer gestures through and keeps swipes on embedded controls within the page", function()
+        local picker = Picker:new{
+            embedded = true, dimen = { w = 600, h = 500 }, hex = "#0000FF", opacity = 60,
+        }
+        local inside_picker = false
+        local gesture = { direction = "west", pos = {
+            intersectWith = function(_pos, dimen)
+                return inside_picker and dimen == picker.dimen
+            end,
+        } }
+        assert.is_false(picker:onTapColorWheel(nil, gesture))
+        assert.is_false(picker:onSwipeColorWheel(nil, gesture))
+        inside_picker = true
+        assert.is_true(picker:onSwipeColorWheel(nil, gesture))
         picker:onCloseWidget()
     end)
 
@@ -194,6 +246,54 @@ describe("color picker opacity", function()
             assert.is_true(picker["on" .. event .. "ColorWheel"](picker, nil, gesture))
             assert.is_true(handled)
         end
+        picker:onCloseWidget()
+    end)
+
+    it("repaints only the slider and label while dragging, then refreshes the picker on release", function()
+        local picker = Picker:new{ hex = "#0000FF", opacity = 50 }
+        drag_buffer = Blitbuffer.new(600, 800, Blitbuffer.TYPE_BBRGB32)
+        package.loaded.device.screen.bb = drag_buffer
+        local dirty
+        package.loaded["ui/uimanager"].setDirty = function(_self, owner, mode, region)
+            dirty = { owner = owner, mode = mode, region = region }
+        end
+        local controls = picker[1][3][1]
+        for _i, entry in ipairs({
+            { slider = picker.brightness_slider, label = controls[1][1][1], title = "Brightness" },
+            { slider = picker.opacity_slider, label = controls[3][1][1], title = "Opacity" },
+        }) do
+            local slider, label = entry.slider, entry.label
+            label.paintTo = function(_self, bb, x, y)
+                assert.are.equal(drag_buffer, bb)
+                assert.are.equal(250, x)
+                assert.are.equal(slider.dimen.y - 28, y)
+            end
+            slider:paintTo(drag_buffer, 180, 100 * _i)
+            local gesture = { direction = "west", pos = {
+                y = slider.dimen.y + slider.dimen.h / 2,
+                intersectWith = function(pos, dimen)
+                    return pos.x >= dimen.x and pos.x < dimen.x + dimen.w
+                        and pos.y >= dimen.y and pos.y < dimen.y + dimen.h
+                end,
+            } }
+            for _k, x in ipairs({ slider:_knobAbsX(), 310, 250 }) do
+                gesture.pos.x = x
+                assert.is_true(picker:onPanColorWheel(nil, gesture))
+                assert.is_nil(dirty.owner)
+                assert.are.equal("fast", dirty.mode)
+                assert.are.same({ x = 0, y = slider.dimen.y - 28, w = 600,
+                    h = slider.dimen.h + 28 }, dirty.region)
+                assert.is_false(slider.hide_knob)
+                assert.are.equal(entry.title .. ": " .. slider:getValue() .. "%", label.text)
+            end
+            assert.is_true(picker:onPanReleaseColorWheel(nil, gesture))
+            assert.is_false(slider._dragging)
+            assert.are.equal(picker, dirty.owner)
+            assert.are.equal("ui", dirty.mode)
+        end
+        assert.are.equal(picker.brightness_slider:getValue() / 100, picker.value)
+        assert.are.equal(picker.value, picker.color_wheel.value)
+        assert.are.equal(picker.opacity_slider:getValue(), picker.opacity)
         picker:onCloseWidget()
     end)
 end)

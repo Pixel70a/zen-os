@@ -15,7 +15,7 @@ describe("settings menu organization", function()
             for _i, item in ipairs(item_table) do result[#result + 1] = item.text end
             return result
         end
-        local has_bluetooth, double_tap_item
+        local has_bluetooth, double_tap_item, zenpm_label
         replace("gettext", function(text) return text end)
         local shown_dialog, reset_calls, menu_updates, has_current_capacity, missing_stats, is_charging
         replace("ui/uimanager", { show = function(_, dialog) shown_dialog = dialog end })
@@ -108,11 +108,9 @@ describe("settings menu organization", function()
                         if item.text == text then table.insert(interface, table.remove(extras, i)) break end
                     end
                 end
-                move("Zen Keyboard")
                 table.insert(interface, wallpaper_item)
                 move("Custom icons")
                 table.insert(interface, { text = "Blur menu background" })
-                move("Zen Search")
                 return { text = "Interface", sub_item_table = interface,
                     _zen_settings_root = "interface", icon_glyph = interface_icon }
             end,
@@ -124,7 +122,7 @@ describe("settings menu organization", function()
         end
         replace("modules/settings/sections/extras_settings", {
             build = function()
-                return items({ "Stats", "Install ZenPM", "Zen OPDS", "Rakuyomi", "Schedules", "Sleep", "Zen Search", "Lockdown mode", "Zen Keyboard", "Custom icons" })
+                return items({ "Stats", zenpm_label, "Zen OPDS", "Rakuyomi", "Schedules", "Sleep", "Zen Search", "Lockdown mode", "Zen Keyboard", "Custom icons" })
             end,
         })
         replace("modules/settings/sections/advanced_settings", {
@@ -145,6 +143,7 @@ describe("settings menu organization", function()
             reset_calls, menu_updates, has_current_capacity, missing_stats = 0, 0, true, nil
             is_charging = false
             has_bluetooth = available
+            zenpm_label = available and "Open ZenPM" or "Install ZenPM"
             local root = builder.build({ config = { features = {} } }).sub_item_table
             assert.are.same({ "Home", "Library", "Reader", "Interface", "Extras", "General", "KOReader", "About" }, labels(root))
             assert.is_function(root[7].sub_item_table_func)
@@ -155,12 +154,12 @@ describe("settings menu organization", function()
             local interface = root[4].sub_item_table
             assert.are.equal("interface", root[4]._zen_settings_root)
             assert.are.equal(interface_icon, root[4].icon_glyph)
-            assert.are.same({ "Controls", "Launcher", "Navbar", "Status bar", "Font", "Zen Keyboard", "Wallpaper", "Custom icons", "Blur menu background", "Zen Search" }, labels(interface))
+            assert.are.same({ "Controls", "Launcher", "Navbar", "Status bar", "Font", "Wallpaper", "Custom icons", "Blur menu background" }, labels(interface))
             assert.are.equal("launcher", interface[2]._zen_settings_root)
             assert.are.equal(status_bar_item, interface[4])
             assert.are.same({ "Left items", "Right items" }, labels(interface[4].sub_item_table))
             assert.are.equal(font_item, interface[5])
-            assert.are.equal(wallpaper_item, interface[7])
+            assert.are.equal(wallpaper_item, interface[6])
             assert.are.equal("Font: Hyperreadable, 24", interface[5].text_func())
             assert.are.same({ "Font size", "Font", "Reset font" }, labels(interface[5].sub_item_table))
             assert.are.equal("gear", root[6].icon_glyph)
@@ -235,7 +234,7 @@ describe("settings menu organization", function()
             assert.are.same({ "Original control", "Books" }, labels(root[2].sub_item_table))
             assert.are.equal(double_tap_item, root[2].sub_item_table[2].sub_item_table[1])
             assert.are.same({ "Version", "Device", "Setup Guide", "Report a Bug" }, labels(root[8].sub_item_table))
-            assert.are.same({ "Install ZenPM", "Zen OPDS", "Stats", "Rakuyomi", "Lockdown mode" }, labels(root[5].sub_item_table))
+            assert.are.same({ zenpm_label, "Zen OPDS", "Zen Search", "Zen Keyboard", "Stats", "Rakuyomi", "Lockdown mode" }, labels(root[5].sub_item_table))
         end
         package.loaded["modules/settings/zen_settings"] = original_builder
         for name, original in pairs(originals) do package.loaded[name] = original.value end

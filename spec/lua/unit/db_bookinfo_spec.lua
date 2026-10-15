@@ -115,6 +115,19 @@ describe("book info grouping cache", function()
         package.loaded["common/memory_policy"] = original_memory_policy
     end)
 
+    it("only groups a sole series when requested and it contains multiple books", function()
+        local files = { "/books/b.epub", "/books/a.epub" }
+        local metadata = {
+            [files[1]] = { series = "Saga", series_index = 2 },
+            [files[2]] = { series = "Saga", series_index = 1 },
+        }
+
+        assert.are.same(files, DbBookInfo.groupPathsBySeries(files, metadata))
+        assert.are.same({ { series = "Saga", files = { files[2], files[1] } } },
+            DbBookInfo.groupPathsBySeries(files, metadata, true))
+        assert.are.same({ files[1] }, DbBookInfo.groupPathsBySeries({ files[1] }, metadata, true))
+    end)
+
     it("reuses group shapes until explicitly invalidated", function()
         local first = DbBookInfo.getGroupedByAuthor()
         local second = DbBookInfo.getGroupedByAuthor()

@@ -24,6 +24,7 @@ common/db_library.lua|unit
 common/db_stats.lua|unit
 common/dispatch_action.lua|unit
 common/dispatcher_menu.lua|unit
+common/docprops_cache.lua|unit
 common/font_language.lua|unit
 common/folder_cover_files.lua|unit
 common/history_index.lua|unit
@@ -59,6 +60,7 @@ common/sort_key.lua|unit
 common/sort_key_cache.lua|unit
 common/title_sort.lua|unit
 common/tbr_index.lua|unit
+common/ui/accent.lua|unit
 common/ui/background.lua|unit
 common/ui/book_progress.lua|unit
 common/ui/button_label_width.lua|unit
@@ -172,7 +174,10 @@ modules/global/patches/brightness_schedule.lua|integration
 modules/global/patches/cloud_storage_home.lua|integration
 modules/global/patches/incognito_mode.lua|integration
 modules/global/patches/kindle_autosuspend_resume.lua|unit
+modules/global/patches/kindle_battery_capacity.lua|unit
+modules/global/patches/kindle_exit_message.lua|unit
 modules/global/patches/kindle_network_profile_guard.lua|integration
+modules/global/patches/kindle_wakeup_recovery.lua|unit
 modules/global/patches/kobo_bluetooth_fix.lua|unit
 modules/global/patches/lockdown_mode.lua|integration
 modules/global/patches/menu_font.lua|integration

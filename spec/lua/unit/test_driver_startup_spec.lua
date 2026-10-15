@@ -1,4 +1,44 @@
 describe("emulator test driver startup", function()
+    it("reports the file manager status origin from its titlebar layout", function()
+        local title_bar = {
+            dimen = { y = 20 },
+            title_group = {
+                { getSize = function() return { h = 6 } end },
+                { dimen = { y = 0 } },
+            },
+        }
+        local FileManager = { instance = { title_bar = title_bar } }
+        local modules = {
+            ["ui/widget/container/widgetcontainer"] = {
+                extend = function(_self, spec) return spec end,
+            },
+            ["ui/event"] = {},
+            rapidjson = {},
+            ["ui/uimanager"] = {},
+            ["apps/filemanager/filemanager"] = FileManager,
+        }
+        local chunk = assert(loadfile(ZenSpec.root .. "/spec/python/zen_ui_test_driver.koplugin/main.lua"))
+        setfenv(chunk, setmetatable({
+            require = function(name) return modules[name] or require(name) end,
+        }, { __index = _G }))
+        local driver = chunk()
+        local status_y
+        for index = 1, 100 do
+            local name, value = debug.getupvalue(driver.handleCommand, index)
+            if not name then break end
+            if name == "filemanager_status_y" then status_y = value; break end
+        end
+        assert.is_function(status_y)
+        assert.are.equal(26, status_y())
+
+        title_bar.title_group[2] = { dimen = { y = 100 } }
+        assert.are.equal(26, status_y())
+        title_bar.dimen.y = 0
+        assert.are.equal(6, status_y())
+        FileManager.instance = nil
+        assert.are.equal(0, status_y())
+    end)
+
     it("waits for the startup repaint before accepting commands", function()
         local scheduled, started
         local modules = {
@@ -29,5 +69,47 @@ describe("emulator test driver startup", function()
         assert.is_function(scheduled)
         scheduled()
         assert.is_true(started)
+    end)
+
+    it("applies and reports exclusive accent navbar styles and label visibility", function()
+        local plugin = { config = { navbar = {} } }
+        local reinjected = 0
+        local modules = {
+            ["ui/widget/container/widgetcontainer"] = {
+                extend = function(_self, spec) return spec end,
+            },
+            ["ui/event"] = {},
+            rapidjson = {},
+            ["ui/uimanager"] = { setDirty = function() end },
+            pluginloader = { getPluginInstance = function() return plugin end },
+        }
+        local chunk = assert(loadfile(ZenSpec.root .. "/spec/python/zen_ui_test_driver.koplugin/main.lua"))
+        setfenv(chunk, setmetatable({
+            require = function(name) return modules[name] or require(name) end,
+            os = { getenv = function() end },
+            _G = { __ZEN_UI_REINJECT_FM_NAVBAR = function() reinjected = reinjected + 1 end },
+        }, { __index = _G }))
+        local driver = chunk()
+        for _i, entry in ipairs({
+            { "underline_above", false, true, true, false, false },
+            { "underline_below", true, true, false, false, false },
+            { "filled", true, false, false, true, false },
+            { "outlined", false, false, false, false, true },
+        }) do
+            local response = driver:handleCommand{
+                type = "showcase_navbar", params = { mode = "navbar_" .. entry[1] },
+            }
+            assert.is_true(response.ok, response.error)
+            assert.same({
+                tab_order = { "books", "authors", "tags", "history", "favorites", "series", "home" },
+                show_icons = true, show_labels = entry[2],
+                active_tab_use_accent = true, active_tab_underline = entry[3],
+                underline_above = entry[4], active_tab_filled = entry[5],
+                active_tab_outlined = entry[6], filled_background_opacity = 100,
+            }, response.navbar)
+        end
+        assert.are.equal(4, reinjected)
+        assert.same({ tab_order = { "home" }, show_icons = true, show_labels = false },
+            driver:handleCommand{ type = "showcase_navbar", params = { mode = "default" } }.navbar)
     end)
 end)

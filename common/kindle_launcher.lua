@@ -91,7 +91,10 @@ end
 function M.install(plugin_root, destination)
     local ConfigManager = require("config/manager")
     local config = ConfigManager.get() or ConfigManager.load()
-    if config._meta.kindle_launcher_added == true then return true end
+    local launcher_added = config._meta.kindle_launcher_added == true
+    if launcher_added and not lfs.attributes(destination, "mode") then return true end
+    local legacy_launcher = destination:gsub("[^/]+$", "ZenKOReader.sh")
+    if lfs.attributes(legacy_launcher, "mode") == "file" then return true end
 
     local bundled = read_file(plugin_root .. "/kindle-launcher/ZenReader.sh")
     if not bundled then return true end
@@ -110,6 +113,8 @@ function M.install(plugin_root, destination)
         local copied, err = write_atomic(destination, bundled)
         if not copied then return false, err end
         installed_version = bundled_version
+    elseif launcher_added then
+        return true
     end
 
     local zenpm_home = require("datastorage"):getSettingsDir() .. "/ZenPM"
@@ -121,6 +126,7 @@ function M.install(plugin_root, destination)
         local ok, err = record_installed(path, installed_version, destination)
         if not ok then logger.warn("Could not mark ZenOS Launcher installed in ZenPM:", path, err) end
     end
+    if launcher_added then return true end
     config._meta.kindle_launcher_added = true
     return ConfigManager.save(config)
 end

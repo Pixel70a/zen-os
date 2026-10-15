@@ -890,6 +890,70 @@ def test_navbar_tabs_navigate_to_real_library_views() -> None:
             process.wait(timeout=15)
 
 
+@pytest.mark.parametrize("show_labels", [True, False], ids=["labels", "icons"])
+def test_navbar_outlined_radio_refreshes_home(show_labels: bool) -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    artifacts = Path(__file__).resolve().parents[2] / ".artifacts" / "navbar-style" / ("labels" if show_labels else "icons")
+    artifacts.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="zen-ui-navbar-style-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        fixture = build_library(root / "library")
+        _seed_home_settings(ko_home)
+        _seed_bookinfo(ko_home, fixture["epub"])
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime, ko_home, socket_path, root / "library",
+            zen_config_source=f"""return {{
+  updater = {{ update_auto_check = false }},
+  navbar = {{
+    default_tab = "home", active_tab_filled = true,
+    show_labels = {str(show_labels).lower()},
+    active_tab_underline = false, filled_background_opacity = 100,
+    filled_background_color = {{ 0, 0, 0 }}, outlined_color = {{ 0, 0, 0 }},
+  }},
+}}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _wait_for_home(driver)
+            filled = artifacts / "filled.png"
+            driver.screenshot(filled)
+
+            assert driver.command("open_settings_page")["ok"] is True
+            for label in ("Interface", "Navbar", "Styling", "Active tab"):
+                assert driver.command("settings_page_select", label=label)["ok"] is True
+            settings = driver.command("settings_page_state")["settings"]
+            assert settings["labels"] == ["Underline", "Filled", "Outlined", "Use accent color"]
+            assert driver.command("settings_page_select", label="Outlined", control=True)["ok"] is True
+            items = driver.command("settings_page_state")["settings"]["items"]
+            assert next(item for item in items if item["label"] == "Outlined")["checked"] is True
+            assert next(item for item in items if item["label"] == "Filled")["checked"] is False
+            driver.screenshot(artifacts / "selected.png")
+            assert driver.command("settings_page_select", label="Underline")["ok"] is True
+            labels = driver.command("settings_page_state")["settings"]["labels"]
+            assert labels == ["Underline above icon", "Outline color: #000000"]
+            driver.screenshot(artifacts / "underline-settings.png")
+            assert driver.command("close_settings_page")["ok"] is True
+            _wait_for_home(driver)
+            time.sleep(0.5)
+            outlined = artifacts / "outlined.png"
+            driver.screenshot(outlined)
+
+            dark_pixels = []
+            for path in (filled, outlined):
+                with Image.open(path) as frame:
+                    navbar = frame.convert("L").crop((0, frame.height - 100, frame.width, frame.height))
+                    dark_pixels.append(sum(navbar.histogram()[:128]))
+            assert dark_pixels[0] - dark_pixels[1] > 500, dark_pixels
+        finally:
+            process.send_signal(signal.SIGTERM)
+            process.wait(timeout=15)
+
+
 def test_navbar_press_activates_keyboard_focused_tab() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-navbar-press-") as temporary:

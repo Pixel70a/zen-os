@@ -26,9 +26,11 @@ Navbar settings live under **Zen Settings > Interface > Navbar**.
 - Configure Library, Folder, Home, Manga, and News tab labels or actions.
 - Control active-tab styling, top border, label size, and icon size.
 
-Under **Styling > Active tab**, choose **Underline** or **Filled** using the radio control. Filled appears directly below Underline. Open **Underline** to move the line above the icon. Open **Filled** to pick **Outline color** for the icon and **Fill color** for the squircle behind it; the defaults are a white icon on a muted blue (#4F6F8F) squircle. With icons hidden, the active label uses the fill color. **Active tab outline color** is available when **Colored** and **Underline** are selected.
+Under **Styling > Active tab**, choose **Underline**, **Filled**, or **Outlined** using the radio control. Open **Underline** to move the line above the icon and pick **Outline color**. The line and active label use the accent when **Use accent color** is enabled, or the saved custom color otherwise; the icon keeps its normal color. Open **Filled** to pick **Outline color** for the icon and label and **Fill color** for the rounded background around them; the defaults are white content on a muted blue (#4F6F8F) background. **Outlined** draws a hollow border around the selected icon and label, with its own **Outline color** picker. Filled and Outlined use equal frame dimensions across tabs, spanning most of each tab's space with centered content when labels are shown. With icons hidden, the frame surrounds the label; with labels hidden, it becomes a compact, near-square frame around the icon.
 
-The **Fill color** picker also has an **Opacity** slider from 0% (transparent) to 100% (opaque), with a default of 60%. Opacity affects the squircle background; icons and labels stay opaque. Color and opacity changes repaint the navbar when settings close.
+**Use accent color** is enabled by default. The underline, outlined border, and filled background use the interface accent color and opacity. Turn it off to use their saved custom colors and fill opacity. Filled icons and labels use their separate **Outline color**.
+
+The **Fill color** picker also has an **Opacity** slider from 0% (transparent) to 100% (opaque), with a default of 60%, used when **Use accent color** is off. Opacity affects the rounded background; icons and labels stay opaque. Color and opacity changes repaint the navbar when settings close.
 
 ## Manga And News Tabs
 
@@ -95,6 +97,7 @@ Adjust a grouped view's display and sort from its context menu while that tab is
 | Styling > Icons > Show icons | Shows tab icons. This cannot be disabled when labels are hidden. |
 | Styling > Icons > Icon size | Sets navbar icon size from 24 to 48. |
 | Styling > Active tab > Underline | Adds an underline to the active tab. |
-| Styling > Active tab > Underline above icon | Places the active underline above the icon. |
-| Styling > Active tab > Colored | Uses an accent color for the active tab. |
-| Styling > Active tab > Active tab color | Sets the active tab color from presets or custom RGB values. |
+| Styling > Active tab > Use accent color | Enabled by default. Uses the interface accent color and opacity for the active underline, border, and fill; turn off to use each style's saved custom color and fill opacity. The filled icon and label keep their separate Outline color. |
+| Styling > Active tab > Underline > Underline above icon | Places the active underline above the icon. |
+| Styling > Active tab > Outlined | Draws a hollow border around the active icon and label, with its own Outline color picker. |
+| Styling > Active tab > Underline > Outline color | Sets the custom underline and active label color, defaulting to black; the icon keeps its normal color. |

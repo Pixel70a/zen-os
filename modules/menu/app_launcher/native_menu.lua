@@ -268,6 +268,9 @@ function M.resolve(id, scope)
         require("modules/menu/app_launcher/menu_host").show{
             title = item_title(item) or fallback_title(id),
             item_table = items,
+            refresh_func = type(item.sub_item_table_func) == "function" and function()
+                return submenu_items(item, true)
+            end or nil,
         }
         return true
     end

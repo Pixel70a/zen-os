@@ -1,6 +1,7 @@
 -- One Controls slider for brightness and, when available, warmth.
 
 local Blitbuffer      = require("ffi/blitbuffer")
+local Accent          = require("common/ui/accent")
 local Button          = require("ui/widget/button")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local Device          = require("device")
@@ -133,13 +134,16 @@ local function build_brightness_slider(touch_menu, opts)
             Screen.bb:paintRect(number_x, label_y, number_width, label_h, Blitbuffer.COLOR_WHITE)
             number:setText(tostring(value))
             number:paintTo(Screen.bb, number_x, label_y)
-            local dirty_x = math.min(progress.dimen.x, number_x)
-            UIManager:setDirty(nil, "fast", Geom:new{
+            local slider_dimen = progress:dirtyDimen()
+            local dirty_x = math.min(slider_dimen.x, number_x)
+            local colored = Accent.isEnabled()
+            -- DU cannot reproduce accent shades or cleanly erase a colored knob.
+            UIManager:setDirty(nil, colored and "ui" or "fast", Geom:new{
                 x = dirty_x,
                 y = label_y,
-                w = math.max(progress.dimen.x + progress.dimen.w, number_x + number_width) - dirty_x,
+                w = math.max(slider_dimen.x + slider_dimen.w, number_x + number_width) - dirty_x,
                 h = progress.dimen.y + progress.dimen.h - label_y,
-            })
+            }, colored)
         else
             number:setText(tostring(value))
             UIManager:setDirty(show_parent, "ui", touch_menu.dimen)
@@ -199,8 +203,19 @@ local function build_brightness_slider(touch_menu, opts)
         local icon_size = Screen:scaleBySize(24)
         local pad_v = Screen:scaleBySize(4)
 
+        local function style_mode_button(button, active)
+            local colored = Accent.isEnabled()
+            button.background = active and colored and Accent.color() or Blitbuffer.COLOR_WHITE
+            button.invert = active and not colored
+            if colored then
+                local icon = button[1]
+                icon:free()
+                Accent.styleIcon(icon, active)
+            end
+        end
+
         local function mode_button(icon_name, active)
-            return FrameContainer:new{
+            local button = FrameContainer:new{
                 padding_top = pad_v,
                 padding_bottom = pad_v,
                 padding_left = Screen:scaleBySize(20),
@@ -212,8 +227,11 @@ local function build_brightness_slider(touch_menu, opts)
                     file = utils.resolveLocalIcon(_icons_dir, icon_name),
                     width = icon_size,
                     height = icon_size,
+                    alpha = true,
                 },
             }
+            style_mode_button(button, active)
+            return button
         end
 
         local brightness_button = mode_button("brightness", true)
@@ -253,8 +271,8 @@ local function build_brightness_slider(touch_menu, opts)
             progress:setValue(selected.cur)
             prefix:setText(labels[mode])
             number:setText(tostring(selected.cur))
-            brightness_button.invert = mode == "brightness"
-            warmth_button.invert = mode == "warmth"
+            style_mode_button(brightness_button, mode == "brightness")
+            style_mode_button(warmth_button, mode == "warmth")
             UIManager:setDirty(show_parent, "ui", touch_menu.dimen)
         end
         table.insert(refs.toggles, {

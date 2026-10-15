@@ -1,3 +1,4 @@
+local Accent = require("common/ui/accent")
 local M = {}
 
 local OPTICAL_ICON_SCALES = {
@@ -459,8 +460,12 @@ function M.getBadgeScale(config)
         and config.browser_cover_badges.badge_size
     if sz == "extra_large" then return 1.50 end
     if sz == "large"       then return 1.20 end
-    if sz == "normal"      then return 1.10 end
-    return 1.0
+    if sz == "compact"     then return 1.0 end
+    return 1.10
+end
+
+function M.getBadgeFontSize(config, size, ratio, minimum)
+    return math.max(math.ceil(minimum * M.getBadgeScale(config)), math.floor(size * ratio))
 end
 
 local function get_badge_rgb(config)
@@ -475,7 +480,7 @@ local function get_badge_rgb(config)
     end
 end
 
---- Returns the configured badge background color, or COLOR_LIGHT_GRAY if not set.
+--- Returns the custom badge fill or accent, defaulting to black.
 --- @param config table|nil  the plugin config table (p.config)
 --- @return userdata  Blitbuffer color
 function M.getBadgeColor(config)
@@ -484,18 +489,21 @@ function M.getBadgeColor(config)
     if r then
         return Blitbuffer.ColorRGB32(r, g, b, 255)
     end
+    if Accent.isEnabled(config) then return Accent.color(config) end
     return Blitbuffer.COLOR_BLACK
 end
 
 --- True when badge fill should use white contrast text/outline.
---- Mirrors the file-browser badge patches: default/black is dark; custom colors use black.
 function M.isBadgeDark(config)
     local r, g, b = get_badge_rgb(config)
-    return r == nil or (r == 0 and g == 0 and b == 0)
+    if r then return r == 0 and g == 0 and b == 0 end
+    if Accent.isEnabled(config) then
+        return Accent.foreground(config) == require("ffi/blitbuffer").COLOR_WHITE
+    end
+    return true
 end
 
 --- Returns the foreground color for text/icons drawn inside a badge.
---- White when the badge fill is black (0,0,0), black otherwise.
 function M.getBadgeTextColor(config)
     local Blitbuffer = require("ffi/blitbuffer")
     if M.isBadgeDark(config) then
@@ -525,7 +533,7 @@ function M.getIconPickerList(plugin_root, excluded)
         if lfs.attributes(dir, "mode") ~= "directory" then return end
         local entries = {}
         for f in lfs.dir(dir) do
-            if f:match("%.svg$") and not f:match("%.bak%.svg$") then
+            if f:sub(1, 1) ~= "." and f:match("%.svg$") and not f:match("%.bak%.svg$") then
                 local name = f:sub(1, -5)
                 if not seen[name] and (not filter or not filter[name])
                         and (not allow or allow(name)) then

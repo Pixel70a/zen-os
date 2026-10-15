@@ -1,4 +1,5 @@
 local _ = require("gettext")
+local Accent = require("common/ui/accent")
 local UIManager = require("ui/uimanager")
 local getFullRefreshMode = require("common/ui/refresh")
 local DataStorage = require("datastorage")
@@ -112,8 +113,7 @@ function M.build(ctx, extras_items)
     utils.reorder_nested_items_by_text({ navbar_item }, _("Active tab"), {
         _("Underline"),
         _("Filled"),
-        _("Colored"),
-        _("Active tab color"),
+        _("Outlined"),
     })
 
     utils.reorder_nested_items_by_text({ navbar_item }, _("Labels"), {
@@ -143,6 +143,53 @@ function M.build(ctx, extras_items)
         IconItem.decorate(navbar_item, icons.settings_navbar),
         IconItem.decorate(status_bar_item, icons.settings_status),
     }
+    local function save_accent(hex, opacity, touchmenu_instance)
+        if not Accent.isSupported() then return end
+        config.accent_color = hex
+        config.accent_opacity = opacity
+        plugin:saveConfig()
+        schedule_background_surface_refresh(plugin)
+        if touchmenu_instance then touchmenu_instance:updateItems() end
+    end
+    table.insert(items, {
+        text = _("Accent color"),
+        show_func = Accent.isSupported,
+        enabled_func = Accent.isSupported,
+        checked_func = function() return config.accent_enabled ~= false end,
+        checkmark_callback = function(touchmenu_instance)
+            if not Accent.isSupported() then return end
+            config.accent_enabled = config.accent_enabled == false
+            plugin:saveConfig()
+            schedule_background_surface_refresh(plugin)
+            if touchmenu_instance then touchmenu_instance:updateItems() end
+        end,
+        sub_item_table = {
+            {
+                text_func = function() return _("Accent color") .. ": " .. Accent.hex(config) end,
+                enabled_func = Accent.isSupported,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    if not Accent.isSupported() then return end
+                    local current_hex = Accent.hex(config)
+                    UIManager:show(require("common/ui/color_wheel_widget"):new{
+                        title_text = _("Accent color"),
+                        hex = current_hex == "#000000" and "#3399FF" or current_hex,
+                        opacity = Accent.opacity(config),
+                        callback = function(hex, opacity) save_accent(hex, opacity, touchmenu_instance) end,
+                    }, getFullRefreshMode())
+                end,
+            },
+            {
+                text = _("Reset accent color"),
+                enabled_func = Accent.isSupported,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    save_accent(defaults.accent_color, defaults.accent_opacity, touchmenu_instance)
+                end,
+            },
+        },
+    })
+    IconItem.decorate(items[#items], icons.settings_accent)
     table.insert(items, {
         text = _("Font"),
         text_func = function()
@@ -274,7 +321,6 @@ function M.build(ctx, extras_items)
     })
 
     IconItem.decorate(items[#items], icons.title)
-    move_item(extras_items, _("Zen Keyboard"), items)
 
     local function ensure_lib_bg()
         if type(config.library_background) ~= "table" then config.library_background = {} end
@@ -435,7 +481,14 @@ function M.build(ctx, extras_items)
     IconItem.decorate(items[#items], icons.settings_background)
     move_item(extras_items, _("Custom icons"), items)
     move_item(quick_settings_item.sub_item_table, _("Blur menu background"), items)
-    move_item(extras_items, _("Zen Search"), items)
+    table.insert(items, {
+        text = _("Zen mode"),
+        icon_file = require("common/utils").resolveLocalIcon(
+            require("common/plugin_root") .. "/icons/", "quick_zen"),
+        checked_func = function() return config.features.zen_mode == true end,
+        enabled_func = function() return config.features.lockdown_mode ~= true end,
+        callback = function() plugin:onToggleZenMode() end,
+    })
     return IconItem.decorate({
         text = _("Interface"),
         sub_item_table = items,

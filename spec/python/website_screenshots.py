@@ -46,11 +46,21 @@ READER_FOOTER_PRESETS = {
 FIXED_LOCAL_TIME = datetime(2026, 6, 18, 10, 9, 0)
 FORMAT_PREFERENCE = ("EPUB", "KEPUB", "AZW3", "MOBI")
 GROUPS = frozenset(("home", "library", "menus", "reader"))
-SESSIONS = frozenset(("general", "reader"))
+ICON_PACK_SESSIONS = {
+    "solar_icons": "zen-solar-colour",
+    "solar_navbar": "zen-solar-colour",
+    "mono_icons": "zen-solar-mono",
+    "gradient_icons": "zen-streamline-flex-gradient",
+    "fluent_icons": "zen-fluent-color",
+}
+SESSIONS = ("general", "reader", *ICON_PACK_SESSIONS)
 EXPECTED_IDS = frozenset((
     "zen_home", "home_bookshelf", "home_simple",
     "library_covers_full", "library_list_full", "context_menu", "metadata_editor", "stats",
     "launcher", "quicksettings", "quicksettings_minimal", "network_switcher",
+    "icons_solar", "icons_mono", "icons_gradient", "icons_fluent",
+    "launcher_solar", "launcher_mono", "launcher_gradient", "launcher_fluent",
+    "navbar_underline_above", "navbar_underline_below", "navbar_filled", "navbar_outlined",
     "bluetooth_switcher", "quickstart", "zen_settings",
     "launcher_add_plugin_menu", "launcher_add_koreader_menu",
     "controls_buttons_settings", "navbar_buttons_settings",
@@ -68,6 +78,11 @@ SHOWCASE_NAVBAR_STATES = {
     },
     "library_home_icons": {
         "tab_order": ["books", "home"],
+        "show_icons": True,
+        "show_labels": False,
+    },
+    "icon_pack_tabs": {
+        "tab_order": ["books", "authors", "tags", "history", "favorites", "series", "home"],
         "show_icons": True,
         "show_labels": False,
     },
@@ -109,6 +124,19 @@ SHOWCASE_NAVBAR_STATES = {
         "show_labels": True,
     },
 }
+for style, show_labels in (
+    ("underline_above", False), ("underline_below", True), ("filled", True), ("outlined", False),
+):
+    SHOWCASE_NAVBAR_STATES[f"navbar_{style}"] = {
+        **SHOWCASE_NAVBAR_STATES["icon_pack_tabs"],
+        "show_labels": show_labels,
+        "active_tab_use_accent": True,
+        "active_tab_underline": style in ("underline_above", "underline_below"),
+        "underline_above": style == "underline_above",
+        "active_tab_filled": style == "filled",
+        "active_tab_outlined": style == "outlined",
+        "filled_background_opacity": 100,
+    }
 NON_EMULATOR_ASSETS = frozenset((
     "plugins_folder.png", "zen_update.svg", "banner.png", "social.png",
     "og-zen.png", "zenos-banner.png",
@@ -644,6 +672,7 @@ def _zen_config(background_path: Path = SHOWCASE_BACKGROUND) -> dict[str, object
                 "notion": False,
                 "streak": False,
                 "opds": False,
+                "launcher": False,
                 "tailscale": False,
                 "zenfm": False,
                 "filebrowser": False,
@@ -686,6 +715,7 @@ def _zen_config(background_path: Path = SHOWCASE_BACKGROUND) -> dict[str, object
         "rakuyomi": {"exclude_from_home": True},
         "end_book": {
             "modules": {
+                "stats_triplet": {"show_label": False},
                 "strip": {
                     "count": 4,
                     "controls": {
@@ -1010,12 +1040,44 @@ def stage_showcase_background(ko_home: Path) -> Path:
     return destination.resolve()
 
 
-def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> None:
+def seed_showcase(
+    ko_home: Path,
+    books: Sequence[StagedBook],
+    runtime: Path,
+    icon_pack: str | None = None,
+    accent_color: str | None = None,
+) -> None:
+    if icon_pack is not None:
+        source = runtime / "icons" / "zen" / icon_pack
+        if not source.is_dir():
+            raise ValueError(f"icon pack not installed in runtime: {icon_pack}")
+        shutil.copytree(source, ko_home / "icons" / "zen" / icon_pack)
     settings = ko_home / "settings"
     zen_settings = settings / "ZenOS"
     settings.mkdir(parents=True, exist_ok=True)
     zen_settings.mkdir(parents=True, exist_ok=True)
     background_path = stage_showcase_background(ko_home)
+    zen_config = _zen_config(background_path)
+    if icon_pack is not None:
+        zen_config["features"]["custom_icons_enabled"] = True
+        zen_config["custom_icons"] = {
+            "active_pack": icon_pack, "invert_with_dark_mode": False,
+        }
+        controls = zen_config["quick_settings"]
+        controls.update({
+            "background_hatching": False, "flip_lh_rh_icon": False,
+            "zen_settings_icon": "appbar.settings",
+        })
+        controls["show_buttons"].update({
+            "zen_settings": True, "library_home": False,
+            "zen": icon_pack != "zen-streamline-flex-gradient",
+        })
+        controls["button_order"].insert(4, "zen_settings")
+    if accent_color is not None:
+        zen_config.update({
+            "accent_enabled": True, "accent_color": accent_color, "accent_opacity": 100,
+        })
+        zen_config["navbar"]["active_tab_use_accent"] = True
     _write_merged_lua(
         runtime,
         runtime / "settings.reader.lua",
@@ -1038,7 +1100,7 @@ def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> 
         runtime,
         runtime / "settings" / "ZenOS" / "config.lua",
         zen_settings / "config.lua",
-        _zen_config(background_path),
+        zen_config,
     )
     reader_baseline = runtime / "settings" / "ZenOS" / "reader.lua"
     if reader_baseline.is_file():
@@ -1071,7 +1133,7 @@ def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> 
         "entries": [
             {
                 "id": "showcase_vocabulary", "type": "plugin",
-                "label": "Vocabulary builder", "icon": "lookup.translate",
+                "label": "Vocabulary builder", "icon": "tab_translate",
                 "plugin": {"key": "vocabbuilder", "method": "__menu_callback"},
             },
             {
@@ -1081,7 +1143,7 @@ def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> 
             },
             {
                 "id": "showcase_opds", "type": "quick_setting",
-                "label": "OPDS", "icon": "quick_opds", "quick_setting_id": "opds",
+                "label": "OPDS", "icon": "book_open", "quick_setting_id": "opds",
             },
             {
                 "id": "showcase_calibre", "type": "plugin",
@@ -1100,7 +1162,7 @@ def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> 
             },
             {
                 "id": "showcase_zenfm", "type": "action",
-                "label": "ZenFM", "icon": "zenfm", "action": {"gesture_overview": True},
+                "label": "ZenFM", "icon": "appbar.filebrowser", "action": {"gesture_overview": True},
             },
             {
                 "id": "showcase_games", "type": "folder",
@@ -1108,7 +1170,7 @@ def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> 
             },
             {
                 "id": "showcase_network", "type": "koreader_menu",
-                "label": "Network", "icon": "network",
+                "label": "Network", "icon": "quick_wifi" if icon_pack == "zen-fluent-color" else "network",
                 "koreader_menu": {"id": "network", "title": "Network"},
             },
             {
@@ -1399,7 +1461,7 @@ class CaptureWorkflow:
         action = scenario.action
         options = scenario.options
         expected_navbar = None
-        if scenario.session == "general":
+        if scenario.session != "reader":
             navbar_mode = str(options.get("navbar", "default"))
             expected_navbar = SHOWCASE_NAVBAR_STATES[navbar_mode]
             navbar_response = _require_ok(
@@ -1577,6 +1639,28 @@ class CaptureWorkflow:
             if options.get("minimal_controls") is True:
                 _require_ok(driver.command("showcase_minimal_controls"), action)
             layout = _require_ok(driver.command("menu_tab_layout", tab_id=options["tab"]), action)
+            if options["tab"] == "app_launcher" and (
+                layout.get("active_tab") != "app_launcher"
+                or not {
+                    "Rakuyomi", "OPDS", "Calibre", "Battery", "Terminal", "Games", "Network", "ZenPM",
+                }.issubset(layout.get("visible_texts", []))
+            ):
+                raise CaptureError(f"Launcher layout mismatch: {layout}")
+            if scenario.session in ICON_PACK_SESSIONS and options["tab"] == "quicksettings":
+                expected_buttons = [
+                    "wifi", "night", "rotate", "zen", "zen_settings", "restart", "sleep",
+                ]
+                if scenario.session == "gradient_icons":
+                    expected_buttons.remove("zen")
+                if (
+                    layout.get("button_ids") != expected_buttons
+                    or "Settings" not in layout.get("visible_texts", [])
+                    or Path(layout.get("button_icons", {}).get("zen_settings", "")).stem != "appbar.settings"
+                    or layout.get("tabs", [])[-1:] != ["zen_library_home"]
+                    or Path(layout.get("tab_icons", {}).get("zen_library_home", "")).stem != "home"
+                    or layout.get("invert_custom_icons") is not False
+                ):
+                    raise CaptureError(f"icon pack Controls layout mismatch: {layout}")
             if options.get("minimal_controls") is True and (
                 layout.get("active_tab") != "quicksettings"
                 or "app_launcher" in layout.get("tabs", [])
@@ -1757,6 +1841,7 @@ class CaptureWorkflow:
                 and value.get("file") == str(book.path.resolve())
                 and value.get("book_status") == "complete"
                 and value.get("source") == "continue"
+                and "statistics_label" not in value
                 and title in value.get("visible_texts", [])
                 and [label["label"] for label in value.get("strip_labels", [])]
                 == ["More by Andy Weir", "Series", "Continue"]
@@ -1872,6 +1957,9 @@ class CaptureWorkflow:
             "session": scenario.session,
             "docs": list(scenario.docs),
         }
+        if scenario.session in ICON_PACK_SESSIONS:
+            result["icon_pack"] = ICON_PACK_SESSIONS[scenario.session]
+            result["accent_color"] = scenario.options["accent_color"]
         try:
             self._reset(driver, scenario.session)
             self._prepare_scenario(driver, scenario, books)
@@ -1920,8 +2008,12 @@ class CaptureWorkflow:
     ) -> None:
         ko_home = root / f"ko-home-{session}"
         ko_home.mkdir()
-        seed_showcase(ko_home, books, self.runtime)
-        socket_path = root / f"driver-{session}.sock"
+        seed_showcase(
+            ko_home, books, self.runtime,
+            icon_pack=ICON_PACK_SESSIONS.get(session),
+            accent_color=scenarios[0].options.get("accent_color"),
+        )
+        socket_path = root / f"{session}.sock"
         window_size = (
             (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2)
             if sys.platform == "darwin" else SCREEN_SIZE
@@ -1983,7 +2075,7 @@ class CaptureWorkflow:
             self.raw_dir = root / "raw"
             staged = stage_books(self.books, root / "library")
             stage_placeholder_texts(root / "library")
-            for session in ("general", "reader"):
+            for session in SESSIONS:
                 selected = [scenario for scenario in self.scenarios if scenario.session == session]
                 if selected:
                     self._session(session, selected, staged, root)

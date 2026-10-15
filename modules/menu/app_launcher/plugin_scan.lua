@@ -293,17 +293,23 @@ function M.resolve(key, method)
     if method == M.SUBMENU then
         local entry = probe_menu_entry(mod, key)
         if not entry then return nil end
-        local sub_items = entry.sub_item_table
-        if sub_items == nil and type(entry.sub_item_table_func) == "function" then
-            local ok_sub, res = pcall(entry.sub_item_table_func, TOUCHMENU_STUB)
-            if ok_sub then sub_items = res end
+        local function get_sub_items()
+            if type(entry.sub_item_table) == "table" then return entry.sub_item_table end
+            if type(entry.sub_item_table_func) == "function" then
+                local ok_sub, res = pcall(entry.sub_item_table_func, TOUCHMENU_STUB)
+                if ok_sub then return res end
+            end
         end
-        if type(sub_items) ~= "table" then return nil end
+        if type(get_sub_items()) ~= "table" then return nil end
         local title = type(entry.text) == "string" and entry.text or key
         return function()
+            local sub_items = get_sub_items()
+            if type(sub_items) ~= "table" then return false end
             return require("modules/menu/app_launcher/menu_host").show{
                 title = title,
                 item_table = sub_items,
+                refresh_func = type(entry.sub_item_table_func) == "function"
+                    and get_sub_items or nil,
             }
         end
     end

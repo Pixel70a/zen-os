@@ -482,7 +482,11 @@ function ZenSettingsPage:_openSubmenu(item, items, defer_update)
         for index, child in ipairs(items) do
             if child.menu_item_id == selected_id then
                 self.itemnumber = index
-                self.page = self:getPageNumber(index)
+                if self.perpage then
+                    self.page = self:getPageNumber(index)
+                else
+                    items.current = index -- Menu.init selects this after measuring rows.
+                end
                 break
             end
         end

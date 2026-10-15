@@ -765,7 +765,8 @@ function ZenTocWidget:_onSwipe(ges)
 end
 
 function ZenTocWidget:onClose()
-    UIManager:close(self)
+    -- Header feedback queues only an icon refresh; restore the whole screen on close.
+    UIManager:close(self, "ui", self.dimen)
     return true
 end
 

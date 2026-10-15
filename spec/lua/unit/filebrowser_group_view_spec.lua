@@ -9,6 +9,7 @@ describe("file browser group views", function()
     local closed
     local dialogs
     local metadata
+    local deleted_files
     local statuses
     local saved
     local opened
@@ -68,6 +69,7 @@ describe("file browser group views", function()
         }
         menus, shown, closed, dialogs = {}, {}, {}, {}
         metadata, statuses, opened = {}, {}, {}
+        deleted_files = {}
         saved, file_dialog_args, sort_dialog_args = 0, nil, nil
         legacy_tbr_calls = 0
         tbr_collection_changes = 0
@@ -158,6 +160,7 @@ describe("file browser group views", function()
             end,
             getLightMetadata = function() return metadata end,
             groupPathsBySeries = group_paths_by_series,
+            invalidate = function() end,
             getTBRBooks = function()
                 legacy_tbr_calls = legacy_tbr_calls + 1
                 return groups.tbr or {}
@@ -228,6 +231,7 @@ describe("file browser group views", function()
         })
         ZenSpec.replace("libs/libkoreader-lfs", {
             attributes = function(path, field)
+                if deleted_files[path] then return nil end
                 if field == "access" then return metadata[path] and metadata[path].access or 0 end
                 return { size = metadata[path] and metadata[path].size or 0 }
             end,
@@ -922,6 +926,117 @@ describe("file browser group views", function()
         assert.are.same({ "/first.epub", "/second.epub", "/solo.epub" }, {
             ungrouped.item_table[1].path, ungrouped.item_table[2].path, ungrouped.item_table[3].path,
         })
+    end)
+
+    it("groups an author's only series and preserves it after sorting", function()
+        install_group_view({
+            authors = { { author = "Ada", files = { "/first.epub", "/second.epub" } } },
+        })
+        config.features.automatic_series_grouping = true
+        metadata["/first.epub"] = { title = "Zulu", series = "Saga", series_index = 1 }
+        metadata["/second.epub"] = { title = "Alpha", series = "Saga", series_index = 2 }
+        package.loaded.device.isTouchDevice = function() return true end
+
+        api.showAuthorsView()
+        local detail = assert(api.restoreDetail("Ada", "authors"))
+        assert.are.equal(1, #detail.item_table)
+        local group = detail.item_table[1]
+        assert.is_true(group.is_series_group)
+        assert.are.equal("Saga", group.text)
+        assert.are.same({ "/first.epub", "/second.epub" }, group._zen_files)
+
+        detail:onZenDetailBlankHold()
+        file_dialog_args._zen_sort_cb()
+        dialogs[#dialogs].buttons[4][1].callback()
+        assert.are.equal(1, #detail.item_table)
+        assert.is_true(detail.item_table[1].is_series_group)
+        assert.are.same(group._zen_files, detail.item_table[1]._zen_files)
+
+        detail.onMenuSelect(detail, detail.item_table[1])
+        local series = assert(find_menu("series_detail"))
+        assert.are.same({ "/first.epub", "/second.epub" }, {
+            series.item_table[1].path, series.item_table[2].path,
+        })
+    end)
+
+    it("removes deleted books from nested series, author pages, and their sort source", function()
+        install_group_view({
+            authors = { { author = "Ada", files = { "/first.epub", "/second.epub" } } },
+        })
+        config.features.automatic_series_grouping = true
+        metadata["/first.epub"] = { title = "First", series = "Saga", series_index = 1 }
+        metadata["/second.epub"] = { title = "Second", series = "Saga", series_index = 2 }
+        package.loaded.device.isTouchDevice = function() return true end
+
+        api.showAuthorsView()
+        local root = assert(find_menu("authors"))
+        local detail = assert(api.restoreDetail("Ada", "authors"))
+        detail.onMenuSelect(detail, detail.item_table[1])
+        local series = assert(find_menu("series_detail"))
+        local chooser = package.loaded["apps/filemanager/filemanager"].instance.file_chooser
+        local original_refresh = chooser.refreshPath
+
+        series.onMenuHold(series, series.item_table[1])
+        deleted_files["/first.epub"] = true
+        chooser:refreshPath()
+
+        assert.are.equal(original_refresh, chooser.refreshPath)
+        assert.are.equal(1, #series.item_table)
+        assert.are.equal("/second.epub", series.item_table[1].path)
+        assert.are.equal(1, #detail.item_table)
+        assert.are.equal("/second.epub", detail.item_table[1].path)
+        assert.are.same({ "/second.epub" }, root.item_table[1]._zen_files)
+        assert.are.equal("1 \u{F016}", root.item_table[1].mandatory)
+
+        detail:onZenDetailBlankHold()
+        assert.are.same({ "/second.epub" }, file_dialog_args._zen_group_files)
+        file_dialog_args._zen_sort_cb()
+        dialogs[#dialogs].buttons[4][1].callback()
+        assert.are.equal(1, #detail.item_table)
+        assert.are.equal("/second.epub", detail.item_table[1].path)
+
+        series.onMenuHold(series, series.item_table[1])
+        deleted_files["/second.epub"] = true
+        chooser:refreshPath()
+
+        assert.is_true(series.item_table[1]._zen_empty_placeholder)
+        assert.is_true(detail.item_table[1]._zen_empty_placeholder)
+        assert.is_true(root.item_table[1]._zen_empty_placeholder)
+    end)
+
+    it("only removes missing books when grouping is disabled", function()
+        install_group_view({
+            authors = { { author = "Ada", files = { "/book.epub" } } },
+        })
+        config.features.automatic_series_grouping = false
+        api.showAuthorsView()
+        local detail = assert(api.restoreDetail("Ada", "authors"))
+        local chooser = package.loaded["apps/filemanager/filemanager"].instance.file_chooser
+        detail.onMenuHold(detail, detail.item_table[1])
+        chooser:refreshPath()
+
+        assert.are.equal("/book.epub", detail.item_table[1].path)
+
+        detail.onMenuHold(detail, detail.item_table[1])
+        deleted_files["/book.epub"] = true
+        chooser:refreshPath()
+
+        assert.is_true(detail.item_table[1]._zen_empty_placeholder)
+        assert.is_true(find_menu("authors").item_table[1]._zen_empty_placeholder)
+    end)
+
+    it("reloads TBR books after deletion through the shared refresh hook", function()
+        local files = { "/first.epub", "/second.epub" }
+        install_group_view({ tbr = files })
+        api.showTBRView()
+        local menu = assert(find_menu("to_be_read"))
+        menu.onMenuHold(menu, menu.item_table[1])
+        deleted_files[table.remove(files, 1)] = true
+
+        package.loaded["apps/filemanager/filemanager"].instance.file_chooser:refreshPath()
+
+        assert.are.equal(1, #menu.item_table)
+        assert.are.equal("/second.epub", menu.item_table[1].path)
     end)
 
     it("groups tagged series in both tag entry points when library grouping is enabled", function()

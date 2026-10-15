@@ -2,10 +2,16 @@ local Geom = require("ui/geometry")
 local Device = require("device")
 local Screen = Device.screen
 local UIManager = require("ui/uimanager")
+local Blitbuffer = require("ffi/blitbuffer")
+local Accent = require("common/ui/accent")
 local logger = require("common/zen_logger").new("button_feedback")
 
 local M = {}
 local submitted_marker, submitted_buffer
+
+function M.getRefreshMode()
+    return (Accent.isEnabled() or not Screen.night_mode) and "ui" or "fast"
+end
 
 function M.paddedRegion(dimen)
     local padding = Screen:scaleBySize(4)
@@ -15,7 +21,7 @@ function M.paddedRegion(dimen)
     }
 end
 
-function M.invert(region, radius)
+local function wait_for_submission()
     -- Wait for the framebuffer copy; full-refresh fallback is monochrome-only.
     local marker = Screen.marker
     if Screen.mech_wait_update_submission and marker then
@@ -35,14 +41,56 @@ function M.invert(region, radius)
         logger.warn("Using VSync fallback: update submission unavailable", "marker=", marker)
         UIManager:waitForVSync()
     end
+end
+
+local function each_span(region, radius, paint)
     local x, y, w, h = region.x, region.y, region.w, region.h
     radius = math.min(radius or Screen:scaleBySize(8), math.floor(math.min(w, h) / 2))
-    Screen.bb:invertRect(x, y + radius, w, h - 2 * radius)
+    paint(x, y + radius, w, h - 2 * radius)
     for row = 0, radius - 1 do
         local dy = radius - row - 0.5
         local inset = math.ceil(radius - math.sqrt(radius * radius - dy * dy))
-        Screen.bb:invertRect(x + inset, y + row, w - 2 * inset, 1)
-        Screen.bb:invertRect(x + inset, y + h - row - 1, w - 2 * inset, 1)
+        paint(x + inset, y + row, w - 2 * inset, 1)
+        paint(x + inset, y + h - row - 1, w - 2 * inset, 1)
+    end
+end
+
+function M.invert(region, radius)
+    wait_for_submission()
+    each_span(region, radius, function(x, y, w, h) Screen.bb:invertRect(x, y, w, h) end)
+end
+
+function M.highlight(region, radius)
+    if not Accent.isEnabled() then
+        M.invert(region, radius)
+        return
+    end
+    wait_for_submission()
+    local x, y = math.max(0, region.x), math.max(0, region.y)
+    local w = math.min(Screen.bb:getWidth(), region.x + region.w) - x
+    local h = math.min(Screen.bb:getHeight(), region.y + region.h) - y
+    if w <= 0 or h <= 0 then return end
+    local saved = Blitbuffer.new(w, h, Screen.bb:getType())
+    saved:blitFrom(Screen.bb, 0, 0, x, y, w, h)
+    local mask = Blitbuffer.new(w, h, Blitbuffer.TYPE_BB8)
+    mask:blitFrom(saved, 0, 0, 0, 0, w, h)
+    mask:invertRect(0, 0, w, h)
+    local color, foreground = Accent.color(), Accent.foreground()
+    each_span(region, radius, function(sx, sy, sw, sh)
+        Screen.bb:paintRectRGB32(sx, sy, sw, sh, color)
+        Screen.bb:colorblitFromRGB32(mask, sx, sy, sx - x, sy - y, sw, sh, foreground)
+    end)
+    mask:free()
+    return { bb = saved, x = x, y = y }
+end
+
+function M.restore(region, saved, radius)
+    if saved then
+        wait_for_submission()
+        Screen.bb:blitFrom(saved.bb, saved.x, saved.y, 0, 0, saved.bb:getWidth(), saved.bb:getHeight())
+        saved.bb:free()
+    else
+        M.invert(region, radius)
     end
 end
 
@@ -52,11 +100,11 @@ function M.flash(region, radius)
     region = Geom:new{
         x = region.x, y = region.y, w = region.w, h = region.h,
     }
-    M.invert(region, radius)
-    UIManager:setDirty(nil, "fast", region)
+    local saved = M.highlight(region, radius)
+    UIManager:setDirty(nil, M.getRefreshMode(), region)
     UIManager:forceRePaint()
     UIManager:yieldToEPDC()
-    M.invert(region, radius)
+    M.restore(region, saved, radius)
     -- Restore gray pixels with the same waveform as stock menu rows.
     UIManager:setDirty(nil, "ui", region)
 end

@@ -1990,6 +1990,14 @@ local function apply_opds()
                 ok_text      = "\u{F012C}  " .. _("Done"),
                 ok_callback  = function() end,
             }
+            function dlg:onCloseWidget()
+                ConfirmBox.onCloseWidget(self)
+                -- Repaint after removal so newer popups stay above the catalog.
+                UIManager:nextTick(function()
+                    if _browser._zen_opds_closed then return end
+                    UIManager:setDirty(_browser.show_parent or _browser, getFullRefreshMode())
+                end)
+            end
             -- Tapping outside (or Back) should just dismiss the dialog,
             -- not trigger the "Read now" cancel_callback.
             function dlg:onClose()
@@ -1997,21 +2005,6 @@ local function apply_opds()
                 return true
             end
             UIManager:nextTick(function() UIManager:show(dlg) end)
-        end
-
-        -- Description first (when available), matching context_menu.lua order.
-        if type(item.content) == "string" then
-            local content_ref = item.content
-            local title_ref   = item.title or item.text
-            table.insert(buttons, {{ text = "\u{F02FD}  " .. _("Description"), align = "left", bold = true,
-                callback = function()
-                    UIManager:show(TextViewer:new{
-                        title = title_ref, title_multilines = true,
-                        text  = util.htmlToPlainTextIfHtml(content_ref),
-                        text_type = "book_info",
-                    })
-                end,
-            }})
         end
 
         for _i, acq in ipairs(acquisitions) do
@@ -2071,6 +2064,20 @@ local function apply_opds()
                     }})
                 end
             end
+        end
+
+        if type(item.content) == "string" then
+            local content_ref = item.content
+            local title_ref   = item.title or item.text
+            table.insert(buttons, {{ text = "\u{F02FD}  " .. _("Description"), align = "left", bold = true,
+                callback = function()
+                    UIManager:show(TextViewer:new{
+                        title = title_ref, title_multilines = true,
+                        text  = util.htmlToPlainTextIfHtml(content_ref),
+                        text_type = "book_info",
+                    })
+                end,
+            }})
         end
 
         local item_ref = item

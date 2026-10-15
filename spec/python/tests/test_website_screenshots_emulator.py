@@ -90,3 +90,37 @@ def test_representative_home_library_stats_reader_and_page_browser_capture(
     for path in run_dir.glob("*.png"):
         with Image.open(path) as image:
             assert image.size == (1272, 1696)
+
+
+def test_icon_pack_captures_use_distinct_packs_and_accents(tmp_path: Path) -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    source = build_library(tmp_path / "fixture")["epub"]
+    books = [ResolvedBook(None, f"Book {index}", "Zen Author", None, source,
+                          "featured" if index == 0 else "reader" if index == 1 else "library",
+                          "EPUB") for index in range(12)]
+    ids = {
+        "icons_solar", "icons_mono", "icons_gradient", "icons_fluent",
+        "launcher_solar", "launcher_mono", "launcher_gradient", "launcher_fluent",
+        "navbar_underline_above", "navbar_underline_below", "navbar_filled", "navbar_outlined",
+    }
+    scenarios = [scenario for scenario in load_catalog() if scenario.id in ids]
+    run_dir = tmp_path / "artifacts"
+
+    report = CaptureWorkflow(runtime, scenarios, books, run_dir, None).run()
+
+    assert {result["id"] for result in report["results"]} == ids
+    assert all(result["status"] == "passed" for result in report["results"]), report
+    assert len({result["icon_pack"] for result in report["results"]}) == 4
+    assert len({result["accent_color"] for result in report["results"]}) == 5
+    assert report["source_files_unchanged"] is True
+    assert report["settings_baseline_files_unchanged"] is True
+    frames = []
+    for scenario in scenarios:
+        with Image.open(run_dir / scenario.filename) as image:
+            assert image.size == (1272, 1696)
+            frames.append(image.tobytes())
+            accent = scenario.options["accent_color"]
+            rgb = tuple(int(accent[index:index + 2], 16) for index in (1, 3, 5))
+            colors = image.convert("RGB").getcolors(image.width * image.height)
+            assert any(count > 100 and color == rgb for count, color in colors)
+    assert len(set(frames)) == len(scenarios)

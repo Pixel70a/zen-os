@@ -1,8 +1,8 @@
 local function apply_reader_footer()
-    -- Adds "dynamic_filler_2" as a second independent filler item so that
+    -- Adds "dynamic_filler2" on older KOReader versions so that
     -- presets can place items in three sections: left | center | right.
     -- Also patches genAllFooterText to render the L/C/R layout when both
-    -- dynamic_filler and dynamic_filler_2 are enabled.
+    -- dynamic_filler and dynamic_filler2 are enabled.
     -- When progress_bar_position == "alongside", patches updateFooterContainer
     -- and _updateFooterText to add a left text widget so the bar is centered.
 
@@ -60,9 +60,10 @@ local function apply_reader_footer()
         ReaderFooter._zen_page_progress_patched = true
     end
 
-    -- Register as a generator (alias of dynamic_filler; only layout differs).
-    if not ReaderFooter.textGeneratorMap.dynamic_filler_2 then
-        ReaderFooter.textGeneratorMap.dynamic_filler_2 =
+    -- Reuse KOReader's second filler when available.
+    local has_native_filler2 = ReaderFooter.textGeneratorMap.dynamic_filler2 ~= nil
+    if not has_native_filler2 then
+        ReaderFooter.textGeneratorMap.dynamic_filler2 =
             ReaderFooter.textGeneratorMap.dynamic_filler
     end
     -- progress_bar: position-only item for alongside L/R split.
@@ -75,7 +76,7 @@ local function apply_reader_footer()
     -- textOptionTitles is a method, not a table — wrap it.
     local orig_textOptionTitles = ReaderFooter.textOptionTitles
     ReaderFooter.textOptionTitles = function(self, option)
-        if option == "dynamic_filler_2" then return _("Dynamic filler 2") end
+        if option == "dynamic_filler2" and not has_native_filler2 then return _("Dynamic filler 2") end
         if option == "progress_bar"  then return _("Progress bar") end
         return orig_textOptionTitles(self, option)
     end
@@ -84,9 +85,28 @@ local function apply_reader_footer()
     -- MODE table are silently dropped. Inject them at their settings.order
     -- positions; if not yet in settings.order, append at the end so they
     -- still appear in the arrange dialog.
-    local zen_custom_modes = { "dynamic_filler_2", "progress_bar" }
+    local zen_custom_modes = { "dynamic_filler2", "progress_bar" }
     local orig_set_mode_index = ReaderFooter.set_mode_index
     ReaderFooter.set_mode_index = function(self)
+        -- Preserve legacy Zen presets and remove duplicate native/Zen filler entries.
+        if self.settings.dynamic_filler_2 ~= nil then
+            self.settings.dynamic_filler2 = self.settings.dynamic_filler_2
+                or self.settings.dynamic_filler2 or false
+            self.settings.dynamic_filler_2 = nil
+        end
+        local order = self.settings.order
+        if order then
+            local i, filler_seen = 0, false
+            while i <= #order do
+                if order[i] == "dynamic_filler_2" then order[i] = "dynamic_filler2" end
+                if order[i] == "dynamic_filler2" and filler_seen then
+                    table.remove(order, i)
+                else
+                    if order[i] == "dynamic_filler2" then filler_seen = true end
+                    i = i + 1
+                end
+            end
+        end
         orig_set_mode_index(self)
 
         -- Track which custom modes are already in mode_index (shouldn't happen
@@ -146,8 +166,7 @@ local function apply_reader_footer()
         end
     end
 
-    -- addToMainMenu explicitly enumerates footer items; inject dynamic_filler_2
-    -- right before additional_content (the last entry).
+    -- Older KOReader menus need the second filler inserted before additional_content.
     local orig_addToMainMenu = ReaderFooter.addToMainMenu
     ReaderFooter.addToMainMenu = function(self, menu_items)
         orig_addToMainMenu(self, menu_items)
@@ -155,29 +174,29 @@ local function apply_reader_footer()
 
         local footer_items, arrange_item
         for _i, item in ipairs(menu_items.status_bar.sub_item_table or {}) do
-            if item.text == _("Status bar items")
-                    and type(item.sub_item_table) == "table" then
-                footer_items = item.sub_item_table
-            end
-            for _j, child in ipairs(item.sub_item_table or {}) do
-                if child.text == _("Arrange items in status bar") then
-                    arrange_item = child
-                    break
-                end
+            local children = item.sub_item_table
+            local first, second = children and children[1], children and children[2]
+            -- Native option rows remain identifiable when heading translations differ.
+            if first and first.text_func
+                    and first.text_func() == self:textOptionTitles("page_progress") then
+                footer_items = children
+            elseif second and second.text_func
+                    and second.text_func() == self:textOptionTitles("all_at_once") then
+                arrange_item = first
             end
         end
         if not footer_items then return end
 
         -- Mirror the getMinibarOption callback pattern used by KOReader.
-        local df2_entry = {
+        local df2_entry = not has_native_filler2 and {
             text_func = function()
-                return self:textOptionTitles("dynamic_filler_2")
+                return self:textOptionTitles("dynamic_filler2")
             end,
             checked_func = function()
-                return self.settings.dynamic_filler_2 == true
+                return self.settings.dynamic_filler2 == true
             end,
             callback = function()
-                self.settings.dynamic_filler_2 = not self.settings.dynamic_filler_2
+                self.settings.dynamic_filler2 = not self.settings.dynamic_filler2
                 local should_signal = false
                 local should_update = false
                 local prev_has_no_mode = self.has_no_mode
@@ -205,8 +224,8 @@ local function apply_reader_footer()
                 end
                 if self.settings.all_at_once then
                     should_update = self:updateFooterTextGenerator()
-                elseif (self.mode_list.dynamic_filler_2 == self.mode
-                            and not self.settings.dynamic_filler_2)
+                elseif (self.mode_list.dynamic_filler2 == self.mode
+                            and not self.settings.dynamic_filler2)
                         or (prev_has_no_mode ~= self.has_no_mode) then
                     if not self.has_no_mode then
                         self.mode = first_enabled_mode_num
@@ -225,7 +244,7 @@ local function apply_reader_footer()
             end,
         }
         -- Insert before the last entry (additional_content).
-        table.insert(footer_items, #footer_items, df2_entry)
+        if df2_entry then table.insert(footer_items, #footer_items, df2_entry) end
         -- progress_bar is a positional anchor in the arrange dialog, not
         -- a user toggle, so it has no entry in the Status bar items list.
 
@@ -464,7 +483,7 @@ local function apply_reader_footer()
     end
 
     -- genAllFooterText: activate L/C/R layout when both dynamic_filler and
-    -- dynamic_filler_2 are enabled and present in mode_index.
+    -- dynamic_filler2 are enabled and present in mode_index.
     local orig_genAllFooterText = ReaderFooter.genAllFooterText
 
     ReaderFooter.genAllFooterText = function(self, skip_gen)
@@ -493,7 +512,7 @@ local function apply_reader_footer()
                 gi = gi + 1
                 if m == "dynamic_filler" then
                     filler1_gi = gi
-                elseif m == "dynamic_filler_2" then
+                elseif m == "dynamic_filler2" then
                     filler2_gi = gi
                 end
             end
@@ -606,7 +625,7 @@ local function apply_reader_footer()
     local function refresh_live_footer_modes(footer)
         if not (footer and footer.settings and footer.mode_index) then return end
         footer.settings.progress_bar = nil
-        if footer.mode_list and footer.mode_list.dynamic_filler_2
+        if footer.mode_list and footer.mode_list.dynamic_filler2
                 and footer.mode_list.progress_bar then
             return
         end

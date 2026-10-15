@@ -293,11 +293,11 @@ local function makeLiveHexLabel(parent, face)
 end
 
 function ColorWheelWidget:init()
-    self.screen_width     = Screen:getWidth()
-    self.screen_height    = Screen:getHeight()
+    self.screen_width     = self.embedded and self.dimen.w or Screen:getWidth()
+    self.screen_height    = self.embedded and self.dimen.h or Screen:getHeight()
     self.medium_font_face = Font:getFace("ffont")
     self.hex_font_face    = Font:getFace("infofont", 20)
-    self.dimen            = Geom:new {
+    self.dimen            = self.dimen or Geom:new {
         x = 0, y = 0, w = self.screen_width, h = self.screen_height,
     }
 
@@ -321,33 +321,33 @@ function ColorWheelWidget:init()
                 GestureRange:new {
                     ges   = "tap",
                     range = Geom:new { x = 0, y = 0,
-                        w = self.screen_width, h = self.screen_height }
+                        w = Screen:getWidth(), h = Screen:getHeight() }
                 }
             },
             PanColorWheel = {
                 GestureRange:new {
                     ges   = "pan",
                     range = Geom:new { x = 0, y = 0,
-                        w = self.screen_width, h = self.screen_height }
+                        w = Screen:getWidth(), h = Screen:getHeight() }
                 }
             },
             PanReleaseColorWheel = {
                 GestureRange:new {
                     ges   = "pan_release",
                     range = Geom:new { x = 0, y = 0,
-                        w = self.screen_width, h = self.screen_height }
+                        w = Screen:getWidth(), h = Screen:getHeight() }
                 }
             },
             SwipeColorWheel = {
                 GestureRange:new {
                     ges   = "swipe",
                     range = Geom:new { x = 0, y = 0,
-                        w = self.screen_width, h = self.screen_height }
+                        w = Screen:getWidth(), h = Screen:getHeight() }
                 }
             },
         }
     end
-    if Device:hasKeys() then
+    if Device:hasKeys() and not self.embedded then
         self.key_events.CancelOrClose = { { Device.input.group.Back } }
     end
 
@@ -377,6 +377,7 @@ function ColorWheelWidget:setHex(hex)
     local hue, saturation, value = ReaderThemes.colorToHsv(hex)
     if not hue then return false end
     self.hue, self.saturation, self.value = hue, saturation, value
+    self._color_changed = true
     self:update()
     return true
 end
@@ -414,7 +415,7 @@ function ColorWheelWidget:update()
 
     local pad = Size.padding.large
     local small_gap = Screen:scaleBySize(8)
-    local title_bar = TitleBar:new {
+    local title_bar = not self.embedded and TitleBar:new {
         width            = self.screen_width,
         title            = self.title_text,
         with_bottom_line = true,
@@ -440,8 +441,23 @@ function ColorWheelWidget:update()
         local function set_value(new_value)
             slider:setValue(new_value)
             on_change(slider:getValue())
+            self._color_changed = true
             label:setText(title .. ": " .. slider:getValue() .. "%")
-            UIManager:setDirty(self, "ui")
+            if slider._dragging then
+                -- Keep wheel regeneration out of the drag path; refresh it on release.
+                slider.hide_knob = false
+                slider:paintTo(Screen.bb, slider.dimen.x, slider.dimen.y)
+                local size = label:getSize()
+                local label_y = slider.dimen.y - small_gap - size.h
+                Screen.bb:paintRect(0, label_y, self.screen_width, size.h, Blitbuffer.COLOR_WHITE)
+                label:paintTo(Screen.bb, math.floor((self.screen_width - size.w) / 2), label_y)
+                UIManager:setDirty(nil, "fast", Geom:new {
+                    x = 0, y = label_y, w = self.screen_width,
+                    h = slider.dimen.y + slider.dimen.h - label_y,
+                })
+            else
+                UIManager:setDirty(self.show_parent or self, "ui")
+            end
         end
         slider.on_change = set_value
         local buttons = {}
@@ -454,7 +470,7 @@ function ColorWheelWidget:update()
                 width          = button_width,
                 height         = slider:getSize().h,
                 bordersize     = 0,
-                show_parent    = self,
+                show_parent    = self.show_parent or self,
                 callback       = function() set_value(slider:getValue() + step) end,
             }
         end
@@ -496,8 +512,8 @@ function ColorWheelWidget:update()
         table.insert(slider_controls, opacity_group)
     end
     local apply_height = Size.item.height_large
-    local fixed_height = title_bar:getSize().h + slider_controls:getSize().h
-        + apply_height + 4 * pad + Size.padding.default
+    local fixed_height = (title_bar and title_bar:getSize().h or 0) + slider_controls:getSize().h
+        + (self.embedded and 3 * pad or apply_height + 4 * pad) + Size.padding.default
     local wheel_size = math.min(self.width - 2 * pad,
         math.max(Screen:scaleBySize(80), math.floor((self.screen_height - fixed_height) / 1.25)))
     local preview_size = math.floor(wheel_size / 6)
@@ -526,7 +542,7 @@ function ColorWheelWidget:update()
         HorizontalSpan:new { width = Size.padding.large },
         self._hex_frame,
     }
-    local ok_button = Button:new {
+    local ok_button = not self.embedded and Button:new {
         text        = self.ok_text,
         width       = self.width - 2 * pad,
         height      = apply_height,
@@ -535,17 +551,17 @@ function ColorWheelWidget:update()
         show_parent = self,
         callback    = function() self:onApply() end,
     }
-    ok_button.paintTo = function(button, bb, x, y)
-        button.dimen.x, button.dimen.y = x, y
-        ZenButton.paintFilled(bb, x, y, button.dimen.w, button.dimen.h,
-            button.text, button.text_font_size)
+    if ok_button then
+        ok_button.paintTo = function(button, bb, x, y)
+            button.dimen.x, button.dimen.y = x, y
+            ZenButton.paintFilled(bb, x, y, button.dimen.w, button.dimen.h,
+                button.text, button.text_font_size)
+        end
+        self.layout[#self.layout + 1] = { ok_button }
     end
-
-    self.layout[#self.layout + 1] = { ok_button }
 
     local vgroup = VerticalGroup:new {
         align = "center",
-        title_bar,
         VerticalSpan:new { width = pad },
         CenterContainer:new {
             dimen = Geom:new {
@@ -566,21 +582,24 @@ function ColorWheelWidget:update()
         CenterContainer:new {
             dimen = Geom:new {
                 w = self.screen_width,
-                h = preview_size,
+                h = self.embedded and math.max(preview_size, self._hex_frame:getSize().h) or preview_size,
             },
             preview_group,
         },
-        VerticalSpan:new { width = pad },
-        CenterContainer:new {
-            dimen = Geom:new { w = self.screen_width, h = apply_height },
-            ok_button,
-        },
         VerticalSpan:new { width = Size.padding.default },
     }
+    if title_bar then
+        table.insert(vgroup, 1, title_bar)
+        table.insert(vgroup, #vgroup, VerticalSpan:new { width = pad })
+        table.insert(vgroup, #vgroup, CenterContainer:new {
+            dimen = Geom:new { w = self.screen_width, h = apply_height },
+            ok_button,
+        })
+    end
 
     self[1] = vgroup
 
-    UIManager:setDirty(self, "ui")
+    UIManager:setDirty(self.show_parent or self, "ui")
 end
 
 function ColorWheelWidget:paintTo(bb, x, y)
@@ -600,17 +619,18 @@ function ColorWheelWidget:onTapColorWheel(arg, ges_ev)
     if self.opacity_slider and self.opacity_slider:handleTap(ges_ev) then
         return true
     end
-    if not self.color_wheel or not self.color_wheel.dimen then return true end
+    if not self.color_wheel or not self.color_wheel.dimen then return not self.embedded end
 
     if ges_ev.pos:intersectWith(self.color_wheel.dimen) then
         if self.color_wheel:updateColor(ges_ev.pos) then
             self.hue        = self.color_wheel.hue
             self.saturation = self.color_wheel.saturation
-            UIManager:setDirty(self, "ui")
+            self._color_changed = true
+            UIManager:setDirty(self.show_parent or self, "ui")
         end
         return true
     end
-    return true
+    return not self.embedded
 end
 
 function ColorWheelWidget:onPanColorWheel(arg, ges_ev)
@@ -626,11 +646,12 @@ function ColorWheelWidget:onPanColorWheel(arg, ges_ev)
         if self.color_wheel:updateColor(ges_ev.pos) then
             self.hue        = self.color_wheel.hue
             self.saturation = self.color_wheel.saturation
+            self._color_changed = true
 
             self._pan_tick  = (self._pan_tick or 0) + 1
             local mode      = (self._pan_tick % 8 == 0) and "ui" or "fast"
 
-            UIManager:setDirty(self, mode)
+            UIManager:setDirty(self.show_parent or self, mode)
         end
         return true
     end
@@ -639,11 +660,11 @@ end
 
 function ColorWheelWidget:onPanReleaseColorWheel(arg, ges_ev)
     if self.brightness_slider
-            and self.brightness_slider:handlePanRelease(ges_ev, self, self.dimen) then
+            and self.brightness_slider:handlePanRelease(ges_ev, self.show_parent or self, self.dimen) then
         return true
     end
     if self.opacity_slider
-            and self.opacity_slider:handlePanRelease(ges_ev, self, self.dimen) then
+            and self.opacity_slider:handlePanRelease(ges_ev, self.show_parent or self, self.dimen) then
         return true
     end
     if not self.color_wheel or not self.color_wheel.dimen then return false end
@@ -656,17 +677,22 @@ function ColorWheelWidget:onPanReleaseColorWheel(arg, ges_ev)
 end
 
 function ColorWheelWidget:onSwipeColorWheel(arg, ges_ev)
-    if self.brightness_slider and self.brightness_slider:handleSwipe(ges_ev, self, self.dimen) then
+    if self.brightness_slider and self.brightness_slider:handleSwipe(ges_ev, self.show_parent or self, self.dimen) then
         return true
     end
-    if self.opacity_slider then
-        return self.opacity_slider:handleSwipe(ges_ev, self, self.dimen)
+    if self.opacity_slider and self.opacity_slider:handleSwipe(ges_ev, self.show_parent or self, self.dimen) then
+        return true
     end
-    return false
+    return self.embedded and ges_ev.pos:intersectWith(self.dimen) or false
 end
 
 function ColorWheelWidget:onApply()
-    UIManager:close(self)
+    if self.embedded then
+        if not self._color_changed then return true end
+        self._color_changed = false
+    else
+        UIManager:close(self)
+    end
     if self.callback then
         local r, g, b = hsvToRgb(self.hue, self.saturation, self.value)
         self.callback(string.format("#%02X%02X%02X", r, g, b), self.opacity)

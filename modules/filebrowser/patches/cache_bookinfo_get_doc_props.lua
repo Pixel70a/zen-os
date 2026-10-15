@@ -4,28 +4,9 @@
 -- Author:       Tachibana Shin <tachibshin@duck.com>
 local function apply_cache_bookinfo_get_doc_props()
     local lfs = require("libs/libkoreader-lfs")
-    local sqlite3 = require("lua-ljsqlite3/init")
+    local Cache = require("common/docprops_cache")
     local rapidjson = require("rapidjson")
-    local DataStorage = require("datastorage")
     local DocumentRegistry = require("document/documentregistry")
-
-    local DB_PATH = DataStorage:getSettingsDir() .. "/docprops_cache.sqlite"
-    local db = sqlite3.open(DB_PATH)
-
-    db:exec([[
-        PRAGMA journal_mode = OFF;
-        PRAGMA synchronous = OFF;
-        PRAGMA temp_store = MEMORY;
-        PRAGMA cache_size = -2000;
-    ]])
-
-    db:exec([[
-    CREATE TABLE IF NOT EXISTS doc_props_cache (
-        cache_key TEXT PRIMARY KEY,
-        props TEXT,
-        created_at INTEGER
-    );
-    ]])
 
     ---@param file string
     local function getProvider(file)
@@ -58,23 +39,25 @@ local function apply_cache_bookinfo_get_doc_props()
     ---@param key string
     ---@return table|nil
     local function getPropsFromCache(key)
-        local stmt = db:prepare("SELECT props FROM doc_props_cache WHERE cache_key = ?")
-        if not stmt then return nil end
+        return Cache.withDB(function(db)
+            local stmt = db:prepare("SELECT props FROM doc_props_cache WHERE cache_key = ?")
+            if not stmt then return nil end
 
-        stmt:bind(key)
-        local row = stmt:step()
-        local result = nil
+            stmt:bind(key)
+            local row = stmt:step()
+            local result = nil
 
-        if row then
-            local props_json = row[1]
-            if props_json then
-                local status, data = pcall(rapidjson.decode, props_json)
-                if status then result = data end
+            if row then
+                local props_json = row[1]
+                if props_json then
+                    local status, data = pcall(rapidjson.decode, props_json)
+                    if status then result = data end
+                end
             end
-        end
 
-        stmt:clearbind():reset()
-        return result
+            stmt:close()
+            return result
+        end)
     end
 
     ---@param key string
@@ -82,14 +65,15 @@ local function apply_cache_bookinfo_get_doc_props()
     ---@return nil
     local function savePropsToCache(key, props)
         if not props then return end
-        local stmt = db:prepare("INSERT OR REPLACE INTO doc_props_cache (cache_key, props, created_at) VALUES (?, ?, ?)")
-        if not stmt then return end
-
         local status, props_json = pcall(rapidjson.encode, props)
-        if status then
+        if not status then return end
+
+        Cache.withDB(function(db)
+            local stmt = db:prepare("INSERT OR REPLACE INTO doc_props_cache (cache_key, props, created_at) VALUES (?, ?, ?)")
+            if not stmt then return end
             stmt:bind(key, props_json, os.time()):step()
-        end
-        stmt:clearbind():reset()
+            stmt:close()
+        end)
     end
 
     local BookInfo = require("apps/filemanager/filemanagerbookinfo")

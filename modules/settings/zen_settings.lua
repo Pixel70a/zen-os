@@ -57,7 +57,10 @@ function M.build(plugin)
 
     extras_items = utils.order_items_by_text(extras_items, {
         _("Install ZenPM"),
+        _("Open ZenPM"),
         _("Zen OPDS"),
+        _("Zen Search"),
+        _("Zen Keyboard"),
         _("Stats"),
         _("Rakuyomi"),
     })

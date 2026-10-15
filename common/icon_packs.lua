@@ -14,6 +14,9 @@ local MAX_TOTAL_SIZE = 50 * 1024 * 1024
 local MAX_JSON_SIZE = 64 * 1024
 
 local resolved_icons = {}
+local custom_icon_paths = {}
+local dark_icon_cache = setmetatable({}, { __mode = "k" })
+local active_config
 local active_pack_dir
 local last_scan = { packs = {}, errors = {}, installed = {} }
 local test_icons_root
@@ -132,11 +135,15 @@ local function validate_pack_metadata(value, expected_id)
     if value.author ~= nil and type(value.author) ~= "string" then
         return nil, "pack author must be a string"
     end
+    if value.color ~= nil and type(value.color) ~= "boolean" then
+        return nil, "pack color must be a boolean"
+    end
     return {
         id = value.id,
         name = value.name,
         version = value.version,
         author = value.author,
+        color = value.color,
     }
 end
 
@@ -187,8 +194,10 @@ local function add_pack_icons(map, path)
 end
 
 local function build_resolved_map(config)
+    active_config = config
     active_pack_dir = nil
     resolved_icons = {}
+    custom_icon_paths = {}
 
     local features = type(config) == "table" and config.features
     local enabled = type(features) == "table" and features.custom_icons_enabled == true
@@ -206,6 +215,7 @@ local function build_resolved_map(config)
             add_pack_icons(resolved_icons, icons_root())
         end
     end
+    for _name, path in pairs(resolved_icons) do custom_icon_paths[path] = true end
 end
 
 local function install_icon_hook()
@@ -218,7 +228,53 @@ local function install_icon_hook()
             local path = resolved_icons[self.icon]
             if path then self.file = path end
         end
-        return original_init(self, ...)
+        original_init(self, ...)
+        -- Keep custom icons transparent instead of flattening them onto white.
+        if custom_icon_paths[self.file] then self.alpha = true end
+    end
+    local Screen = require("device").screen
+    local original_paint = IconWidget.paintTo
+    function IconWidget:paintTo(bb, x, y)
+        if self.hide or not Screen.night_mode or not custom_icon_paths[self.file] then
+            return original_paint(self, bb, x, y)
+        end
+        local manager = package.loaded["config/manager"]
+        local config = manager and manager.get and manager.get() or active_config
+        local custom = config and config.custom_icons
+        if type(custom) ~= "table" or custom.invert_with_dark_mode ~= false then
+            return original_paint(self, bb, x, y)
+        end
+        local size = self:getSize()
+        local image = self._bb
+        local dark = dark_icon_cache[image]
+        if dark == nil then
+            dark = true
+            for iy = 0, image:getHeight() - 1 do
+                for ix = 0, image:getWidth() - 1 do
+                    local color = image:getPixel(ix, iy):getColorRGB32()
+                    -- Ignore transparent padding and allow premultiplied-alpha rounding.
+                    local limit = self._is_straight_alpha and 64 or 64 * color.alpha / 255 + 0.5
+                    if color.alpha > 0 and (color.r > limit or color.g > limit or color.b > limit) then
+                        dark = false
+                        break
+                    end
+                end
+                if not dark then break end
+            end
+            dark_icon_cache[image] = dark
+        end
+        local inverse = bb:getInverse()
+        if dark and inverse == 0 then return original_paint(self, bb, x, y) end
+        -- Composite against the night background without inverting transparent pixels.
+        if inverse == 1 then bb:setInverse(0) end
+        if dark or inverse == 0 then
+            bb:invertRect(x, y, size.w, size.h)
+        end
+        original_paint(self, bb, x, y)
+        if dark or inverse == 0 then
+            bb:invertRect(x, y, size.w, size.h)
+        end
+        if inverse == 1 then bb:setInverse(inverse) end
     end
 end
 
@@ -576,6 +632,9 @@ end
 
 function M._resetForTests()
     resolved_icons = {}
+    custom_icon_paths = {}
+    dark_icon_cache = setmetatable({}, { __mode = "k" })
+    active_config = nil
     active_pack_dir = nil
     last_scan = { packs = {}, errors = {}, installed = {} }
     test_icons_root = nil

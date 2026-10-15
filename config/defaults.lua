@@ -4,6 +4,9 @@ local library_font_default = FontLanguage.supportsBundledFonts()
     and LibraryFontPath.BUNDLED_DEFAULT or "default"
 
 local defaults = {
+    accent_enabled = true,
+    accent_color = "#000000",
+    accent_opacity = 100,
     _meta = {
         schema_version = 1,
         files_per_page_defaulted = false,
@@ -65,6 +68,7 @@ local defaults = {
     },
     custom_icons = {
         active_pack = "",
+        invert_with_dark_mode = true,
     },
     localization = {
         default_locale = "en",
@@ -172,10 +176,12 @@ local defaults = {
         manga_folder = "",
         news_action = "quickrss",
         news_folder = "",
-        colored = false,
-        active_tab_color = { 0x33, 0x99, 0xFF },
+        active_tab_color = { 0, 0, 0 },
+        active_tab_use_accent = true,
         active_tab_underline = true,
         active_tab_filled = false,
+        active_tab_outlined = false,
+        outlined_color = { 0x4F, 0x6F, 0x8F },
         filled_outline_color = { 0xFF, 0xFF, 0xFF },
         filled_background_color = { 0x4F, 0x6F, 0x8F },
         filled_background_opacity = 60,
@@ -183,7 +189,7 @@ local defaults = {
         show_top_border = false,
     },
     quick_settings = {
-        button_order = { "wifi", "night", "rotate", "zen", "restart", "sleep" },
+        button_order = { "wifi", "night", "rotate", "restart", "sleep" },
         show_buttons = {
             wifi = true,
             bluetooth = false,
@@ -191,7 +197,7 @@ local defaults = {
             frontlight = false,
             gyro = false,
             rotate = true,
-            zen = true,
+            zen = false,
             lockdown = false,
             incognito = false,
             usb = false,
@@ -212,6 +218,7 @@ local defaults = {
             launcher = false,
             tailscale = false,
             zenfm = false,
+            zenpm = false,
             filebrowser = false,
         },
         background_hatching = false,
@@ -277,7 +284,7 @@ local defaults = {
         show_mosaic_progress = true,
         show_native_progress_bar = false,
         show_new_banner = true,
-        badge_size = "compact",
+        badge_size = "normal",
         dim_finished_books = false,
     },
     browser_page_count = {
@@ -405,7 +412,7 @@ local defaults = {
         day_value   = 20,
         night_h     = 20,
         night_m     = 0,
-        night_value = 5,
+        night_value = 8,
         use_mode_values = false,
     },
     group_view = {

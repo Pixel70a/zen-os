@@ -453,7 +453,7 @@ function ZenUI:init()
             if ok_pages then
                 -- Strip beta suffix (e.g. "1.0.4-beta2" -> "1.0.4") for changelog lookup.
                 local stable_ver = current_ver:match("^([%d%.]+)")
-                pages_to_show     = pages_mod.UPDATE_PAGES[current_ver]
+                pages_to_show = pages_mod.build_update_pages(current_ver)
                 changelog_to_show = pages_mod.CHANGELOGS and (
                     pages_mod.CHANGELOGS[current_ver] or pages_mod.CHANGELOGS[stable_ver])
             end
@@ -521,7 +521,7 @@ function ZenUI:init()
             -- Clear a stale banner left by a manual/external install.
             zen_updater.clear_update_state(self.config)
 
-            -- Post-update: always show the ZenScreen splash, then chain UPDATE_PAGES if present.
+            -- Post-update: show the changelog, then any quickstart pages.
             self.config._meta.quickstart_shown_for_version = current_ver
             self:saveConfig()
             logger.info("scheduling for version", current_ver, "pages_to_show=", pages_to_show and #pages_to_show or 0)
@@ -1020,6 +1020,8 @@ function ZenUI:onCloseWidget()
     BatteryStats.stop()
     cancel_item_table_cache_persist()
     close_zen_standalone_views(self._zen_shared)
+    local cache = package.loaded["common/docprops_cache"]
+    if cache then cache.close() end
 end
 
 -- KOReader PluginLoader calls this only when the user explicitly chooses
