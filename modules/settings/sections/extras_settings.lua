@@ -3,7 +3,6 @@
 -- Receives ctx: { plugin, config, settings_apply }
 
 local _ = require("gettext")
-local Device = require("device")
 local T = require("ffi/util").template
 local IconPacks = require("common/icon_packs")
 local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
@@ -22,8 +21,9 @@ function M.build(ctx)
     local items = {}
 
     table.insert(items, stats_settings.build(ctx))
-    if not (Device.isAndroid and Device:isAndroid()) and zenpm_installer.detect_assets() then
-        table.insert(items, IconItem.decorate(zenpm_installer.build_item(plugin), icons.download))
+    local zenpm_item = zenpm_installer.build_item(plugin)
+    if zenpm_item then
+        table.insert(items, IconItem.decorate(zenpm_item, icons.download))
     end
 
     do

@@ -4182,6 +4182,12 @@ msgstr "Deschide cu…"
 msgid "Open Zen UI Settings → Library → Metadata to configure providers."
 msgstr "Deschide Setări Zen UI → Bibliotecă → Metadate pentru a configura furnizorii."
 
+#. Type: button
+#. Context: Opens the installed ZenPM plugin from Extras settings.
+#: zenpm_installer.lua:408 zen_settings.lua:60
+msgid "Open ZenPM"
+msgstr "Deschide ZenPM"
+
 #. Type: label
 #. Context: Etichetă pe ecranul de lectură.
 #: opening_banner.lua:472

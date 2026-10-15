@@ -4182,6 +4182,12 @@ msgstr "打開…"
 msgid "Open Zen UI Settings → Library → Metadata to configure providers."
 msgstr "開啟 Zen UI 設定 → 書庫 → 中繼資料，以設定提供者。"
 
+#. Type: button
+#. Context: Opens the installed ZenPM plugin from Extras settings.
+#: zenpm_installer.lua:408 zen_settings.lua:60
+msgid "Open ZenPM"
+msgstr "開啟 ZenPM"
+
 #. Type: label
 #. Context: 閱讀畫面中用來標示項目或資訊的文字。
 #: opening_banner.lua:472

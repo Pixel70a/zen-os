@@ -91,9 +91,9 @@ describe("Interface settings", function()
         }, extras)
         local labels = {}
         for _i, item in ipairs(section.sub_item_table) do labels[#labels + 1] = item.text end
-        assert.are.same({ "Controls", "Launcher", "Navbar", "Status bar", "Accent color", "Font", "Zen Keyboard",
-            "Wallpaper", "Custom icons", "Blur menu background", "Zen Search", "Zen mode" }, labels)
-        assert.are.same({ { text = "Stats" } }, extras)
+        assert.are.same({ "Controls", "Launcher", "Navbar", "Status bar", "Accent color", "Font",
+            "Wallpaper", "Custom icons", "Blur menu background", "Zen mode" }, labels)
+        assert.are.same({ { text = "Zen Keyboard" }, { text = "Zen Search" }, { text = "Stats" } }, extras)
         assert.are.equal(1, #section.sub_item_table[1].sub_item_table)
     end)
 

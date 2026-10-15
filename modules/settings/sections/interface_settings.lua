@@ -321,7 +321,6 @@ function M.build(ctx, extras_items)
     })
 
     IconItem.decorate(items[#items], icons.title)
-    move_item(extras_items, _("Zen Keyboard"), items)
 
     local function ensure_lib_bg()
         if type(config.library_background) ~= "table" then config.library_background = {} end
@@ -482,7 +481,6 @@ function M.build(ctx, extras_items)
     IconItem.decorate(items[#items], icons.settings_background)
     move_item(extras_items, _("Custom icons"), items)
     move_item(quick_settings_item.sub_item_table, _("Blur menu background"), items)
-    move_item(extras_items, _("Zen Search"), items)
     table.insert(items, {
         text = _("Zen mode"),
         icon_file = require("common/utils").resolveLocalIcon(

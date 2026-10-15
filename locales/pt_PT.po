@@ -4182,6 +4182,12 @@ msgstr "Abra com…"
 msgid "Open Zen UI Settings → Library → Metadata to configure providers."
 msgstr "Abra as Definições da Zen UI → Biblioteca → Metadados para configurar os fornecedores."
 
+#. Type: button
+#. Context: Opens the installed ZenPM plugin from Extras settings.
+#: zenpm_installer.lua:408 zen_settings.lua:60
+msgid "Open ZenPM"
+msgstr "Abrir ZenPM"
+
 #. Type: label
 #. Context: Designação no ecrã de leitura.
 #: opening_banner.lua:472

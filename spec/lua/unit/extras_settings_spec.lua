@@ -22,7 +22,7 @@ describe("Extras settings", function()
         replace("modules/filebrowser/patches/rakuyomi", { is_available = function() return true end })
         replace("modules/settings/sections/global_settings", { build_extras_items = function() return {} end })
         replace("modules/settings/sections/stats_settings", { build = function() return { text = "Stats" } end })
-        replace("modules/settings/zenpm_installer", { detect_assets = function() return false end })
+        replace("modules/settings/zenpm_installer", { build_item = function() return nil end })
         replace("common/inline_icon_map", { settings_opds = "opds-icon", custom_icons = "custom-icons" })
         replace("common/ui/icon_menu_item", {
             decorate = function(item, glyph)

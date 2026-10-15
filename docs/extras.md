@@ -10,11 +10,15 @@ order: 60
 
 ## Overview
 
-Extras contains optional tools and integrations. It covers reading statistics, plugin installation, OPDS browsing, Rakuyomi behavior, and Lockdown Mode.
+Extras contains optional tools and integrations. It covers reading statistics, Zen Keyboard, Zen Search, plugin installation, OPDS browsing, Rakuyomi behavior, and Lockdown Mode.
 
 ## ZenPM
 
-On supported non-Android ARM32 and ARM64 devices, choose **Zen Settings > Extras > Install ZenPM** to install the Zen plugin manager directly from ZenOS. ZenPM uses the ZenOS status bar while browsing packages.
+On supported non-Android ARM32 and ARM64 devices, choose **Zen Settings > Extras > Install ZenPM** to install the Zen plugin manager directly from ZenOS. When ZenPM is loaded, this entry becomes **Open ZenPM** and opens the plugin. ZenPM uses the ZenOS status bar while browsing packages.
+
+## Keyboard and search
+
+Use **Zen Settings > Extras > Zen Keyboard** for keyboard enhancements. **Zen Search** controls search enhancements in the library and reader, including whole-word matching.
 
 ## Stats
 
@@ -57,7 +61,10 @@ Use **Lockdown mode** to configure library, Controls, and reader restrictions. S
 | Extras > Stats > Default font size | Sets the default text size for Stats widgets. Individual supported widgets can override it. |
 | Extras > Stats > Stat separators | Selects divider lines, outlines, or no separators for Stats widgets. |
 | Extras > Stats > Week reset day | Starts weekly statistics on Sunday or Monday. |
-| Extras > Install ZenPM | Installs the Zen plugin manager on supported non-Android ARM devices. |
+| Extras > Install ZenPM / Open ZenPM | Opens the loaded ZenPM plugin, or offers installation on supported non-Android ARM devices. |
+| Extras > Zen Keyboard | Configures keyboard enhancements. |
+| Extras > Zen Search | Enables search enhancements in the library and reader; changes require a restart. |
+| Extras > Zen Search > Match whole words | Uses whole-word matching instead of substring matching. |
 | Extras > Zen OPDS | Enables ZenOS OPDS enhancements, including cover art, list/mosaic view, hold menu, and navigation changes. |
 | Extras > Zen OPDS > Display mode | Selects mosaic, list, or classic OPDS display mode. |
 | Extras > Zen OPDS > Prefer large covers | In OPDS mosaic mode, prefer higher quality cover images if available. |

@@ -8,6 +8,10 @@ describe("ZenPM installer asset selection", function()
     local original_trapper
     local original_uimanager
     local original_zen_screen
+    local original_pluginloader
+    local original_device
+    local original_settings_transition
+    local original_event
 
     before_each(function()
         original_logger = package.loaded["common/zen_logger"]
@@ -18,9 +22,15 @@ describe("ZenPM installer asset selection", function()
         original_trapper = package.loaded["ui/trapper"]
         original_uimanager = package.loaded["ui/uimanager"]
         original_zen_screen = package.loaded["common/ui/zen_screen"]
+        original_pluginloader = package.loaded["pluginloader"]
+        original_device = package.loaded["device"]
+        original_settings_transition = package.loaded["common/settings_transition"]
+        original_event = package.loaded["ui/event"]
         ZenSpec.replace("common/zen_logger", { new = function() return { info = function() end, warn = function() end } end })
         ZenSpec.replace("common/plugin_root", "/plugins/zenos.koplugin")
         ZenSpec.replace("ffi/archiver", {})
+        ZenSpec.replace("pluginloader", { getPluginInstance = function() return nil end })
+        ZenSpec.replace("device", {})
         ZenSpec.unload("modules/settings/zenpm_installer")
         Installer = require("modules/settings/zenpm_installer")
     end)
@@ -34,6 +44,10 @@ describe("ZenPM installer asset selection", function()
         package.loaded["ui/trapper"] = original_trapper
         package.loaded["ui/uimanager"] = original_uimanager
         package.loaded["common/ui/zen_screen"] = original_zen_screen
+        package.loaded["pluginloader"] = original_pluginloader
+        package.loaded["device"] = original_device
+        package.loaded["common/settings_transition"] = original_settings_transition
+        package.loaded["ui/event"] = original_event
         ZenSpec.unload("modules/settings/zenpm_installer")
     end)
 
@@ -102,6 +116,54 @@ describe("ZenPM installer asset selection", function()
 
     it("matches release assets with the filename portion before the version", function()
         assert.are.equal("ZenPM-koreader-linux-", Installer.asset_prefix("ZenPM-koreader-linux-%s.zip"))
+    end)
+
+    it("keeps the install action when ZenPM is absent on a supported device", function()
+        Installer.detect_assets = function() return "ZenPM-koreader-ereader-%s.zip" end
+        local plugin = {}
+        local prompted_plugin
+        Installer.prompt_install = function(owner) prompted_plugin = owner end
+
+        local item = Installer.build_item(plugin)
+        assert.are.equal("Install ZenPM", item.text)
+        assert.is_true(item.keep_menu_open)
+        item.callback()
+        assert.are.equal(plugin, prompted_plugin)
+    end)
+
+    it("closes Settings before opening installed ZenPM even without an installer asset", function()
+        Installer.detect_assets = function() return nil end
+        package.loaded["device"].isAndroid = function() return true end
+        package.loaded["pluginloader"].getPluginInstance = function(_self, name)
+            assert.are.equal("zenpm", name)
+            return {}
+        end
+        local calls, next_tick = {}, nil
+        ZenSpec.replace("common/settings_transition", {
+            close = function() calls[#calls + 1] = "close" end,
+        })
+        ZenSpec.replace("ui/event", { new = function(_self, name) return { name = name } end })
+        ZenSpec.replace("ui/uimanager", {
+            nextTick = function(_self, callback) next_tick = callback end,
+            broadcastEvent = function(_self, event) calls[#calls + 1] = event.name end,
+        })
+
+        local item = Installer.build_item({})
+        assert.are.equal("Open ZenPM", item.text)
+        item.callback()
+        assert.are.same({ "close" }, calls)
+        assert.is_function(next_tick)
+        next_tick()
+        assert.are.same({ "close", "OpenZenPM" }, calls)
+    end)
+
+    it("omits the install action on unsupported devices and Android without ZenPM", function()
+        Installer.detect_assets = function() return nil end
+        assert.is_nil(Installer.build_item({}))
+
+        Installer.detect_assets = function() return "ZenPM-koreader-linux-%s.zip" end
+        package.loaded["device"].isAndroid = function() return true end
+        assert.is_nil(Installer.build_item({}))
     end)
 
     it("accepts the official Linux release asset URL", function()
