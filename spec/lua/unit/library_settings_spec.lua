@@ -116,6 +116,9 @@ describe("library settings", function()
         assert.is_nil(find_item(items, "Font"))
         assert.is_nil(find_item(items, "Wallpaper"))
         assert.is_nil(find_item(items, "Status bar"))
+        local badge_sizes = find_item(items, "Badge size").sub_item_table
+        assert.is_true(find_item(badge_sizes, "Normal").checked_func())
+        assert.is_false(find_item(badge_sizes, "Compact").checked_func())
     end)
 
     it("uses the color wheel for custom badge colors while preserving presets and reset", function()

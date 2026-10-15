@@ -460,8 +460,8 @@ function M.getBadgeScale(config)
         and config.browser_cover_badges.badge_size
     if sz == "extra_large" then return 1.50 end
     if sz == "large"       then return 1.20 end
-    if sz == "normal"      then return 1.10 end
-    return 1.0
+    if sz == "compact"     then return 1.0 end
+    return 1.10
 end
 
 function M.getBadgeFontSize(config, size, ratio, minimum)

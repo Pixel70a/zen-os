@@ -151,7 +151,7 @@ describe("opening banner", function()
 
         ReaderUI.showReaderCoroutine({ doShowReader = function() end }, "book.epub", {})
 
-        assert.are.same({ x = 0, y = 764, w = 600, h = 36 }, shown[1].dimen)
+        assert.are.same({ x = 0, y = 762, w = 600, h = 38 }, shown[1].dimen)
     end)
 
     it("scales cover banner height and text with every badge size", function()
@@ -191,7 +191,7 @@ describe("opening banner", function()
         ReaderUI:showReader("book.epub", {})
 
         assert.are.equal(2, #shown)
-        assert.are.same({ x = 0, y = 772, w = 600, h = 28 }, shown[2].dimen)
+        assert.are.same({ x = 0, y = 770, w = 600, h = 30 }, shown[2].dimen)
     end)
 
     it("defers no-banner opens while retaining a silent UI window", function()
@@ -230,7 +230,7 @@ describe("opening banner", function()
             dimen = { x = 31, y = 47, w = 220, h = 330 },
             bordersize = 2,
         }))
-        assert.are.same({ x = 33, y = 347, w = 216, h = 28 }, shown[1].dimen)
+        assert.are.same({ x = 33, y = 345, w = 216, h = 30 }, shown[1].dimen)
 
         ReaderUI.showReaderCoroutine(reader, "book.epub", {})
         assert.are.equal(1, #shown)
@@ -240,7 +240,7 @@ describe("opening banner", function()
             dimen = { x = 52, y = 80, w = 180, h = 270 },
             bordersize = 2,
         }))
-        assert.are.same({ x = 54, y = 320, w = 176, h = 28 }, shown[2].dimen)
+        assert.are.same({ x = 54, y = 318, w = 176, h = 30 }, shown[2].dimen)
         ReaderUI.showReaderCoroutine(reader, "book.epub", {})
         assert.are.equal(2, #shown)
 
@@ -311,11 +311,11 @@ describe("opening banner", function()
         }, shown[1].dimen.x, shown[1].dimen.y)
 
         assert.are.same({
-            { x = 33, y = 347, w = 216, h = 28, color = "black" },
+            { x = 33, y = 345, w = 216, h = 30, color = "black" },
             { x = 33, y = 374, w = 216, h = 1, color = "black" },
-            { x = 33, y = 347, w = 1, h = 28, color = "black" },
-            { x = 248, y = 347, w = 1, h = 28, color = "black" },
-            { x = 33, y = 347, w = 216, h = 2, color = "white" },
+            { x = 33, y = 345, w = 1, h = 30, color = "black" },
+            { x = 248, y = 345, w = 1, h = 30, color = "black" },
+            { x = 33, y = 345, w = 216, h = 2, color = "white" },
         }, painted)
     end)
 
@@ -344,7 +344,7 @@ describe("opening banner", function()
 
         ReaderUI:showReader("coverless.epub", {})
         assert.are.equal(3, #shown)
-        assert.are.same({ x = 0, y = 772, w = 600, h = 28 }, shown[3].dimen)
+        assert.are.same({ x = 0, y = 770, w = 600, h = 30 }, shown[3].dimen)
         run_next_tick()
         assert.are.equal(2, opens)
     end)

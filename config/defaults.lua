@@ -284,7 +284,7 @@ local defaults = {
         show_mosaic_progress = true,
         show_native_progress_bar = false,
         show_new_banner = true,
-        badge_size = "compact",
+        badge_size = "normal",
         dim_finished_books = false,
     },
     browser_page_count = {

@@ -835,7 +835,7 @@ describe("OPDS header", function()
                         assert.is_true(dimmed)
                         for py = y, y + height - 1 do
                             for px = x, x + width - 1 do
-                                assert.is_true(px >= 124 and px <= 147 and py >= 58 and py <= 80)
+                                assert.is_true(px >= 122 and px <= 147 and py >= 58 and py <= 82)
                                 pixels[py * 1000 + px] = color
                             end
                         end

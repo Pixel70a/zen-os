@@ -270,7 +270,7 @@ function M.build(ctx)
                                     checked_func = function()
                                         local cur = type(config.browser_cover_badges) == "table"
                                             and config.browser_cover_badges.badge_size
-                                        return (cur or "compact") == v
+                                        return (cur or "normal") == v
                                     end,
                                     callback = function()
                                         if type(config.browser_cover_badges) ~= "table" then

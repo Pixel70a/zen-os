@@ -52,8 +52,10 @@ describe("common utils badge font sizing", function()
         end
     end)
 
-    it("preserves compact fonts and fonts above the minimum", function()
-        assert.are.equal(7, utils.getBadgeFontSize(nil, 20, 0.24, 7))
+    it("defaults to normal fonts and preserves fonts above the minimum", function()
+        assert.are.equal(1.10, utils.getBadgeScale({}))
+        assert.are.equal(1.10, utils.getBadgeScale({ browser_cover_badges = {} }))
+        assert.are.equal(8, utils.getBadgeFontSize(nil, 20, 0.24, 7))
         assert.are.equal(19, utils.getBadgeFontSize(nil, 80, 0.24, 7))
         assert.are.equal(8, utils.getBadgeFontSize(nil, 18, 0.45, 6))
     end)
