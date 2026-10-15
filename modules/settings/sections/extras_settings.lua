@@ -23,7 +23,9 @@ function M.build(ctx)
     table.insert(items, stats_settings.build(ctx))
     local zenpm_item = zenpm_installer.build_item(plugin)
     if zenpm_item then
-        table.insert(items, IconItem.decorate(zenpm_item, icons.download))
+        zenpm_item.icon_file = require("common/utils").resolveLocalIcon(
+            require("common/plugin_root") .. "/icons/", "zenpm")
+        table.insert(items, zenpm_item)
     end
 
     do
