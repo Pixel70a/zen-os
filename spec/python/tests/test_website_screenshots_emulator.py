@@ -111,7 +111,7 @@ def test_icon_pack_captures_use_distinct_packs_and_accents(tmp_path: Path) -> No
     assert {result["id"] for result in report["results"]} == ids
     assert all(result["status"] == "passed" for result in report["results"]), report
     assert len({result["icon_pack"] for result in report["results"]}) == 4
-    assert len({result["accent_color"] for result in report["results"]}) == 4
+    assert len({result["accent_color"] for result in report["results"]}) == 5
     assert report["source_files_unchanged"] is True
     assert report["settings_baseline_files_unchanged"] is True
     frames = []

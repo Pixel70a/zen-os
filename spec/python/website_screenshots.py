@@ -48,6 +48,7 @@ FORMAT_PREFERENCE = ("EPUB", "KEPUB", "AZW3", "MOBI")
 GROUPS = frozenset(("home", "library", "menus", "reader"))
 ICON_PACK_SESSIONS = {
     "solar_icons": "zen-solar-colour",
+    "solar_navbar": "zen-solar-colour",
     "mono_icons": "zen-solar-mono",
     "gradient_icons": "zen-streamline-flex-gradient",
     "fluent_icons": "zen-fluent-color",

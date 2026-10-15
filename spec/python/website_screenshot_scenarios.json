@@ -120,7 +120,7 @@
     "action": "menu_tab",
     "tab": "quicksettings",
     "navbar": "icon_pack_tabs",
-    "accent_color": "#007F73",
+    "accent_color": "#A8D5BA",
     "docs": [
       "docs/icon-packs.md"
     ]
@@ -156,7 +156,7 @@
     "action": "menu_tab",
     "tab": "quicksettings",
     "navbar": "icon_pack_tabs",
-    "accent_color": "#174C73",
+    "accent_color": "#AACDE8",
     "docs": [
       "docs/icon-packs.md"
     ]
@@ -168,7 +168,7 @@
     "action": "menu_tab",
     "tab": "app_launcher",
     "navbar": "icon_pack_tabs",
-    "accent_color": "#007F73",
+    "accent_color": "#A8D5BA",
     "docs": [
       "docs/launcher.md",
       "docs/icon-packs.md"
@@ -207,7 +207,7 @@
     "action": "menu_tab",
     "tab": "app_launcher",
     "navbar": "icon_pack_tabs",
-    "accent_color": "#174C73",
+    "accent_color": "#AACDE8",
     "docs": [
       "docs/launcher.md",
       "docs/icon-packs.md"
@@ -216,7 +216,7 @@
   {
     "id": "navbar_underline_above",
     "group": "library",
-    "session": "solar_icons",
+    "session": "solar_navbar",
     "action": "navbar",
     "navbar": "navbar_underline_above",
     "accent_color": "#007F73",
@@ -227,7 +227,7 @@
   {
     "id": "navbar_underline_below",
     "group": "library",
-    "session": "solar_icons",
+    "session": "solar_navbar",
     "action": "navbar",
     "navbar": "navbar_underline_below",
     "accent_color": "#007F73",
@@ -238,7 +238,7 @@
   {
     "id": "navbar_filled",
     "group": "library",
-    "session": "solar_icons",
+    "session": "solar_navbar",
     "action": "navbar",
     "navbar": "navbar_filled",
     "accent_color": "#007F73",
@@ -249,7 +249,7 @@
   {
     "id": "navbar_outlined",
     "group": "library",
-    "session": "solar_icons",
+    "session": "solar_navbar",
     "action": "navbar",
     "navbar": "navbar_outlined",
     "accent_color": "#007F73",

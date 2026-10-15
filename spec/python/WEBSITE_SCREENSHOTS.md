@@ -38,8 +38,9 @@ Each uses a separate emulator session. Install `zen-solar-colour`, `zen-solar-mo
 `zen-streamline-flex-gradient`, and `zen-fluent-color` under
 `KOREADER_DIR/icons/zen/` before capturing these screens; the fixture copies their assets into
 the temporary `KO_HOME` and enables only the selected pack. A missing pack fails the capture.
-The fixtures use full-opacity teal (`#007F73`), cobalt (`#2456D6`), violet (`#7638C8`),
-and deep blue (`#174C73`) accents respectively, each with at least 4.5:1 contrast against white.
+The fixtures use full-opacity pastel sage (`#A8D5BA`), cobalt (`#2456D6`), violet (`#7638C8`),
+and pastel blue (`#AACDE8`) accents respectively. Sage and pastel blue use dark badge
+text; cobalt and violet use white text, each with at least 4.5:1 contrast against its fill.
 Their Navbar shows Library, Authors, Tags, History, Favorites, Series, and Home as icons.
 Controls include **Zen Settings** using `appbar.settings` and a themed Home tab at the top right.
 Gradient omits the unthemed Zen control.
@@ -49,8 +50,9 @@ All icon-pack captures, including the Navbar styles, disable background hatching
 icon inversion with dark mode.
 
 The Library screenshots `navbar_underline_above`, `navbar_underline_below`, `navbar_filled`,
-and `navbar_outlined` compare accent-colored active tabs using Solar Colour and the same teal
-accent. Underline-above and outlined use icons only; underline-below and filled include labels.
+and `navbar_outlined` compare accent-colored active tabs using Solar Colour in a separate
+session with teal (`#007F73`) to keep underline labels readable. Underline-above and outlined
+use icons only; underline-below and filled include labels.
 Each fixture explicitly sets the style flags so a saved or previously captured style cannot
 add another highlight.
 

@@ -230,10 +230,10 @@ def test_catalog_is_the_canonical_40_image_inventory() -> None:
 
 
 @pytest.mark.parametrize("style,pack_id,accent_color", [
-    ("solar", "zen-solar-colour", "#007F73"),
+    ("solar", "zen-solar-colour", "#A8D5BA"),
     ("mono", "zen-solar-mono", "#2456D6"),
     ("gradient", "zen-streamline-flex-gradient", "#7638C8"),
-    ("fluent", "zen-fluent-color", "#174C73"),
+    ("fluent", "zen-fluent-color", "#AACDE8"),
 ])
 @pytest.mark.parametrize("screen_kind,tab,docs", [
     ("icons", "quicksettings", ("docs/icon-packs.md",)),
@@ -259,7 +259,8 @@ def test_icon_pack_screens_use_isolated_sessions(
     linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
               for value in channels]
     luminance = sum(weight * value for weight, value in zip((0.2126, 0.7152, 0.0722), linear))
-    assert 1.05 / (luminance + 0.05) >= 4.5
+    contrast = (luminance + 0.05) / 0.05 if luminance > 0.179 else 1.05 / (luminance + 0.05)
+    assert contrast >= 4.5
 
 
 @pytest.mark.parametrize("pack_id,zen_visible,network_icon", [
@@ -329,7 +330,7 @@ def test_navbar_style_screens_show_accent_styles_with_and_without_labels(
     scenario = next(screen for screen in load_catalog() if screen.id == screen_id)
     assert scenario.action == "navbar"
     assert scenario.group == "library"
-    assert scenario.session == "solar_icons"
+    assert scenario.session == "solar_navbar"
     assert scenario.options == {"navbar": screen_id, "accent_color": "#007F73"}
     assert scenario.docs == ("docs/navbar.md",)
     assert SHOWCASE_NAVBAR_STATES[screen_id] == {
