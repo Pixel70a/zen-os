@@ -3,7 +3,6 @@ return function()
     local IconButton = require("ui/widget/iconbutton")
     local BD = require("ui/bidi")
     local Feedback = require("common/ui/button_feedback")
-    local Accent = require("common/ui/accent")
     local Device = require("device")
     local Geom = require("ui/geometry")
     local UIManager = require("ui/uimanager")
@@ -13,9 +12,11 @@ return function()
     local Screen = Device.screen
     local orig_refresh_ui = Screen.refreshUIImp
     function Screen:refreshUIImp(x, y, w, h, dither)
-        if self.waveform_full and not self.night_mode
-                and Device.isKindle and Device:isKindle() and Accent.isEnabled() then
-            -- AUTO can flash the rectangular refresh region around accent feedback.
+        if self.mech_refresh and self.waveform_full and not self.night_mode then
+            -- AUTO can flash the rectangular refresh region around rounded feedback.
+            if Device.isSunxi and Device:isSunxi() then
+                return self:mech_refresh(false, false, self.waveform_full, x, y, w, h, false)
+            end
             return self:mech_refresh(false, self.waveform_full, x, y, w, h, false)
         end
         return orig_refresh_ui(self, x, y, w, h, dither)
@@ -31,7 +32,7 @@ return function()
         }
             or Feedback.paddedRegion(dimen)
         self._zen_feedback_pixels = Feedback.highlight(self._zen_feedback_region)
-        UIManager:setDirty(nil, Accent.isEnabled() and "ui" or "fast", self._zen_feedback_region)
+        UIManager:setDirty(nil, Feedback.getRefreshMode(), self._zen_feedback_region)
     end
 
     function Button:_undoFeedbackHighlight(is_translucent)

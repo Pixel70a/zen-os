@@ -9,6 +9,10 @@ local logger = require("common/zen_logger").new("button_feedback")
 local M = {}
 local submitted_marker, submitted_buffer
 
+function M.getRefreshMode()
+    return (Accent.isEnabled() or not Screen.night_mode) and "ui" or "fast"
+end
+
 function M.paddedRegion(dimen)
     local padding = Screen:scaleBySize(4)
     return Geom:new{
@@ -97,7 +101,7 @@ function M.flash(region, radius)
         x = region.x, y = region.y, w = region.w, h = region.h,
     }
     local saved = M.highlight(region, radius)
-    UIManager:setDirty(nil, Accent.isEnabled() and "ui" or "fast", region)
+    UIManager:setDirty(nil, M.getRefreshMode(), region)
     UIManager:forceRePaint()
     UIManager:yieldToEPDC()
     M.restore(region, saved, radius)

@@ -130,6 +130,7 @@ describe("Interface settings", function()
         }, {})
         local accent = section.sub_item_table[5]
         local menu = { updateItems = function() updates = updates + 1 end }
+        assert.is_true(accent.show_func())
         assert.is_true(accent.enabled_func())
         assert.are.equal("Accent color: #204080", accent.sub_item_table[1].text_func())
         accent.sub_item_table[1].callback(menu)
@@ -159,7 +160,7 @@ describe("Interface settings", function()
         assert.are.equal(3, saves)
     end)
 
-    it("disables accent editing on monochrome screens", function()
+    it("hides accent settings and disables editing on monochrome screens", function()
         local config = { features = {}, accent_color = "#336699" }
         package.loaded["ui/uimanager"].show = function() error("monochrome must not open the color wheel") end
         local section = require("modules/settings/sections/interface_settings").build({
@@ -168,6 +169,7 @@ describe("Interface settings", function()
             save_and_apply = function() end,
         }, {})
         local accent = section.sub_item_table[5]
+        assert.is_false(accent.show_func())
         assert.is_false(accent.enabled_func())
         accent.checkmark_callback()
         for _i, item in ipairs(accent.sub_item_table) do

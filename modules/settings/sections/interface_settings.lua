@@ -153,6 +153,7 @@ function M.build(ctx, extras_items)
     end
     table.insert(items, {
         text = _("Accent color"),
+        show_func = Accent.isSupported,
         enabled_func = Accent.isSupported,
         checked_func = function() return config.accent_enabled ~= false end,
         checkmark_callback = function(touchmenu_instance)

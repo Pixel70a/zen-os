@@ -218,12 +218,48 @@ describe("rounded button feedback", function()
         assert.are.equal(255, screen.bb:getPixel(36, 36):getColor8().a)
     end)
 
-    it("preserves normal UI refreshes without a Kindle color accent", function()
-        local color, kindle = true, true
-        _G.__ZEN_UI_PLUGIN = { config = { accent_color = "#204080" } }
-        package.loaded.device.isKindle = function() return kindle end
-        screen.isColorScreen = function() return color end
+    it("uses non-flashing grayscale updates for both framebuffer APIs", function()
         screen.waveform_ui, screen.waveform_full = 257, 2
+        screen.bb = Blitbuffer.new(80, 60, Blitbuffer.TYPE_BB8)
+        screen.bb:fill(Blitbuffer.Color8(32))
+        screen.refreshUIImp = function() error("feedback must bypass AUTO") end
+        local region = { x = 20, y = 20, w = 32, h = 24 }
+        local pending, refreshes = nil, 0
+        UIManager.setDirty = function(_self, _owner, mode, refreshed)
+            assert.are.equal("ui", mode)
+            pending = refreshed
+        end
+        UIManager.forceRePaint = function()
+            if not pending then return end
+            screen:refreshUIImp(pending.x, pending.y, pending.w, pending.h, true)
+            pending = nil
+        end
+        require("modules/global/patches/button_feedback")()
+
+        for _i, sunxi in ipairs({ false, true }) do
+            package.loaded.device.isSunxi = function() return sunxi end
+            screen.mech_refresh = function(_self, ...)
+                assert.are.same(sunxi and { false, false, 2, 20, 20, 32, 24, false }
+                    or { false, 2, 20, 20, 32, 24, false }, { ... })
+                assert.are.equal(32, screen.bb:getPixel(20, 20).a)
+                assert.are.equal(refreshes % 2 == 0 and 223 or 32, screen.bb:getPixel(28, 28).a)
+                refreshes = refreshes + 1
+            end
+            Feedback.flash(region)
+            UIManager:forceRePaint()
+            local button = setmetatable({ dimen = region, icon = "chevron.left" }, { __index = Button })
+            button:_doFeedbackHighlight()
+            UIManager:forceRePaint()
+            button:_undoFeedbackHighlight(false)
+            UIManager:forceRePaint()
+        end
+        assert.are.equal(8, refreshes)
+        assert.are.equal(257, screen.waveform_ui)
+    end)
+
+    it("preserves stock UI refreshes at night or without direct waveform support", function()
+        screen.waveform_ui, screen.waveform_full = 257, 2
+        screen.mech_refresh = function() error("must preserve the stock refresh") end
         local calls = 0
         screen.refreshUIImp = function(_self, ...)
             assert.are.same({ 10, 20, 30, 40, true }, { ... })
@@ -232,20 +268,14 @@ describe("rounded button feedback", function()
         end
         require("modules/global/patches/button_feedback")()
 
-        kindle = false
-        assert.are.equal("stock", screen:refreshUIImp(10, 20, 30, 40, true))
-        kindle, screen.night_mode = true, true
+        screen.night_mode = true
         assert.are.equal("stock", screen:refreshUIImp(10, 20, 30, 40, true))
         screen.night_mode = false
-        kindle, color = true, false
-        assert.are.equal("stock", screen:refreshUIImp(10, 20, 30, 40, true))
-        color = true
-        _G.__ZEN_UI_PLUGIN.config.accent_enabled = false
-        assert.are.equal("stock", screen:refreshUIImp(10, 20, 30, 40, true))
-        _G.__ZEN_UI_PLUGIN.config.accent_enabled = true
         screen.waveform_full = nil
         assert.are.equal("stock", screen:refreshUIImp(10, 20, 30, 40, true))
-        assert.are.equal(5, calls)
+        screen.waveform_full, screen.mech_refresh = 2, nil
+        assert.are.equal("stock", screen:refreshUIImp(10, 20, 30, 40, true))
+        assert.are.equal(3, calls)
     end)
 
     it("clips colored feedback snapshots at screen edges and restores rotated buffers", function()
@@ -358,7 +388,7 @@ describe("rounded button feedback", function()
                 end
             end
             Feedback.flash(region, 16)
-            assert.are.same({ "fast", "ui" }, modes)
+            assert.are.same({ "ui", "ui" }, modes)
             for y = 0, 79 do
                 for x = 0, 79 do
                     assert.are.equal(tostring(before:getPixel(x, y)), tostring(screen.bb:getPixel(x, y)))
@@ -366,7 +396,7 @@ describe("rounded button feedback", function()
             end
             _G.G_reader_settings.isFalse = function() return true end
             Feedback.flash(region, 16)
-            assert.are.same({ "fast", "ui" }, modes)
+            assert.are.same({ "ui", "ui" }, modes)
             _G.G_reader_settings.isFalse = function() return false end
             before:free()
             screen.bb:free()
@@ -382,7 +412,7 @@ describe("rounded button feedback", function()
         local refreshes = 0
         UIManager.setDirty = function(_self, owner, mode, refreshed)
             assert.is_nil(owner)
-            assert.are.equal(refreshes % 2 == 0 and "fast" or "ui", mode)
+            assert.are.equal("ui", mode)
             assert.is_true(fullscreen:openIntersectWith(refreshed))
             assert.is_true(refreshed:openIntersectWith(fullscreen))
             assert.are.same(fullscreen, fullscreen:combine(refreshed))
@@ -408,14 +438,21 @@ describe("rounded button feedback", function()
         assert.are.same({ x = 20, y = 20, w = 100, h = 60 }, region)
     end)
 
-    it("uses fast highlights and restores gray content with UI refreshes on monochrome and color screens", function()
+    it("uses UI highlights in light mode regardless of device or color support", function()
         screen.bb = Blitbuffer.new(80, 60, Blitbuffer.TYPE_BB8)
         screen.bb:fill(Blitbuffer.Color8(32))
         require("modules/global/patches/button_feedback")()
         local region = { x = 20, y = 20, w = 32, h = 24 }
         local button = setmetatable({ dimen = region, enabled = true }, { __index = Button })
-        for _i, color in ipairs({ false, true }) do
-            screen.isColorScreen = function() return color end
+        for _i, case in ipairs({
+            { false, false, false }, { false, false, true },
+            { true, false, false }, { true, false, true },
+            { true, true, false }, { true, true, true },
+        }) do
+            package.loaded.device.isKindle = function() return case[1] end
+            screen.night_mode = case[2]
+            screen.isColorScreen = function() return case[3] end
+            local highlight_mode = not case[2] and "ui" or "fast"
             local modes = {}
             local expected_region = region
             UIManager.setDirty = function(_self, owner, mode, refreshed)
@@ -424,13 +461,13 @@ describe("rounded button feedback", function()
                 modes[#modes + 1] = mode
             end
             Feedback.flash(region)
-            assert.are.same({ "fast", "ui" }, modes)
+            assert.are.same({ highlight_mode, "ui" }, modes)
             assert.are.equal(32, screen.bb:getPixel(28, 28).a)
 
             modes = {}
             button:_doFeedbackHighlight()
             button:_undoFeedbackHighlight(false)
-            assert.are.same({ "fast", "ui" }, modes)
+            assert.are.same({ highlight_mode, "ui" }, modes)
             assert.are.equal(32, screen.bb:getPixel(28, 28).a)
         end
     end)

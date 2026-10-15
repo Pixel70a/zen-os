@@ -975,9 +975,42 @@ local function showDetailSortDialog(group_name, tab_id, menu, files, reload_file
     UIManager:show(sort_dialog)
 end
 
+local function remove_file(files, path)
+    for index = #files, 1, -1 do
+        if files[index] == path then table.remove(files, index) end
+    end
+end
+
+local function refresh_after_delete(path)
+    require("common/db_bookinfo").invalidate()
+    for tab_id, menu in pairs({
+        authors = _authors_menu, series = _series_menu,
+        languages = _languages_menu, tags = _tags_menu,
+    }) do
+        for index = #menu.item_table, 1, -1 do
+            local item = menu.item_table[index]
+            if item._zen_files then
+                remove_file(item._zen_files, path)
+                if #item._zen_files == 0 then
+                    table.remove(menu.item_table, index)
+                else
+                    item.mandatory = tostring(#item._zen_files) .. " \u{F016}"
+                end
+            end
+        end
+        if #menu.item_table == 0 then
+            menu.item_table = build_group_item_table({}, tab_id)
+        end
+        menu:updateItems()
+    end
+    for _i, menu in ipairs(_detail_menus) do
+        menu._zen_remove_file(path)
+    end
+    if _tbr_menu then _tbr_menu._zen_tbr_refresh() end
+end
+
 -------------------------------------------------------------------------------
--- show_file_dialog_with_refresh: call fc:showFileDialog(item) but also
--- refresh menu_self after a status change (which triggers fc:refreshPath).
+-- Refresh library data after deletion, or redraw after a status change.
 -- One-shot wrapper: restores the original after first call or on next refresh.
 -------------------------------------------------------------------------------
 local function show_file_dialog_with_refresh(fc, menu_self, item)
@@ -999,7 +1032,11 @@ local function show_file_dialog_with_refresh(fc, menu_self, item)
             end
         end
         if is_shown then
-            menu_self:updateItems()
+            if not require("libs/libkoreader-lfs").attributes(item.path) then
+                refresh_after_delete(item.path)
+            else
+                menu_self:updateItems()
+            end
         end
     end
     fc:showFileDialog(item)
@@ -1077,49 +1114,48 @@ showDetailView = function(group_item, injectNavbar, tab_id, navbar_tab_id)
     else
         default_collate = "title"
     end
-    local cur_collate = get_detail_collate(tab_id, group_name, default_collate)
     local reverse_fallback = tab_id == "tags" and is_tags_global_reverse() or false
-    local cur_reverse = get_detail_reverse(tab_id, group_name, reverse_fallback)
-
-    -- Sort files based on current settings
-    local sorted_files = sortDetailFiles(files, cur_collate, cur_reverse)
-    sorted_files = apply_status_filter(sorted_files, tab_id)
-
-    -- Build menu items from sorted files
     local lfs_mod  = require("libs/libkoreader-lfs")
     local util_mod = require("util")
-    local book_items = {}
-    for _i, fpath in ipairs(sorted_files) do
-        local fname = fpath:match("([^/]+)$") or fpath
-        local display = fname:gsub("%.[^%.]+$", "")
-        local attr = lfs_mod.attributes(fpath)
-        table.insert(book_items, {
-            text      = display,
-            path      = fpath,
-            filepath  = fpath,
-            is_file   = true,
-            dim       = is_file_selected(fpath),
-            mandatory = attr and util_mod.getFriendlySize(attr.size or 0) or "",
-        })
-    end
-    book_items = group_series_book_items(book_items, tab_id)
-    if #book_items == 0 then
-        table.insert(book_items, {
-            text                   = group_empty_message(tab_id),
-            dim                    = true,
-            callback               = function() end,
-            _zen_empty_placeholder = true,
-        })
-    end
-    if should_show_up_folder() then
-        table.insert(book_items, 1, { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
+    local sorted_files
+    local function buildItems()
+        local cur_collate = get_detail_collate(tab_id, group_name, default_collate)
+        local cur_reverse = get_detail_reverse(tab_id, group_name, reverse_fallback)
+        sorted_files = apply_status_filter(sortDetailFiles(files, cur_collate, cur_reverse), tab_id)
+        local book_items = {}
+        for _i, fpath in ipairs(sorted_files) do
+            local fname = fpath:match("([^/]+)$") or fpath
+            local display = fname:gsub("%.[^%.]+$", "")
+            local attr = lfs_mod.attributes(fpath)
+            table.insert(book_items, {
+                text      = display,
+                path      = fpath,
+                filepath  = fpath,
+                is_file   = true,
+                dim       = is_file_selected(fpath),
+                mandatory = attr and util_mod.getFriendlySize(attr.size or 0) or "",
+            })
+        end
+        book_items = group_series_book_items(book_items, tab_id)
+        if #book_items == 0 then
+            table.insert(book_items, {
+                text                   = group_empty_message(tab_id),
+                dim                    = true,
+                callback               = function() end,
+                _zen_empty_placeholder = true,
+            })
+        end
+        if should_show_up_folder() then
+            table.insert(book_items, 1, { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
+        end
+        return book_items
     end
 
     local detail_menu
     detail_menu = StandalonePage.create_menu{
         name = detail_name,
         title = group_name,
-        item_table = book_items,
+        item_table = buildItems(),
         onMenuSelect = function(menu_self, item)
             if item.is_go_up then
                 if menu_self.close_callback then menu_self.close_callback()
@@ -1195,6 +1231,11 @@ showDetailView = function(group_item, injectNavbar, tab_id, navbar_tab_id)
     end
 
     table.insert(_detail_menus, detail_menu)
+    detail_menu._zen_remove_file = function(path)
+        remove_file(files, path)
+        detail_menu.item_table = buildItems()
+        detail_menu:updateItems()
+    end
     detail_menu._zen_group_name = group_name
     detail_menu._zen_tab_id     = tab_id
     detail_menu.close_callback = function()
