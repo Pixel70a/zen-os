@@ -235,8 +235,9 @@ function M.build(opts)
                 left = index == 1 and edge_hit_padding or 0,
                 right = index == #entries and edge_hit_padding or 0,
             })
+        local target
         if type(opts.prepare_focus) == "function" then
-            local target = {
+            target = {
                 key = "strip-control:" .. tostring(entry.id),
                 subrow = 0,
                 col = index,
@@ -249,6 +250,16 @@ function M.build(opts)
             }
             widget = opts.prepare_focus(target, widget)
             targets[#targets + 1] = target
+        end
+        if active then
+            local paint = content.paintTo
+            content.paintTo = function(self, bb, x, y)
+                -- Cached controls survive night-mode toggles.
+                self.background = Accent.color()
+                self[1][1].fgcolor = Accent.foreground()
+                if target then target.focus_color = self[1][1].fgcolor end
+                return paint(self, bb, x, y)
+            end
         end
         row[#row + 1] = widget
         if index < #entries then

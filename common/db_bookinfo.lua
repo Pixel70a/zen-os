@@ -529,7 +529,7 @@ function M.getLightMetadata(directory)
     return metadata
 end
 
-function M.groupPathsBySeries(files, metadata)
+function M.groupPathsBySeries(files, metadata, group_single_series)
     local groups, result = {}, {}
     local series_count, ungrouped_count = 0, 0
     for _i, file in ipairs(files) do
@@ -549,7 +549,7 @@ function M.groupPathsBySeries(files, metadata)
             ungrouped_count = ungrouped_count + 1
         end
     end
-    if series_count == 1 and ungrouped_count == 0 then return files end
+    if not group_single_series and series_count == 1 and ungrouped_count == 0 then return files end
     for index, item in ipairs(result) do
         if type(item) == "table" then
             if #item.files == 1 then

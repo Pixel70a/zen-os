@@ -9,7 +9,9 @@ local PATCH_MODULES = {
     opds                   = "modules/global/patches/opds",
     cloud_storage_home     = "modules/global/patches/cloud_storage_home",
     kindle_autosuspend_resume = "modules/global/patches/kindle_autosuspend_resume",
+    kindle_battery_capacity = "modules/global/patches/kindle_battery_capacity",
     kindle_network_profile_guard = "modules/global/patches/kindle_network_profile_guard",
+    kindle_wakeup_recovery = "modules/global/patches/kindle_wakeup_recovery",
     kobo_bluetooth_fix     = "modules/global/patches/kobo_bluetooth_fix",
     nonblocking_wifi       = "modules/global/patches/nonblocking_wifi",
     lockdown_mode          = "modules/global/patches/lockdown_mode",
@@ -112,6 +114,16 @@ function M.init(logger, plugin)
     local kindle_autosuspend_resume_fn = load_patch("kindle_autosuspend_resume")
     if kindle_autosuspend_resume_fn then
         run_patch(logger, plugin, "kindle_autosuspend_resume", kindle_autosuspend_resume_fn)
+    end
+
+    local kindle_battery_capacity_fn = load_patch("kindle_battery_capacity")
+    if kindle_battery_capacity_fn then
+        run_patch(logger, plugin, "kindle_battery_capacity", kindle_battery_capacity_fn)
+    end
+
+    local kindle_wakeup_recovery_fn = load_patch("kindle_wakeup_recovery")
+    if kindle_wakeup_recovery_fn then
+        run_patch(logger, plugin, "kindle_wakeup_recovery", kindle_wakeup_recovery_fn)
     end
 
     local kindle_network_profile_guard_fn = load_patch("kindle_network_profile_guard")

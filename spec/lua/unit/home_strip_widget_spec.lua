@@ -1111,6 +1111,49 @@ describe("home strip widget", function()
         assert.are.same({ 226, 225 }, wide_label_widths)
     end)
 
+    it("preserves the strip accent and contrast across dark mode round trips", function()
+        require("ffi/loadlib")
+        ZenSpec.unload("ffi/blitbuffer")
+        local Blitbuffer = require("ffi/blitbuffer")
+        local screen = require("device").screen
+        screen.isColorScreen = function() return true end
+        rawset(_G, "__ZEN_UI_PLUGIN", { config = { accent_color = "#204080" } })
+        local FrameContainer = widget_class("ui/widget/container/framecontainer")
+        ZenSpec.replace("ui/widget/container/framecontainer", { new = function(_self, values)
+            values.paintTo = function(self, bb, x, y)
+                bb:paintRectRGB32(x, y, self.width, self.height, self.background)
+            end
+            return FrameContainer:new(values)
+        end })
+        local StripControls = require("modules/filebrowser/patches/home/widgets/strip_controls")
+        local accent = Blitbuffer.ColorRGB32(32, 64, 128, 255)
+        for _i, initially_dark in ipairs({ false, true }) do
+            screen.night_mode = initially_dark
+            local frame, targets = StripControls.build{
+                width = 600, height = 30, active_id = "recent",
+                controls = {
+                    order = { "recent", "to_be_read" },
+                    show_buttons = { recent = true, to_be_read = true },
+                    labels = {}, custom_buttons = {},
+                },
+                prepare_focus = function(_target, widget) return widget end,
+            }
+            local cell = frame[1][1]
+            local bb = Blitbuffer.new(cell.width, cell.height, Blitbuffer.TYPE_BBRGB32)
+            for _j, night_mode in ipairs({ initially_dark, not initially_dark, initially_dark }) do
+                screen.night_mode = night_mode
+                cell:paintTo(bb, 0, 0)
+                local color = bb:getPixel(0, 0):getColorRGB32()
+                if night_mode then color = color:invert() end
+                assert.are.equal(tostring(accent), tostring(color))
+                local foreground = night_mode and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE
+                assert.are.equal(foreground, cell[1][1].fgcolor)
+                assert.are.equal(foreground, targets[1].focus_color)
+            end
+            bb:free()
+        end
+    end)
+
     it("outlines a lone source tab, including when page arrows are visible", function()
         local StripControls = require("modules/filebrowser/patches/home/widgets/strip_controls")
         for _i, arrows in ipairs({ false, true }) do

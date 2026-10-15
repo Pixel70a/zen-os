@@ -799,7 +799,7 @@ local function group_series_book_items(items, tab_id)
         by_path[item.path] = item
     end
     local db = require("common/db_bookinfo")
-    local grouped = db.groupPathsBySeries(file_paths, db.getLightMetadata())
+    local grouped = db.groupPathsBySeries(file_paths, db.getLightMetadata(), tab_id == "authors")
     local result = {}
     for _i, entry in ipairs(grouped) do
         if type(entry) == "table" then

@@ -924,6 +924,37 @@ describe("file browser group views", function()
         })
     end)
 
+    it("groups an author's only series and preserves it after sorting", function()
+        install_group_view({
+            authors = { { author = "Ada", files = { "/first.epub", "/second.epub" } } },
+        })
+        config.features.automatic_series_grouping = true
+        metadata["/first.epub"] = { title = "Zulu", series = "Saga", series_index = 1 }
+        metadata["/second.epub"] = { title = "Alpha", series = "Saga", series_index = 2 }
+        package.loaded.device.isTouchDevice = function() return true end
+
+        api.showAuthorsView()
+        local detail = assert(api.restoreDetail("Ada", "authors"))
+        assert.are.equal(1, #detail.item_table)
+        local group = detail.item_table[1]
+        assert.is_true(group.is_series_group)
+        assert.are.equal("Saga", group.text)
+        assert.are.same({ "/first.epub", "/second.epub" }, group._zen_files)
+
+        detail:onZenDetailBlankHold()
+        file_dialog_args._zen_sort_cb()
+        dialogs[#dialogs].buttons[4][1].callback()
+        assert.are.equal(1, #detail.item_table)
+        assert.is_true(detail.item_table[1].is_series_group)
+        assert.are.same(group._zen_files, detail.item_table[1]._zen_files)
+
+        detail.onMenuSelect(detail, detail.item_table[1])
+        local series = assert(find_menu("series_detail"))
+        assert.are.same({ "/first.epub", "/second.epub" }, {
+            series.item_table[1].path, series.item_table[2].path,
+        })
+    end)
+
     it("groups tagged series in both tag entry points when library grouping is enabled", function()
         install_group_view({
             tags = { { tag = "Fantasy", files = {
