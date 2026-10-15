@@ -426,6 +426,12 @@ msgstr "附加主页文件夹"
 msgid "Address"
 msgstr "地址"
 
+#. Type: message
+#. Context: Quickstart coachmark highlighting the KOReader settings section.
+#: menu_tour.lua:15
+msgid "Adjust KOReader settings here. These tabs were previously located in the top menu"
+msgstr "在此调整 KOReader 设置。这些选项卡之前位于顶部菜单中"
+
 #. Type: setting
 #. Context: 常规设置中的设置项名称。
 #: general_settings.lua:81

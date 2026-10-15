@@ -95,7 +95,7 @@ local function apply_quick_settings()
     -- ============================================================
 
     local config_default = {
-        button_order = { "wifi", "night", "rotate", "zen", "restart", "sleep" },
+        button_order = { "wifi", "night", "rotate", "restart", "sleep" },
         show_buttons = {
             wifi = true,
             bluetooth = false,
@@ -103,7 +103,7 @@ local function apply_quick_settings()
             frontlight = false,
             gyro = false,
             rotate = true,
-            zen = true,
+            zen = false,
             lockdown = false,
             incognito = false,
             search = false,
@@ -1429,10 +1429,6 @@ local function apply_quick_settings()
         local padding = Screen:scaleBySize(10)
         local inner_width = panel_width - padding * 2
         local powerd = Device:getPowerDevice()
-        local meta = zen_plugin.config and zen_plugin.config._meta
-        local panel_config = type(meta) == "table"
-                and meta.quickstart_menu_tour_pending == true
-            and config_default or config
 
         local refs = {
             buttons = {},
@@ -1447,12 +1443,12 @@ local function apply_quick_settings()
         install_custom_button_defs()
 
         local visible_buttons = {}
-        local hide_reader_actions = panel_config.hide_reader_actions_in_library == true
+        local hide_reader_actions = config.hide_reader_actions_in_library == true
             and touch_menu.item_table and touch_menu.item_table._zen_quick_settings_library == true
-        for _i, id in ipairs(panel_config.button_order) do
-            if panel_config.show_buttons[id] and button_defs[id] then
+        for _i, id in ipairs(config.button_order) do
+            if config.show_buttons[id] and button_defs[id] then
                 local def = button_defs[id]
-                local reader_action = (panel_config.reader_actions or {})[id]
+                local reader_action = (config.reader_actions or {})[id]
                 if reader_action == nil then reader_action = def.reader_action end
                 if (not hide_reader_actions or not reader_action)
                         and (not def.visible_func or def.visible_func()) then
@@ -1522,7 +1518,7 @@ local function apply_quick_settings()
                 align = "center",
                 circle,
             }
-            if panel_config.show_labels ~= false then
+            if config.show_labels ~= false then
                 local label_max_width = ButtonLabelWidth.maxWidth(action_cell_width, label_side_padding)
                 group[#group + 1] = VerticalSpan:new{ width = Screen:scaleBySize(2) }
                 group[#group + 1] = TextWidget:new{
@@ -1584,7 +1580,7 @@ local function apply_quick_settings()
         local has_frontlight = Device:hasFrontlight()
         local has_warmth = Device:hasNaturalLight()
         local use_unified = has_frontlight and has_warmth
-            and panel_config.unified_light_slider ~= false
+            and config.unified_light_slider ~= false
         local slider_opts = {
             inner_width     = inner_width,
             slider_width    = slider_width,
@@ -1594,8 +1590,8 @@ local function apply_quick_settings()
             small_btn_size  = small_btn_size,
             powerd          = powerd,
             refs            = refs,
-            show_frontlight = has_frontlight and (use_unified or panel_config.show_frontlight),
-            show_warmth     = has_warmth and (use_unified or panel_config.show_warmth),
+            show_frontlight = has_frontlight and (use_unified or config.show_frontlight),
+            show_warmth     = has_warmth and (use_unified or config.show_warmth),
             unified         = use_unified,
         }
 

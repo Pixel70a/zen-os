@@ -242,6 +242,39 @@ describe("Quickstart menu coachmark", function()
         end
     end)
 
+    it("enables upward swipe advancement only for the step that asks for it", function()
+        local coachmark = MenuCoachmark:new{
+            steps = {
+                { text = "Swipe up", swipe_up = true },
+                { text = "Reader menu" },
+            },
+        }
+        local swipe = coachmark.ges_events.SwipeAdvance
+        assert.is_table(swipe)
+        assert.are.equal("swipe", swipe[1].ges)
+        assert.are.equal("north", swipe[1].direction)
+        assert.are.same(coachmark.dimen, swipe[1].range)
+        assert.is_true(coachmark["on" .. swipe.event](coachmark))
+        assert.are.equal(2, coachmark._step)
+        assert.is_nil(coachmark.ges_events.SwipeAdvance)
+        assert.is_nil(new_coachmark().ges_events.SwipeAdvance)
+    end)
+
+    it("finishes the swipe-up prompt through the normal completion callback", function()
+        local completions = 0
+        local coachmark = MenuCoachmark:new{
+            steps = {{ text = "Swipe up", swipe_up = true }},
+            on_complete = function() completions = completions + 1 end,
+        }
+        local swipe = coachmark.ges_events.SwipeAdvance
+        assert.is_table(swipe)
+        assert.is_true(coachmark["on" .. swipe.event](coachmark))
+        assert.are.equal(1, close_calls)
+        assert.are.equal(0, completions)
+        table.remove(next_tick_callbacks, 1)()
+        assert.are.equal(1, completions)
+    end)
+
     it("centers compact callouts while keeping them close to their targets", function()
         local coachmark = new_coachmark()
         local first_callout = copy_dimen(coachmark._callout_dimen)

@@ -62,6 +62,7 @@ describe("Quickstart reader tour", function()
         assert.is_true(started)
         assert.are.equal("Swipe up to open the Page Browser", shown[1].steps[1].text)
         assert.are.equal("bottom", shown[1].steps[1].position)
+        assert.is_true(shown[1].steps[1].swipe_up)
         assert.is_nil(shown[1].steps[1].target)
 
         shown[1].on_complete()

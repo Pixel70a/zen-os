@@ -189,7 +189,7 @@ local defaults = {
         show_top_border = false,
     },
     quick_settings = {
-        button_order = { "wifi", "night", "rotate", "zen", "restart", "sleep" },
+        button_order = { "wifi", "night", "rotate", "restart", "sleep" },
         show_buttons = {
             wifi = true,
             bluetooth = false,
@@ -197,7 +197,7 @@ local defaults = {
             frontlight = false,
             gyro = false,
             rotate = true,
-            zen = true,
+            zen = false,
             lockdown = false,
             incognito = false,
             usb = false,

@@ -427,6 +427,12 @@ msgstr "Дополнительные домашние папки"
 msgid "Address"
 msgstr "Адрес"
 
+#. Type: message
+#. Context: Quickstart coachmark highlighting the KOReader settings section.
+#: menu_tour.lua:15
+msgid "Adjust KOReader settings here. These tabs were previously located in the top menu"
+msgstr "Изменяйте настройки KOReader здесь. Раньше эти вкладки находились в верхнем меню"
+
 #. Type: setting
 #. Context: Название настройки в общих настройках.
 #: general_settings.lua:81

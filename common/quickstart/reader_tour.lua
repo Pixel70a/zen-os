@@ -117,6 +117,7 @@ function M.start(plugin, ui, open_page_browser)
         steps = {{
             text = _("Swipe up to open the Page Browser"),
             position = "bottom",
+            swipe_up = true,
         }},
         on_complete = function()
             local browser

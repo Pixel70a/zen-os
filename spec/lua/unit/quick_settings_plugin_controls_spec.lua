@@ -464,7 +464,7 @@ describe("quick settings plugin controls", function()
         assert.are.equal(_G.__ZEN_UI_PLUGIN, opened_plugin)
     end)
 
-    it("renders default controls while the setup tour is pending", function()
+    it("preserves configured controls while the setup tour is pending", function()
         _G.__ZEN_UI_PLUGIN.config._meta = { quickstart_menu_tour_pending = true }
         local menu = {}
         FileManagerMenu.setUpdateItemTable(menu)
@@ -478,7 +478,7 @@ describe("quick settings plugin controls", function()
             return ids
         end
 
-        assert.are.same({ "wifi", "night", "rotate", "zen", "restart", "sleep" }, rendered_ids())
+        assert.are.same({ "tailscale" }, rendered_ids())
         assert.are.same({ "tailscale" }, _G.__ZEN_UI_PLUGIN.config.quick_settings.button_order)
 
         _G.__ZEN_UI_PLUGIN.config._meta.quickstart_menu_tour_pending = false

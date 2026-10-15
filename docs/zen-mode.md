@@ -2,7 +2,7 @@
 title: Zen Mode
 category: Interface
 summary: Simplify KOReader
-settingsPath: Zen Settings > Interface > Controls > Buttons > Zen mode
+settingsPath: Zen Settings > Interface > Zen mode
 order: 49
 ---
 
@@ -18,18 +18,19 @@ Zen Mode simplifies KOReader. When you first start ZenOS, you will be in Zen Mod
 
 By default, the Home folder lock applies only in Zen Mode, so you cannot accidentally go back out of your library into the device filesystem. To change this, choose **Zen Settings > Library > Folders > Home folder > Lock home folder** and select Off, Only in Zen mode, or On.
 
-Exiting Zen Mode with the toggle in Controls (icon below) will re-enable the top KOReader menu bar icons like Settings, Tools, etc.
+Turn off **Zen Settings > Interface > Zen mode** to restore KOReader's top menu tabs, such as Settings and Tools. You can also add a Zen mode button under **Interface > Controls > Buttons**; it is hidden by default.
 
 ![Zen Mode](/images/zen_os/zen_mode.webp)
 
 ## Options
 
-- Toggle Zen Mode from the Controls/Launcher Zen button or the `ZenOS: Toggle Zen Mode` dispatcher action.
+- Toggle Zen Mode from Interface settings, a Controls/Launcher Zen button, or the `ZenOS: Toggle Zen Mode` dispatcher action.
 
 ## Setting reference
 
 | Setting | Description |
 | --- | --- |
+| Interface > Zen mode | Toggles Zen Mode. Disabled while Lockdown Mode is active. |
 | Controls > Zen mode button | Toggles Zen Mode from the Controls panel. |
 | Dispatcher > ZenOS: Toggle Zen Mode | Provides the same toggle as a dispatcher action for gestures, custom buttons, launcher buttons, or navbar tabs. |
 | Behavior > Filtered menu tabs | Hides most default KOReader menu tabs and keeps Controls available. |

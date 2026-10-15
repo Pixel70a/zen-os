@@ -92,9 +92,33 @@ describe("Interface settings", function()
         local labels = {}
         for _i, item in ipairs(section.sub_item_table) do labels[#labels + 1] = item.text end
         assert.are.same({ "Controls", "Launcher", "Navbar", "Status bar", "Accent color", "Font", "Zen Keyboard",
-            "Wallpaper", "Custom icons", "Blur menu background", "Zen Search" }, labels)
+            "Wallpaper", "Custom icons", "Blur menu background", "Zen Search", "Zen mode" }, labels)
         assert.are.same({ { text = "Stats" } }, extras)
         assert.are.equal(1, #section.sub_item_table[1].sub_item_table)
+    end)
+
+    it("toggles Zen mode through the shared action and disables the control during lockdown", function()
+        local toggles = 0
+        local config = { features = { zen_mode = true } }
+        local section = require("modules/settings/sections/interface_settings").build({
+            config = config,
+            plugin = { onToggleZenMode = function()
+                toggles = toggles + 1
+                config.features.zen_mode = not config.features.zen_mode
+            end },
+        }, {})
+        local toggle = section.sub_item_table[#section.sub_item_table]
+        assert.are.equal("Zen mode", toggle.text)
+        assert.are.equal(require("common/plugin_root") .. "/icons/quick_zen.svg", toggle.icon_file)
+        assert.is_true(toggle.enabled_func())
+        assert.is_true(toggle.checked_func())
+        toggle.callback()
+        assert.is_false(toggle.checked_func())
+        toggle.callback()
+        assert.is_true(toggle.checked_func())
+        assert.are.equal(2, toggles)
+        config.features.lockdown_mode = true
+        assert.is_false(toggle.enabled_func())
     end)
 
     it("keeps Outlined immediately after Filled on the Interface page", function()

@@ -426,6 +426,12 @@ msgstr "Foldere suplimentare de acasă"
 msgid "Address"
 msgstr "Adresă"
 
+#. Type: message
+#. Context: Quickstart coachmark highlighting the KOReader settings section.
+#: menu_tour.lua:15
+msgid "Adjust KOReader settings here. These tabs were previously located in the top menu"
+msgstr "Ajustează aici setările KOReader. Aceste file se aflau anterior în meniul de sus"
+
 #. Type: setting
 #. Context: Denumirea unei setări în setările generale.
 #: general_settings.lua:81

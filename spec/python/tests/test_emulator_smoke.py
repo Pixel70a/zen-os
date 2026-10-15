@@ -681,7 +681,7 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             ]
             assert interface_labels[5].startswith("Font:")
             assert interface_labels[6:] == [
-                "Zen Keyboard", "Wallpaper", "Custom icons", "Blur menu background", "Zen Search",
+                "Zen Keyboard", "Wallpaper", "Custom icons", "Blur menu background", "Zen Search", "Zen mode",
             ]
             assert driver.command("settings_page_select", label=interface_labels[5])["ok"] is True
             font_labels = driver.command("settings_page_state")["settings"]["labels"]

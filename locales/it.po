@@ -426,6 +426,12 @@ msgstr "Cartelle home aggiuntive"
 msgid "Address"
 msgstr "Indirizzo"
 
+#. Type: message
+#. Context: Quickstart coachmark highlighting the KOReader settings section.
+#: menu_tour.lua:15
+msgid "Adjust KOReader settings here. These tabs were previously located in the top menu"
+msgstr "Modifica qui le impostazioni di KOReader. Queste schede si trovavano prima nel menu superiore"
+
 #. Type: setting
 #. Context: Nome di un’impostazione nelle impostazioni generali.
 #: general_settings.lua:81

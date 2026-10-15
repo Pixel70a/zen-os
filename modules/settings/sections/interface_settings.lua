@@ -483,6 +483,14 @@ function M.build(ctx, extras_items)
     move_item(extras_items, _("Custom icons"), items)
     move_item(quick_settings_item.sub_item_table, _("Blur menu background"), items)
     move_item(extras_items, _("Zen Search"), items)
+    table.insert(items, {
+        text = _("Zen mode"),
+        icon_file = require("common/utils").resolveLocalIcon(
+            require("common/plugin_root") .. "/icons/", "quick_zen"),
+        checked_func = function() return config.features.zen_mode == true end,
+        enabled_func = function() return config.features.lockdown_mode ~= true end,
+        callback = function() plugin:onToggleZenMode() end,
+    })
     return IconItem.decorate({
         text = _("Interface"),
         sub_item_table = items,

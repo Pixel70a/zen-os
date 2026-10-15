@@ -426,6 +426,12 @@ msgstr "Additional home folders"
 msgid "Address"
 msgstr "Address"
 
+#. Type: message
+#. Context: Quickstart coachmark highlighting the KOReader settings section.
+#: menu_tour.lua:15
+msgid "Adjust KOReader settings here. These tabs were previously located in the top menu"
+msgstr "Adjust KOReader settings here. These tabs were previously located in the top menu"
+
 #. Type: setting
 #. Context: Settings label in the General settings.
 #: general_settings.lua:81
@@ -4973,6 +4979,12 @@ msgstr "Restore the previous metadata for this book?"
 #: network_switcher.lua:362
 msgid "Restoring %1…"
 msgstr "Restoring %1…"
+
+#. Type: message
+#. Context: Shown while returning to the Kindle interface after exiting KOReader.
+#: kindle_exit_message.lua:21
+msgid "Restoring Kindle GUI…"
+msgstr "Restoring Kindle GUI…"
 
 #. Type: error
 #. Context: Error message in the book metadata editor.

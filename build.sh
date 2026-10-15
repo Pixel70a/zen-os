@@ -92,6 +92,7 @@ rsync -a \
   --exclude '.DS_Store' \
   --exclude '.gitignore' \
   --exclude '*.zip' \
+  --include '/modules/global/kindle_restore_screen.sh' \
   --exclude '*.sh' \
   --include 'LICENSE.md' \
   --include '/modules/filebrowser/metadata/LICENSES.md' \

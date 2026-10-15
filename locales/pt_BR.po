@@ -426,6 +426,12 @@ msgstr "Pastas iniciais adicionais"
 msgid "Address"
 msgstr "Endereço"
 
+#. Type: message
+#. Context: Quickstart coachmark highlighting the KOReader settings section.
+#: menu_tour.lua:15
+msgid "Adjust KOReader settings here. These tabs were previously located in the top menu"
+msgstr "Ajuste as configurações do KOReader aqui. Estas abas ficavam anteriormente no menu superior"
+
 #. Type: setting
 #. Context: Nome de uma configuração nas configurações gerais.
 #: general_settings.lua:81

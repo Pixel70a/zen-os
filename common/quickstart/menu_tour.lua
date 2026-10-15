@@ -12,6 +12,7 @@ local ZEN_MODE_TEXT = table.concat({
     _("This does not disable ZenOS—it only shows or hides KOReader’s menus."),
 }, "\n\n")
 local ZEN_SETTINGS_TEXT = _("This is Zen Settings. ZenOS settings/updates and common KOReader settings live here.")
+local KOREADER_SETTINGS_TEXT = _("Adjust KOReader settings here. These tabs were previously located in the top menu")
 
 local function valid_dimen(dimen)
     return type(dimen) == "table"
@@ -31,7 +32,7 @@ local function zen_button_dimen(touch_menu)
     for _i, ref in ipairs(refs and refs.buttons or {}) do
         if ref.id == "zen" then
             local dimen = ref.widget and ref.widget.dimen
-            return valid_dimen(dimen) and dimen or nil
+            return valid_dimen(dimen) and dimen or nil, true
         end
     end
 end
@@ -58,6 +59,25 @@ local function switch_to_quicksettings(touch_menu, index)
         return true
     end
     return false
+end
+
+local function wait_until_ready(get_steps, on_ready)
+    local UIManager = require("ui/uimanager")
+    local retries = 0
+    local function check()
+        local steps = get_steps()
+        if steps then
+            on_ready(steps)
+            return
+        end
+        retries = retries + 1
+        if retries < MAX_RETRIES then
+            UIManager:scheduleIn(RETRY_DELAY, check)
+        else
+            active = false
+        end
+    end
+    UIManager:scheduleIn(RETRY_DELAY, check)
 end
 
 function M.start(plugin)
@@ -90,53 +110,82 @@ function M.start(plugin)
     end
 
     active = true
-    UIManager:forceRePaint()
-    local retries = 0
-    local function show_when_ready()
-        local touch_menu = menu.menu_container and menu.menu_container[1]
-        local zen_target = zen_button_dimen(touch_menu)
-        local settings_target = zen_settings_dimen(touch_menu)
-        if zen_target and settings_target then
-            local Coachmark = require("common/quickstart/menu_coachmark")
-            UIManager:show(Coachmark:new{
-                steps = {
-                    {
-                        text = ZEN_MODE_TEXT,
-                        target = zen_target,
-                    },
-                    {
-                        text = ZEN_SETTINGS_TEXT,
-                        target = settings_target,
-                    },
-                },
-                on_complete = function()
-                    meta.quickstart_menu_tour_pending = false
-                    plugin:saveConfig()
-                    active = false
-                    if type(touch_menu.updateItems) == "function" then
-                        touch_menu:updateItems(1)
-                    end
-                    if meta.quickstart_reader_tour_pending == true
-                            and type(menu._zen_start_reader_tour) == "function" then
-                        menu:_zen_start_reader_tour()
-                    end
-                end,
-                on_cancel = function()
-                    active = false
-                    UIManager:scheduleIn(0.5, function() M.start(plugin) end)
-                end,
-            })
-            return
+    local Coachmark = require("common/quickstart/menu_coachmark")
+    local touch_menu
+    local settings_page
+    local has_zen_button
+    local function cancel()
+        if settings_page then settings_page:closeMenu() end
+        active = false
+        UIManager:scheduleIn(0.5, function() M.start(plugin) end)
+    end
+    local function complete()
+        meta.quickstart_menu_tour_pending = false
+        plugin:saveConfig()
+        active = false
+        if settings_page then
+            settings_page:closeMenu()
+        elseif type(touch_menu.updateItems) == "function" then
+            touch_menu:updateItems(1)
         end
-
-        retries = retries + 1
-        if retries < MAX_RETRIES then
-            UIManager:scheduleIn(RETRY_DELAY, show_when_ready)
-        else
-            active = false
+        if meta.quickstart_reader_tour_pending == true
+                and type(menu._zen_start_reader_tour) == "function" then
+            menu:_zen_start_reader_tour()
         end
     end
-    UIManager:scheduleIn(RETRY_DELAY, show_when_ready)
+
+    local function show_koreader_step()
+        touch_menu:closeMenu()
+        settings_page = require("modules/settings/zen_settings_page").show(plugin, { path = {} })
+        settings_page:backToRootMenu()
+        for index, item in ipairs(settings_page.item_table) do
+            if item._zen_settings_root == "koreader" then
+                settings_page.page = settings_page:getPageNumber(index)
+                settings_page:updateItems(1)
+                break
+            end
+        end
+        UIManager:forceRePaint()
+        wait_until_ready(function()
+            if settings_page._closed then return nil end
+            for _i, row in ipairs(settings_page.item_group or {}) do
+                if row.entry._zen_settings_root == "koreader" then
+                    local container = row._underline_container or row[1]
+                    local target = container and container.dimen
+                    if valid_dimen(target) then
+                        return {{ text = KOREADER_SETTINGS_TEXT, target = target }}
+                    end
+                end
+            end
+        end, function(steps)
+            UIManager:show(Coachmark:new{
+                steps = steps,
+                on_complete = complete,
+                on_cancel = cancel,
+            })
+        end)
+    end
+
+    UIManager:forceRePaint()
+    wait_until_ready(function()
+        touch_menu = menu.menu_container and menu.menu_container[1]
+        local zen_target
+        zen_target, has_zen_button = zen_button_dimen(touch_menu)
+        local settings_target = zen_settings_dimen(touch_menu)
+        if not (settings_target and touch_menu._zen_panel_refs)
+                or (has_zen_button and not zen_target) then return nil end
+        local steps = {{ text = ZEN_SETTINGS_TEXT, target = settings_target }}
+        if zen_target then
+            table.insert(steps, 1, { text = ZEN_MODE_TEXT, target = zen_target })
+        end
+        return steps
+    end, function(steps)
+        UIManager:show(Coachmark:new{
+            steps = steps,
+            on_complete = has_zen_button and complete or show_koreader_step,
+            on_cancel = cancel,
+        })
+    end)
     return true
 end
 
